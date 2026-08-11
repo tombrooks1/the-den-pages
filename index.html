@@ -146,6 +146,28 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
   background:rgba(13,11,20,.72);border:1px solid var(--line);backdrop-filter:blur(8px);
 }
 .tag.vote{color:var(--amber);border-color:rgba(245,185,66,.34)}
+.tag.out{font-weight:700;letter-spacing:.04em;color:var(--muted)}
+.tag.nom{font-weight:700;letter-spacing:.04em;color:var(--amber);border-color:rgba(245,185,66,.34)}
+
+/* ---------- coming up ---------- */
+.up{margin-top:14px;padding:16px;border-radius:18px;
+  background:linear-gradient(158deg,var(--s2),var(--s1));border:1px solid var(--line)}
+.up + .up{margin-top:10px}
+.up .when{font-size:16px;font-weight:800;letter-spacing:-.02em}
+.up .th{margin-top:3px;font-size:12px;color:var(--amber);font-weight:600}
+.up .meta{margin-top:4px;font-size:11px;color:var(--muted)}
+.picks{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.pick{
+  font:inherit;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);text-align:left;
+  background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:11px;padding:7px 10px;
+  max-width:100%;
+}
+.pick.on{background:linear-gradient(180deg,var(--amber),var(--amber-deep));color:#221806;border-color:transparent}
+.pick:disabled{opacity:.38;cursor:default}
+.pick .yr{opacity:.6;font-weight:600}
+.throw{display:flex;align-items:center;gap:10px;font-size:13px;line-height:1.35}
+.throw.sep{margin-top:11px;padding-top:11px;border-top:1px solid var(--line)}
+.throw .av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;flex:none}
 .tag.vote.mine{background:linear-gradient(180deg,var(--amber),var(--amber-deep));color:#221806;border-color:transparent}
 .tile.dim{opacity:.42;filter:grayscale(.72)}
 .lockbar{
@@ -156,7 +178,9 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 }
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .grid .tile{display:flex;flex-direction:column}
-.grid .tile .ghost{margin-top:auto}
+.grid .tile .acts{margin-top:auto}
+.acts{display:flex;gap:7px}
+.acts .ghost{flex:1;min-width:0}
 .t-title{margin-top:9px;font-size:13px;font-weight:700;line-height:1.25;letter-spacing:-.01em;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .t-by{margin-top:4px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
@@ -197,7 +221,10 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 
 /* ---------- history ---------- */
 .hrow{display:grid;grid-template-columns:62px 1fr;gap:14px;align-items:start}
+.hrow.double{grid-template-columns:96px 1fr}
 .hrow + .hrow{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.bill{display:flex;gap:5px}
+.bill .poster{width:auto;flex:1;min-width:0}
 .paws{display:flex;gap:3px;font-size:14px;line-height:1}
 .paws span{opacity:.2;cursor:pointer}
 .paws span.on{opacity:1;filter:drop-shadow(0 0 6px rgba(245,185,66,.4))}
@@ -307,6 +334,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
   var tab = 'tonight';
   var busy = false;
   var query = '';             /* live suggest box text */
+  var themeDraft = '';        /* live theme-idea box text */
   var previewTimer = null;
 
   var view = document.getElementById('view');
@@ -384,21 +412,36 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     var lockedOut = !!(maj.locked && maj.leading && c.id !== maj.leading);
     var act = opts.act ? ' data-act="' + opts.act + '" data-id="' + esc(c.id) + '"' : '';
     var tags = [];
+    var sittingOut = c.entered === false;
     if (c.boosted) tags.push('<span class="tag" title="underdog bonus">&#128293;</span>');
     if (c.votes) {
       tags.push('<span class="tag vote' + (opts.picked ? ' mine' : '') +
         '">&#128499;&#65039;&times;' + c.votes + '</span>');
     }
-    return '<div class="tile' + (opts.picked ? ' picked' : '') + (lockedOut ? ' dim' : '') + '"' + act + '>' +
-      '<span class="badge">' + (isLock ? 'LOCKED' : odds(c)) + '</span>' +
+    if (sittingOut) tags.push('<span class="tag out">sitting out</span>');
+    else if (opts.themeToggle) tags.push('<span class="tag nom">nominated</span>');
+
+    /* One nomination each: owners manage their own, hosts manage anyone's. */
+    var acts = [];
+    if (opts.themeToggle && (c.mine || (S.me && S.me.is_host))) {
+      acts.push('<button class="ghost" data-act="enter" data-id="' + esc(c.id) +
+        '" data-enter="' + (sittingOut ? '1' : '0') + '">' +
+        (sittingOut ? 'Nominate' : 'Withdraw') + '</button>');
+    }
+    if (opts.removable && c.mine) {
+      acts.push('<button class="ghost" data-act="remove" data-id="' + esc(c.id) + '">Retire</button>');
+    }
+
+    return '<div class="tile' + (opts.picked ? ' picked' : '') +
+      (lockedOut || sittingOut ? ' dim' : '') + '"' + act + '>' +
+      '<span class="badge">' + (sittingOut ? '&mdash;' : isLock ? 'LOCKED' : odds(c)) + '</span>' +
       (tags.length ? '<div class="tags">' + tags.join('') + '</div>' : '') +
       poster(c.title, c.poster) +
       '<div class="t-title">' + esc(c.title) + '</div>' +
       '<div class="t-by"><span class="dot" style="background:' + safeColor(c.color) + '"></span>' +
         esc(c.emoji) + ' ' + esc(c.member) + '</div>' +
       (opts.picked ? '<div class="picked-tag">your vote</div>' : '') +
-      (opts.removable && c.mine
-        ? '<button class="ghost" data-act="remove" data-id="' + esc(c.id) + '">Retire</button>' : '') +
+      (acts.length ? '<div class="acts">' + acts.join('') + '</div>' : '') +
       '</div>';
   }
   function empty(icon, text){
@@ -477,34 +520,97 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     }
 
     var pool = S.pool || [];
+    /* A themed night only runs what has been entered for it. */
+    var running = pool.filter(function(c){ return c.entered !== false; });
+    var sitting = pool.length - running.length;
     if (pool.length && n.status !== 'spun' && n.status !== 'watched') {
       var maj = n.majority || {};
       var picked = S.my_vote;
-      if (n.status === 'locked') {
+      var themeNote = sitting
+        ? sitting + (sitting === 1 ? ' film does not fit ' : ' films do not fit ') +
+          'tonight&rsquo;s theme. They sit this one out.'
+        : '';
+      if (!running.length) {
+        out.push('<div class="sec"><div class="eyebrow">' + esc(n.theme || 'The theme') + '</div>' +
+          '<h1 class="h">Nothing fits yet</h1><div class="card">' +
+          empty('&#127917;',
+            'Every film in the pool is sitting this theme out. Somebody has to enter one, ' +
+            'or suggest something that fits.') +
+          '</div></div>');
+      } else if (n.status === 'locked') {
         out.push('<div class="sec"><div class="eyebrow">The vote</div>' +
           '<h1 class="h">Boost your pick</h1>');
         if (maj.locked) {
           out.push('<div class="lockbar">Locked by majority &middot; ' + (maj.leading_votes || 0) +
             ' of ' + (maj.attendee_basis || 0) + '</div>');
         }
-        out.push('<div class="rail">' + pool.map(function(c){
+        out.push('<div class="rail">' + running.map(function(c){
             return tileHtml(c, { act:'vote', picked: c.id === picked, majority: maj });
           }).join('') + '</div>' +
           '<div class="tiny muted" style="margin-top:6px">' +
           'A vote adds +1 to that film&rsquo;s weight on the wheel, and ' +
           (maj.threshold || 2) + ' votes on the same film with a clear lead wins outright' +
           (picked ? ' &mdash; switch yours any time before the spin.' : '.') +
+          (themeNote ? ' ' + themeNote : '') +
           '</div></div>');
       } else {
         out.push('<div class="sec"><div class="eyebrow">The pool</div>' +
           '<h1 class="h">In the running</h1>' +
-          '<div class="rail">' + pool.map(function(c){
+          '<div class="rail">' + running.map(function(c){
             return tileHtml(c, {});
           }).join('') + '</div>' +
           '<div class="tiny muted" style="margin-top:6px">' +
-          'Voting opens when the hosts call it.</div></div>');
+          'Voting opens when the hosts call it.' + (themeNote ? ' ' + themeNote : '') +
+          '</div></div>');
       }
     }
+
+    out.push(comingUp(n));
+    return out.join('');
+  }
+
+  /* Nights already on the books beyond tonight. Themed ones take nominations early. */
+  function comingUp(current){
+    var list = (S.upcoming || []).filter(function(u){
+      return !current || u.id !== current.id;
+    });
+    if (!list.length) return '';
+    var out = ['<div class="sec"><div class="eyebrow">Coming up</div>' +
+      '<h1 class="h">' + list.length + (list.length === 1 ? ' night booked' : ' nights booked') +
+      '</h1>'];
+    out.push(list.map(function(u){
+      var bits = [];
+      if (u.starts_at) bits.push(esc(fmtDate(u.starts_at)));
+      if (u.headcount) bits.push(u.headcount + ' coming');
+      if (u.themed) {
+        bits.push(u.nominations + (u.nominations === 1 ? ' nomination' : ' nominations'));
+      }
+      var picks = '';
+      if (u.themed) {
+        var opts = u.my_options || [];
+        picks = opts.length
+          ? '<div class="picks">' + opts.map(function(o){
+              var on = o.id === u.my_nomination;
+              return '<button class="pick' + (on ? ' on' : '') + '"' +
+                (o.eligible ? '' : ' disabled') +
+                ' data-act="nominate" data-night="' + esc(u.id) + '" data-id="' + esc(o.id) +
+                '" data-on="' + (on ? '1' : '0') + '">' + esc(o.title) +
+                (o.year ? ' <span class="yr">' + esc(o.year) + '</span>' : '') + '</button>';
+            }).join('') + '</div>' +
+            '<div class="tiny muted" style="margin-top:8px">' +
+            (u.my_nomination
+              ? 'Your one nomination. Tap another to swap it.'
+              : 'Pick one of yours. One nomination each, greyed ones do not fit the theme.') +
+            '</div>'
+          : '<div class="tiny muted" style="margin-top:10px">' +
+            'Nothing of yours in the pool to nominate yet.</div>';
+      }
+      return '<div class="up"><div class="when">' + esc(u.label) + '</div>' +
+        (u.theme ? '<div class="th">&#127917; ' + esc(u.theme) + '</div>' : '') +
+        (bits.length ? '<div class="meta">' + bits.join(' &middot; ') + '</div>' : '') +
+        picks + '</div>';
+    }).join(''));
+    out.push('</div>');
     return out.join('');
   }
 
@@ -512,9 +618,20 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     var pool = S.pool || [];
     var count = S.my_suggestion_count || 0;
     var max = S.max_suggestions || 3;
+    var n = S.night;
+    var themed = !!(n && n.themed && n.status !== 'spun' && n.status !== 'watched');
     var out = [];
     out.push('<div class="eyebrow">The pool</div><h1 class="h">' + pool.length +
       (pool.length === 1 ? ' film waiting' : ' films waiting') + '</h1>');
+
+    if (themed) {
+      out.push('<div class="card"><div class="eyebrow">Tonight&rsquo;s theme</div>' +
+        '<div class="theme" style="margin-top:8px;font-size:17px">&#127917; ' + esc(n.theme) + '</div>' +
+        '<div class="tiny muted" style="margin-top:8px">' + (n.entered_count || 0) + ' of ' +
+        pool.length + ' entered. Only these can be voted for or spun' +
+        (n.sitting_out ? ' &mdash; the rest sit this one out.' : '.') +
+        '</div></div>');
+    }
 
     out.push('<div class="card"><div class="eyebrow">Add one</div>' +
       '<div class="field"><input id="q" type="text" autocomplete="off" placeholder="The Iron Giant" ' +
@@ -533,9 +650,31 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     } else {
       var maj = (S.night && S.night.majority) || {};
       out.push('<div class="grid" style="margin-top:18px">' + pool.map(function(c){
-        return tileHtml(c, { removable: true, majority: maj });
+        return tileHtml(c, { removable: true, majority: maj, themeToggle: themed });
       }).join('') + '</div>');
     }
+
+    out.push(themePanel());
+    return out.join('');
+  }
+
+  /* The group's running list of theme ideas. Hosts pick from it when they announce a night. */
+  function themePanel(){
+    var list = S.themes || [];
+    var out = ['<div class="sec"><div class="eyebrow">Theme ideas</div>' +
+      '<h1 class="h">What should we watch?</h1>'];
+    out.push('<div class="card"><div class="field">' +
+      '<input id="th" type="text" autocomplete="off" maxlength="80" placeholder="Films with terrible dads">' +
+      '<button id="addth" data-act="suggesttheme">Put up</button></div>' +
+      '<div class="tiny muted" style="margin-top:10px">Anyone can add one. 80 characters, ' +
+      'no promises.</div></div>');
+    if (list.length) {
+      out.push('<div class="card" style="margin-top:14px">' + list.map(function(t, i){
+        return '<div class="throw' + (i ? ' sep' : '') + '">' + avatar(t) +
+          '<span>' + esc(t.text) + '</span></div>';
+      }).join('') + '</div>');
+    }
+    out.push('</div>');
     return out.join('');
   }
 
@@ -550,10 +689,20 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     out.push('<div class="card">');
     out.push(h.map(function(n){
       var avg = n.avg_paws == null ? null : Math.round(n.avg_paws * 10) / 10;
-      return '<div class="hrow">' +
-        '<div>' + poster(n.title, n.poster) + '</div>' +
+      var films = (n.films && n.films.length) ? n.films : [{ title:n.title, poster:n.poster }];
+      var art = films.length > 1
+        ? '<div class="bill">' + films.map(function(f){
+            return poster(f.title, f.poster);
+          }).join('') + '</div>'
+        : poster(n.title, n.poster);
+      var titles = films.length > 1
+        ? films.map(function(f){ return esc(f.title); }).join(' <span class="muted">+</span> ')
+        : esc(n.title);
+      return '<div class="hrow' + (films.length > 1 ? ' double' : '') + '">' +
+        '<div>' + art + '</div>' +
         '<div><div style="font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.2">' +
-          esc(n.title) + '</div>' +
+          titles + '</div>' +
+        (films.length > 1 ? '<div class="mine-label" style="margin-top:4px">double bill</div>' : '') +
         '<div class="tiny muted" style="margin-top:4px">' + esc(n.label) +
           (n.watched_at ? ' &middot; ' + esc(fmtDate(n.watched_at)) : '') +
           (n.theme ? ' &middot; ' + esc(n.theme) : '') + '</div>' +
@@ -609,6 +758,12 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       q.addEventListener('input', onQuery);
       q.addEventListener('keydown', function(e){ if (e.key === 'Enter') doSuggest(); });
       if (query) renderPreview(lastPreview);
+    }
+    var th = document.getElementById('th');
+    if (th) {
+      th.value = themeDraft;
+      th.addEventListener('input', function(e){ themeDraft = e.target.value; });
+      th.addEventListener('keydown', function(e){ if (e.key === 'Enter') doSuggestTheme(); });
     }
     window.scrollTo(0, 0);
   }
@@ -678,16 +833,72 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
         S.my_vote = was; render();
         toast(j.error === 'voting_closed'
           ? 'Voting is closed. The wheel has moved on.'
+          : j.error === 'not_in_theme'
+          ? 'That one is sitting tonight out.'
           : 'Vote did not stick.', true);
         return;
       }
-      S.pool = j.pool || S.pool;
-      if (S.night) S.night.majority = j.majority || S.night.majority;
+      applyPool(j);
       render();
       toast(j.majority && j.majority.locked && j.majority.leading === id
         ? 'That is a majority. Locked in unless the room changes its mind.'
         : 'Vote counted. +1 weight on that slice.');
     }).catch(function(){ busy = false; S.my_vote = was; render(); toast('Vote did not stick.', true); });
+  }
+
+  /* Nominate or withdraw one film for a themed night — tonight's, or one weeks out. */
+  function doEnter(id, entered, nightId){
+    var target = nightId || (S.night && S.night.id);
+    if (!target || busy) return;
+    busy = true;
+    haptic('light');
+    api('enter', { night_id: target, suggestion_id: id, entered: entered }).then(function(j){
+      busy = false;
+      if (!j.ok) {
+        toast(j.message
+          ? j.message
+          : j.error === 'not_yours'
+          ? 'That one is not yours to move.'
+          : j.error === 'entries_closed'
+          ? 'Too late to change the line-up.'
+          : 'Could not change that.', true);
+        return;
+      }
+      applyPool(j);
+      render();
+      toast(entered ? 'Nominated.' : 'Withdrawn.');
+    }).catch(function(){ busy = false; toast('Could not change that.', true); });
+  }
+
+  function doSuggestTheme(){
+    var box = document.getElementById('th');
+    if (!box || busy) return;
+    var text = box.value.trim();
+    if (text.length < 2) { toast('Give the theme a name first.', true); return; }
+    busy = true;
+    api('suggesttheme', { text: text }).then(function(j){
+      busy = false;
+      if (!j.ok) { toast(j.message || 'That did not go up.', true); return; }
+      themeDraft = '';
+      S.themes = j.themes || S.themes;
+      render();
+      toast('On the list. Hosts pick from it.');
+      haptic('medium');
+    }).catch(function(){ busy = false; toast('That did not go up.', true); });
+  }
+
+  /* Every pool-returning endpoint hands back the same shape. */
+  function applyPool(j){
+    S.pool = j.pool || S.pool;
+    S.my_suggestion_count = (S.pool || []).filter(function(c){ return c.mine; }).length;
+    if (j.upcoming) S.upcoming = j.upcoming;
+    if (typeof j.my_nomination !== 'undefined') S.my_nomination = j.my_nomination;
+    if (S.night) {
+      if (j.majority) S.night.majority = j.majority;
+      if (typeof j.entered_count === 'number') S.night.entered_count = j.entered_count;
+      if (typeof j.sitting_out === 'number') S.night.sitting_out = j.sitting_out;
+      if (typeof j.themed === 'boolean') S.night.themed = j.themed;
+    }
   }
 
   function doRemove(id){
@@ -697,8 +908,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     api('unsuggest', { suggestion_id: id }).then(function(j){
       busy = false;
       if (!j.ok) { toast('That one is not yours to retire.', true); return; }
-      S.pool = j.pool || [];
-      S.my_suggestion_count = S.pool.filter(function(c){ return c.mine; }).length;
+      applyPool(j);
       render();
       toast('Retired. Odds recalculated.');
     }).catch(function(){ busy = false; toast('Could not retire that.', true); });
@@ -721,10 +931,9 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       }
       query = '';
       lastPreview = null;
-      S.pool = j.pool || [];
-      S.my_suggestion_count = S.pool.filter(function(c){ return c.mine; }).length;
+      applyPool(j);
       render();
-      toast('In the pool. Odds recalculated.');
+      toast(j.themed ? 'In the pool and entered for tonight.' : 'In the pool. Odds recalculated.');
       haptic('medium');
     }).catch(function(){ busy = false; render(); toast('That did not go in.', true); });
   }
@@ -803,6 +1012,16 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       doRsvp(adding ? 'in' : (mineNow.status || 'in'), adding ? 1 : 0);
     }
     else if (act === 'vote') doVote(el.getAttribute('data-id'));
+    else if (act === 'enter') {
+      e.stopPropagation();
+      doEnter(el.getAttribute('data-id'), el.getAttribute('data-enter') === '1');
+    }
+    else if (act === 'nominate') {
+      /* Tapping your current nomination withdraws it; tapping another swaps. */
+      doEnter(el.getAttribute('data-id'), el.getAttribute('data-on') !== '1',
+        el.getAttribute('data-night'));
+    }
+    else if (act === 'suggesttheme') doSuggestTheme();
     else if (act === 'remove') { e.stopPropagation(); doRemove(el.getAttribute('data-id')); }
     else if (act === 'suggest') doSuggest();
     else if (act === 'rate') doRate(el.getAttribute('data-night'), Number(el.getAttribute('data-paws')));

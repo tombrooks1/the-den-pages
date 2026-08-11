@@ -113,6 +113,7 @@ body{
   border:1px solid var(--line);backdrop-filter:blur(6px);
 }
 .pw.dim{filter:grayscale(1);opacity:.36}
+.pw .odds.sitting{color:var(--muted);border-color:var(--line);font-size:12px;letter-spacing:.08em}
 .pw.lock .poster{
   border-color:rgba(245,185,66,.7);
   box-shadow:0 0 0 3px rgba(245,185,66,.42), 0 16px 40px rgba(245,185,66,.22);
@@ -168,9 +169,22 @@ body{
 }
 #reveal.on{display:flex;animation:rise .7s cubic-bezier(.2,.9,.3,1) both}
 @keyframes rise{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
-#reveal .art{width:400px;flex:none}
+#reveal .art{width:400px;flex:none;display:flex;gap:22px}
+#reveal .art.double{width:560px}
 #reveal .art .poster{border-radius:22px;box-shadow:0 50px 120px rgba(0,0,0,.75),0 0 0 1px rgba(245,185,66,.28)}
+#reveal .art.double .poster{width:auto;flex:1;min-width:0;border-radius:16px}
 #reveal .meta{max-width:1010px}
+#reveal .first{
+  margin-top:22px;font-size:22px;font-weight:600;color:var(--muted);
+}
+#reveal .first b{color:var(--text);font-weight:800}
+#again{
+  margin-top:38px;font:inherit;font-size:19px;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--amber);background:rgba(245,185,66,.1);
+  border:1px solid rgba(245,185,66,.4);border-radius:999px;padding:16px 40px;cursor:pointer;
+}
+#again:hover{background:rgba(245,185,66,.18)}
+#again:disabled{opacity:.35;cursor:default}
 #reveal .kicker{font-size:15px;font-weight:800;letter-spacing:.34em;text-transform:uppercase;color:var(--amber)}
 #reveal h1{margin-top:20px;font-size:84px;font-weight:800;letter-spacing:-.05em;line-height:.97}
 #reveal .yr{font-weight:600;color:var(--muted)}
@@ -206,7 +220,7 @@ body{
       </section>
 
       <section class="panel" id="wall">
-        <div class="eyebrow">In the pool</div>
+        <div class="eyebrow">In the pool<span class="heads" id="wallHeads"></span></div>
         <div class="wall" id="wallList"></div>
         <div class="more" id="wallMore"></div>
       </section>
@@ -248,6 +262,8 @@ body{
   var shownSpins = {};      /* spin ids already revealed */
   var spinning = false;
   var firstState = true;
+  var features = [];        /* every film that has won tonight, in running order */
+  var canRollAgain = false; /* is there anything left for a second feature? */
 
   /* ------------------------------------------------ helpers */
   var ENT = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
@@ -431,23 +447,78 @@ body{
       ? 'locked by majority &middot; ' + (winner.votes || 0) + ' of ' + (maj.attendee_basis || 0)
       : pct(winner.odds) + ' odds';
 
-    revealEl.innerHTML =
-      '<div class="art">' + poster(winner.title, winner.poster) + '</div>' +
+    /* The bill so far. A second roll makes this a double feature. */
+    var bill = features.filter(function(f){ return f.id !== winner.id; });
+    var second = (res.round === 2) || bill.length > 0;
+    var art = second && bill.length
+      ? '<div class="art double">' + bill.map(function(f){
+          return poster(f.title, f.poster);
+        }).join('') + poster(winner.title, winner.poster) + '</div>'
+      : '<div class="art">' + poster(winner.title, winner.poster) + '</div>';
+
+    var firstLine = '';
+    if (second && bill.length) {
+      firstLine = '<div class="first">First feature: <b>' + esc(bill[0].title) + '</b>' +
+        (bill[0].year ? ' (' + esc(bill[0].year) + ')' : '') +
+        ' &middot; ' + esc(bill[0].member) + '</div>';
+    }
+
+    var again = '';
+    if (KEY && canRollAgain && !second) {
+      again = '<button id="again">Roll a second movie</button>';
+    }
+
+    revealEl.innerHTML = art +
       '<div class="meta">' +
-      '<div class="kicker">' + (maj.locked ? 'The room locked it in' : 'Tonight you are watching') +
+      '<div class="kicker">' +
+        (second ? 'A double bill' : maj.locked ? 'The room locked it in' : 'Tonight you are watching') +
         '</div>' +
       '<h1>' + esc(winner.title) +
         (winner.year ? ' <span class="yr">(' + esc(winner.year) + ')</span>' : '') + '</h1>' +
       '<div class="by">' + avatar(winner) + 'suggested by ' + esc(winner.member) +
         '<span style="color:var(--muted);font-weight:600"> &middot; ' + line + '</span></div>' +
-      tally + '</div>';
+      firstLine + tally + again + '</div>';
     revealEl.className = 'on';
+    var againBtn = document.getElementById('again');
+    if (againBtn) againBtn.addEventListener('click', rollAgain);
     var head = revealEl.querySelector('h1');
     var len = head.textContent.length;
     head.style.fontSize = (len > 34 ? 52 : len > 26 ? 60 : len > 18 ? 68 : 84) + 'px';
     if (!REDUCED && !quiet) confetti(winner.color);
     spinning = false;
     stage.classList.remove('busy');
+  }
+
+  /* Host asked for a second feature: hide the reveal, run the wheel again on what is left. */
+  function rollAgain(){
+    if (spinning) return;
+    var btn = document.getElementById('again');
+    if (btn) { btn.disabled = true; btn.textContent = 'Rolling...'; }
+    spinning = true;
+    fetch(API + 'spin?key=' + encodeURIComponent(KEY), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ again: true })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        spinning = false;
+        if (!j || !j.ok || !j.spin) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Roll a second movie'; }
+          if (j && j.message) {
+            document.getElementById('hint').textContent = j.message;
+          }
+          return;
+        }
+        if (shownSpins[j.spin.id]) return;
+        shownSpins[j.spin.id] = true;
+        revealEl.className = '';
+        runSpinAnimation(j.spin, j.votes);
+      })
+      .catch(function(){
+        spinning = false;
+        if (btn) { btn.disabled = false; btn.textContent = 'Roll a second movie'; }
+      });
   }
 
   var parts = [];
@@ -531,18 +602,24 @@ body{
       ? state.headcount + ' coming'
       : '';
 
-    /* The wall stays a single row so the 1080px stage never overflows. */
+    /* The wall stays a single row so the 1080px stage never overflows.
+       A themed night only runs what was entered; the rest are shown sitting it out. */
     var pool = state.pool || [];
+    var running = pool.filter(function(c){ return c.entered !== false; });
+    var sitting = pool.length - running.length;
     var shown = pool.slice(0, 7);
     var wallEl = document.getElementById('wallList');
     wallEl.style.gridTemplateColumns = 'repeat(' + Math.max(shown.length, 1) + ', 1fr)';
     wallEl.innerHTML = shown.length
       ? shown.map(function(c, i){
+          var sittingOut = c.entered === false;
           var isLock = !!(locked && maj.leading && c.id === maj.leading);
           var lockedOut = !!(locked && maj.leading && c.id !== maj.leading);
-          return '<div class="pw' + (isLock ? ' lock' : '') + (lockedOut ? ' dim' : '') +
+          return '<div class="pw' + (isLock ? ' lock' : '') +
+            (lockedOut || sittingOut ? ' dim' : '') +
             '" style="animation-delay:' + (i * 55) + 'ms">' +
-            '<span class="odds">' + (isLock ? 'LOCKED' : pct(c.odds)) + '</span>' +
+            '<span class="odds' + (sittingOut ? ' sitting' : '') + '">' +
+            (sittingOut ? 'SITTING OUT' : isLock ? 'LOCKED' : pct(c.odds)) + '</span>' +
             voteChip(c.votes) + poster(c.title, c.poster) +
             '<div class="who"><span class="dot" style="background:' + safeColor(c.color) + '"></span>' +
             esc(c.emoji) + ' ' + esc(c.member) + '</div></div>';
@@ -552,13 +629,21 @@ body{
     moreEl.textContent = pool.length > shown.length
       ? '+ ' + (pool.length - shown.length) + ' more on the wheel'
       : '';
+    document.getElementById('wallHeads').textContent = state.themed
+      ? running.length + ' of ' + pool.length + ' fit the theme'
+      : '';
 
-    var canSpin = !!n && (n.status === 'planned' || n.status === 'locked') && pool.length > 0 && !spinning;
+    var canSpin = !!n && (n.status === 'planned' || n.status === 'locked') &&
+      running.length > 0 && !spinning;
     spinBtn.disabled = !canSpin;
     document.getElementById('hint').innerHTML = n && n.status === 'spun'
       ? 'the wheel has spoken &middot; snapshot saved for the sceptics'
+      : state.themed && !running.length
+      ? 'nothing fits the theme yet &middot; the wheel is waiting'
       : locked
       ? 'the room reached a majority &middot; the wheel is a formality now'
+      : sitting
+      ? 'only films that fit the theme are on the wheel &middot; nothing is rigged'
       : 'odds are printed on every slice &middot; nothing is rigged';
   }
 
@@ -579,6 +664,8 @@ body{
       .then(function(r){ return r.json(); })
       .then(function(state){
         if (!state || !state.ok) return;
+        features = state.features || [];
+        canRollAgain = state.second_roll === true;
         renderLobby(state);
 
         if (state.spin && state.spin.id) {
@@ -599,8 +686,10 @@ body{
             runSpinAnimation(state.spin, state.votes);
           }
         } else if (!spinning && revealEl.className !== 'on') {
-          var sig = signature(state.pool || []);
-          if (sig !== signature(drawn)) buildWheel(state.pool || [], state.majority);
+          /* Only what can actually win goes on the wheel. */
+          var runners = (state.pool || []).filter(function(c){ return c.entered !== false; });
+          var sig = signature(runners);
+          if (sig !== signature(drawn)) buildWheel(runners, state.majority);
         }
         firstState = false;
       })

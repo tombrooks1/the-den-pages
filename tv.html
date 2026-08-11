@@ -21,8 +21,10 @@ html,body{height:100%;overflow:hidden;background:#07060b}
 body{
   color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
-  cursor:none;
 }
+/* Video-player behaviour: the pointer fades after a few still seconds, and any movement
+   brings it back. The host has buttons to press up here. */
+body.idlecursor, body.idlecursor *{cursor:none}
 #stage{
   position:fixed;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center center;
   background:
@@ -76,8 +78,16 @@ body{
   background:linear-gradient(180deg,var(--amber),var(--amber-deep));
   box-shadow:0 0 48px rgba(245,185,66,.42);
 }
+.whenline{margin-top:14px;font-size:30px;font-weight:600;color:var(--muted);letter-spacing:-.01em}
+.whenline:empty{display:none}
+.notes{margin-top:18px;max-width:820px;font-size:21px;line-height:1.4;color:#b3aac6}
+.notes:empty{display:none}
 .eyebrow{font-size:14px;font-weight:800;letter-spacing:.28em;text-transform:uppercase;color:var(--muted)}
 .heads{margin-left:18px;color:var(--amber);text-shadow:0 0 26px rgba(245,185,66,.4)}
+.snacks{margin-top:18px;font-size:20px;color:var(--muted);line-height:1.5}
+.snacks:empty{display:none}
+.snacks b{color:var(--text);font-weight:700}
+.snacks .sep{opacity:.45;margin:0 10px}
 
 /* ---------------- rsvp roll ---------------- */
 .roll{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
@@ -87,12 +97,22 @@ body{
   animation:arrive .55s cubic-bezier(.2,.9,.3,1) both;
 }
 .chip .av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:22px}
-.chip.maybe{opacity:.66} .chip.out{opacity:.34}
+/* A "maybe" must never read as an "in" from the couch: own row, own label, dashed and muted. */
+.roll + .roll{margin-top:12px}
+.rtag{align-self:center;font-size:15px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--muted)}
+.chip.maybe{background:transparent;border-style:dashed;border-color:rgba(244,239,232,.26);
+  color:var(--muted)}
+.chip.maybe .av{opacity:.65}
+.chip.maybe .q{margin-left:3px;font-weight:800;color:var(--amber);opacity:.85}
+.outline{margin-top:16px;font-size:17px;color:var(--muted);opacity:.7;letter-spacing:.02em}
 @keyframes arrive{from{opacity:0;transform:translateY(14px) scale(.94)}to{opacity:1;transform:none}}
 
-/* ---------------- poster wall ---------------- */
-.wall{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:20px;align-items:start}
-.pw{position:relative;animation:arrive .6s cubic-bezier(.2,.9,.3,1) both}
+/* ---------------- poster wall ----------------
+   An index, not the show: posters cap at 120px tall so a dozen films still compose at 1080p. */
+.wall{display:grid;grid-template-columns:repeat(auto-fill,80px);gap:16px 16px;margin-top:18px;
+  align-items:start}
+.pw{position:relative;width:80px;animation:arrive .6s cubic-bezier(.2,.9,.3,1) both}
 .poster{
   width:100%;aspect-ratio:2/3;border-radius:14px;object-fit:cover;display:block;
   background:#221b33;border:1px solid var(--line);box-shadow:0 16px 34px rgba(0,0,0,.5);
@@ -102,26 +122,32 @@ body{
 .ph-t{font-size:17px;font-weight:800;line-height:1.1;letter-spacing:-.02em;padding-right:52px;
   text-shadow:0 2px 12px rgba(0,0,0,.55)}
 .ph-f{font-size:22px;opacity:.6;align-self:flex-end}
+.wall .poster{width:80px;height:120px;aspect-ratio:auto;border-radius:9px;
+  box-shadow:0 10px 22px rgba(0,0,0,.5)}
+.wall .ph{padding:7px}
+.wall .ph-t{font-size:11px;line-height:1.08;padding-right:18px;
+  display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.wall .ph-f{font-size:13px}
 .pw .odds{
-  position:absolute;top:9px;right:9px;font-size:14px;font-weight:800;color:var(--amber);
-  padding:5px 9px;border-radius:999px;background:rgba(13,11,20,.76);
-  border:1px solid rgba(245,185,66,.34);backdrop-filter:blur(6px);
+  position:absolute;top:5px;right:5px;font-size:10px;font-weight:800;color:var(--amber);
+  padding:3px 6px;border-radius:999px;background:rgba(13,11,20,.82);
+  border:1px solid rgba(245,185,66,.34);
 }
 .pw .tally{
-  position:absolute;top:9px;left:9px;font-size:14px;font-weight:800;color:var(--text);
-  padding:5px 9px;border-radius:999px;background:rgba(13,11,20,.76);
-  border:1px solid var(--line);backdrop-filter:blur(6px);
+  position:absolute;top:5px;left:5px;font-size:10px;font-weight:800;color:var(--text);
+  padding:3px 5px;border-radius:999px;background:rgba(13,11,20,.82);border:1px solid var(--line);
 }
+.pw .tally.off{display:none}
 .pw.dim{filter:grayscale(1);opacity:.36}
-.pw .odds.sitting{color:var(--muted);border-color:var(--line);font-size:12px;letter-spacing:.08em}
+.pw .odds.sitting{color:var(--muted);border-color:var(--line);font-size:8px;letter-spacing:.04em}
 .pw.lock .poster{
   border-color:rgba(245,185,66,.7);
-  box-shadow:0 0 0 3px rgba(245,185,66,.42), 0 16px 40px rgba(245,185,66,.22);
+  box-shadow:0 0 0 3px rgba(245,185,66,.42), 0 12px 30px rgba(245,185,66,.22);
 }
-.pw .who{margin-top:9px;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:7px;
+.pw .who{margin-top:6px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .more{margin-top:14px;font-size:15px;color:var(--muted);letter-spacing:.04em}
-.pw .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.pw .dot{width:6px;height:6px;border-radius:50%;flex:none}
 .empty{color:var(--muted);font-size:26px;margin-top:26px;font-weight:600}
 
 /* ---------------- wheel ---------------- */
@@ -178,6 +204,16 @@ body{
   margin-top:22px;font-size:22px;font-weight:600;color:var(--muted);
 }
 #reveal .first b{color:var(--text);font-weight:800}
+/* The reveal is a room you can leave and come back to. */
+#revClose{
+  position:absolute;top:34px;right:44px;z-index:3;font:inherit;font-size:14px;font-weight:800;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--muted);cursor:pointer;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;
+  padding:11px 22px;
+}
+#revClose:hover{color:var(--text);border-color:rgba(244,239,232,.28)}
+.navlink.right{left:auto;right:64px}
+.navlink.hidden{display:none}
 #again{
   margin-top:38px;font:inherit;font-size:19px;font-weight:800;letter-spacing:.16em;
   text-transform:uppercase;color:var(--amber);background:rgba(245,185,66,.1);
@@ -196,6 +232,46 @@ body{
 #reveal .votedrow{display:flex;flex-wrap:wrap;gap:12px}
 #confetti{position:absolute;inset:0;z-index:9;pointer-events:none}
 
+/* ---------------- history & stats board ---------------- */
+.navlink{
+  position:absolute;left:64px;bottom:30px;z-index:12;font-size:14px;font-weight:800;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--muted);text-decoration:none;
+  padding:9px 16px;border-radius:999px;border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+}
+.navlink:hover{color:var(--amber);border-color:rgba(245,185,66,.4)}
+#board{position:absolute;inset:0;z-index:11;display:none;padding:56px 64px 90px;overflow:hidden;
+  background:var(--bg)}
+#board.on{display:grid;grid-template-columns:1fr 620px;gap:54px}
+#board h2{font-size:15px;font-weight:800;letter-spacing:.28em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:20px}
+.brow{display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:center;
+  padding:13px 0;border-top:1px solid var(--line)}
+.brow:first-of-type{border-top:none}
+.bposters{display:flex;gap:7px}
+.bposters .poster{width:56px;height:84px;aspect-ratio:auto;border-radius:7px;
+  box-shadow:0 8px 18px rgba(0,0,0,.5)}
+.bposters .ph{padding:5px}
+.bposters .ph-t{font-size:9px;line-height:1.05;padding-right:0;
+  display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.bposters .ph-f{font-size:10px}
+.bt{font-size:23px;font-weight:800;letter-spacing:-.025em;line-height:1.15}
+.bm{margin-top:5px;font-size:14px;color:var(--muted)}
+.bp{font-size:22px;font-weight:800;white-space:nowrap;color:var(--amber)}
+.bp span{display:block;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-content:start}
+.scard{position:relative;overflow:hidden;padding:18px;border-radius:20px;
+  background:linear-gradient(152deg,var(--s2),var(--s1));border:1px solid var(--line)}
+.scard::after{content:"";position:absolute;top:-60px;right:-50px;width:170px;height:170px;
+  border-radius:50%;background:var(--accent,#f5b942);opacity:.16;filter:blur(30px)}
+.scard .in{position:relative;z-index:1}
+.scard .bdg{font-size:20px;line-height:1}
+.scard .st{margin-top:8px;font-size:10px;font-weight:800;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--muted)}
+.scard .hd{margin-top:4px;font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.scard .ln{margin-top:7px;font-size:13px;color:#c3bcd4;line-height:1.4}
+.bempty{color:var(--muted);font-size:20px}
+
 @media (prefers-reduced-motion: reduce){
   .grain,.bulbs,.chip,.pw{animation:none}
   .panel{transition:none}
@@ -210,13 +286,16 @@ body{
         <span class="bulbs"></span>
         <div class="brand">THE DEN</div>
         <div class="label" id="label">Loading the projector</div>
+        <div class="whenline" id="whenline"></div>
         <div class="theme" id="theme"></div>
         <div><span class="status" id="status">standby</span></div>
+        <div class="notes" id="notes"></div>
       </section>
 
       <section class="panel" id="roll">
         <div class="eyebrow">Who is coming<span class="heads" id="rollHeads"></span></div>
-        <div class="roll" id="rollList"></div>
+        <div id="rollList"></div>
+        <div class="snacks" id="snackList"></div>
       </section>
 
       <section class="panel" id="wall">
@@ -236,6 +315,10 @@ body{
       <div class="hint" id="hint">odds are printed on every slice &middot; nothing is rigged</div>
     </div>
   </div>
+
+  <div id="board"></div>
+  <a class="navlink" id="navBoard" href="#stats">history &amp; stats</a>
+  <button class="navlink right hidden" id="navPicks">tonight&#39;s picks</button>
 
   <div id="reveal"></div>
   <canvas id="confetti" width="1920" height="1080"></canvas>
@@ -264,6 +347,38 @@ body{
   var firstState = true;
   var features = [];        /* every film that has won tonight, in running order */
   var canRollAgain = false; /* is there anything left for a second feature? */
+  var lastReveal = null;    /* the reveal we can put back on screen */
+  var sigs = {};            /* last-painted signature per section — the anti-flicker record */
+  var wallNodes = {};       /* film id -> the live nodes of its wall tile */
+
+  /* Slice colours come from this by INDEX, so neighbours always differ. Who suggested what
+     is carried by the label, not the colour. */
+  var WHEEL_COLORS = [
+    '#e0736f', '#e09455', '#d9b356', '#a9c05e', '#63c08a', '#4fb9b0',
+    '#5aa6dd', '#7d8ce4', '#a97ae0', '#d071c8', '#dd6f9c', '#c08a6a'
+  ];
+
+  function sliceColors(n){
+    var out = [], i, c;
+    for (i = 0; i < n; i++) {
+      c = WHEEL_COLORS[i % WHEEL_COLORS.length];
+      if (i > 0 && c === out[i - 1]) c = WHEEL_COLORS[(i + 1) % WHEEL_COLORS.length];
+      /* The last slice touches the first one, so close the loop too. */
+      if (i === n - 1 && n > 2 && c === out[0]) c = WHEEL_COLORS[(i + 2) % WHEEL_COLORS.length];
+      out.push(c);
+    }
+    return out;
+  }
+
+  /* Pointer fades out of the way after a few still seconds, like a video player. */
+  var idleTimer = null;
+  function wakeCursor(){
+    document.body.className = '';
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function(){ document.body.className = 'idlecursor'; }, 3000);
+  }
+  document.addEventListener('mousemove', wakeCursor);
+  wakeCursor();
 
   /* ------------------------------------------------ helpers */
   var ENT = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
@@ -293,12 +408,15 @@ body{
       ((m && m.emoji) ? esc(m.emoji) : '&#128062;') + '</span>';
   }
   function pct(o){ return Math.round((o || 0) * 100) + '%'; }
+  function fmtDate(iso){
+    if (!iso) return '';
+    try {
+      return new Date(iso).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+    } catch (e) { return ''; }
+  }
   function statusText(s){
     var map = { planned:'RSVPs open', locked:'Voting is open', spun:'The wheel has spoken', watched:'Watched' };
     return map[s] || 'standby';
-  }
-  function voteChip(n){
-    return n ? '<span class="tally">&#128499;&#65039;&times;' + n + '</span>' : '';
   }
 
   /* ------------------------------------------------ stage fit */
@@ -333,13 +451,14 @@ body{
       return;
     }
     var stops = [], labels = [], acc = 0, i;
+    var colors = sliceColors(drawn.length);
     for (i = 0; i < drawn.length; i++) {
       var c = drawn[i];
       var start = acc * 360;
       acc += (c.odds || 0);
       var end = acc * 360;
       var span = end - start;
-      var tone = rgba(c.color, i % 2 === 0 ? 0.92 : 0.68);
+      var tone = rgba(colors[i], 0.9);
       stops.push('rgba(244,239,232,.24) ' + start.toFixed(3) + 'deg ' + (start + 0.4).toFixed(3) + 'deg');
       stops.push(tone + ' ' + (start + 0.4).toFixed(3) + 'deg ' + end.toFixed(3) + 'deg');
       if (span < 6) continue;
@@ -347,11 +466,12 @@ body{
       var full = span >= 359;
       var mid = full ? 0 : (start + end) / 2;
       var title = String(c.title || '');
-      if (title.length > 15) title = title.slice(0, 14) + '…';
+      if (title.length > 14) title = title.slice(0, 13) + '…';
       var flip = mid > 180;
       labels.push('<div class="lab" style="transform:rotate(' + mid.toFixed(3) +
         'deg) translateY(-218px) rotate(' + (flip ? '90' : '-90') + 'deg)">' +
         ((c.u || c.weight || 0) > 1 ? '<span>&#128293;</span>' : '') +
+        '<span>' + esc(c.emoji || '') + '</span>' +
         '<span>' + esc(title) + '</span>' +
         (c.votes ? '<span class="o">&#128499;&#65039;&times;' + c.votes + '</span>' : '') +
         '<span class="o">' + (maj.locked && full ? 'LOCKED' : pct(c.odds)) + '</span></div>');
@@ -468,7 +588,8 @@ body{
       again = '<button id="again">Roll a second movie</button>';
     }
 
-    revealEl.innerHTML = art +
+    revealEl.innerHTML =
+      '<button id="revClose">back to the lobby</button>' + art +
       '<div class="meta">' +
       '<div class="kicker">' +
         (second ? 'A double bill' : maj.locked ? 'The room locked it in' : 'Tonight you are watching') +
@@ -479,14 +600,37 @@ body{
         '<span style="color:var(--muted);font-weight:600"> &middot; ' + line + '</span></div>' +
       firstLine + tally + again + '</div>';
     revealEl.className = 'on';
+    lastReveal = { res: res, voters: voters };
     var againBtn = document.getElementById('again');
     if (againBtn) againBtn.addEventListener('click', rollAgain);
+    var closeBtn = document.getElementById('revClose');
+    if (closeBtn) closeBtn.addEventListener('click', hideReveal);
+    syncPicksLink();
     var head = revealEl.querySelector('h1');
     var len = head.textContent.length;
     head.style.fontSize = (len > 34 ? 52 : len > 26 ? 60 : len > 18 ? 68 : 84) + 'px';
     if (!REDUCED && !quiet) confetti(winner.color);
     spinning = false;
     stage.classList.remove('busy');
+  }
+
+  /* The reveal can be dismissed and reopened — nobody should be stranded on it. */
+  function hideReveal(){
+    revealEl.className = '';
+    syncPicksLink();
+  }
+
+  function reopenReveal(){
+    if (!lastReveal) return;
+    showReveal(lastReveal.res, lastReveal.voters, true);
+  }
+
+  /* The way back in, only offered when there is something to go back to. */
+  function syncPicksLink(){
+    var want = Boolean(lastReveal) && revealEl.className !== 'on' && !boardOn() && !spinning;
+    var el = document.getElementById('navPicks');
+    var cls = 'navlink right' + (want ? '' : ' hidden');
+    if (el.className !== cls) el.className = cls;
   }
 
   /* Host asked for a second feature: hide the reveal, run the wheel again on what is left. */
@@ -513,6 +657,7 @@ body{
         if (shownSpins[j.spin.id]) return;
         shownSpins[j.spin.id] = true;
         revealEl.className = '';
+        syncPicksLink();
         runSpinAnimation(j.spin, j.votes);
       })
       .catch(function(){
@@ -572,71 +717,173 @@ body{
     else ctx.clearRect(0, 0, 1920, 1080);
   }
 
-  /* ------------------------------------------------ lobby rendering */
+  /* ------------------------------------------------ lobby rendering
+     Every section is gated on a signature of its own data. A poll that brings nothing new
+     touches no node at all, so nothing repaints and no image is ever recreated. */
+
+  function section(key, sig, paint){
+    if (sigs[key] === sig) return;
+    sigs[key] = sig;
+    paint();
+  }
+
+  var VOTE_MARK = '&#128499;&#65039;&times;';
+
+  /* Posters are created once per line-up. Everything that changes on a poll — odds, votes,
+     lock and sitting-out state — is written into the tiles that already exist. */
+  function buildWall(shown){
+    var wallEl = document.getElementById('wallList');
+    wallNodes = {};
+    if (!shown.length) {
+      wallEl.innerHTML = '<div class="empty" style="grid-column:1/-1">The pool is empty. Fix that.</div>';
+      return;
+    }
+    wallEl.innerHTML = shown.map(function(c, i){
+      return '<div class="pw" data-id="' + esc(c.id) + '" style="animation-delay:' +
+        (i * 55) + 'ms"><span class="odds"></span><span class="tally off"></span>' +
+        poster(c.title, c.poster) +
+        '<div class="who"><span class="dot" style="background:' + safeColor(c.color) + '"></span>' +
+        esc(c.emoji) + ' ' + esc(c.member) + '</div></div>';
+    }).join('');
+    var els = wallEl.querySelectorAll('.pw');
+    for (var j = 0; j < els.length; j++) {
+      wallNodes[els[j].getAttribute('data-id')] = {
+        root: els[j],
+        odds: els[j].querySelector('.odds'),
+        tally: els[j].querySelector('.tally'),
+        cls: '', ocls: '', txt: '', v: -1
+      };
+    }
+  }
+
+  function paintWall(shown, locked, maj){
+    for (var i = 0; i < shown.length; i++) {
+      var c = shown[i];
+      var node = wallNodes[c.id];
+      if (!node) continue;
+      var sittingOut = c.entered === false;
+      var isLock = !!(locked && maj.leading && c.id === maj.leading);
+      var lockedOut = !!(locked && maj.leading && c.id !== maj.leading);
+
+      var cls = 'pw' + (isLock ? ' lock' : '') + (lockedOut || sittingOut ? ' dim' : '');
+      if (node.cls !== cls) { node.cls = cls; node.root.className = cls; }
+
+      var oddsCls = sittingOut ? 'odds sitting' : 'odds';
+      if (node.ocls !== oddsCls) { node.ocls = oddsCls; node.odds.className = oddsCls; }
+
+      var txt = sittingOut ? 'SITTING OUT' : isLock ? 'LOCKED' : pct(c.odds);
+      if (node.txt !== txt) { node.txt = txt; node.odds.textContent = txt; }
+
+      var votes = c.votes || 0;
+      if (node.v !== votes) {
+        node.v = votes;
+        node.tally.className = votes ? 'tally' : 'tally off';
+        if (votes) node.tally.innerHTML = VOTE_MARK + votes;
+      }
+    }
+  }
+
   function renderLobby(state){
     var n = state.night;
     var maj = state.majority || {};
-    document.getElementById('label').textContent = n ? n.label : 'No night on the books';
-    document.getElementById('theme').textContent = n && n.theme ? n.theme : '';
-
-    var statusEl = document.getElementById('status');
     var locked = !!(maj.locked && n && n.status === 'locked');
-    statusEl.className = 'status' + (locked ? ' lock' : '');
-    statusEl.innerHTML = !n
+
+    var label = n ? n.label : 'No night on the books';
+    var when = (n && n.date_label) ? n.date_label : '';
+    var theme = n && n.theme ? n.theme : '';
+    var notes = (n && n.notes) ? n.notes : '';
+    section('head', label + '|' + when + '|' + theme + '|' + notes, function(){
+      document.getElementById('label').textContent = label;
+      document.getElementById('whenline').textContent = when;
+      document.getElementById('theme').textContent = theme;
+      document.getElementById('notes').textContent = notes;
+    });
+
+    var statusHtml = !n
       ? 'waiting on a host'
       : locked
       ? 'Locked by majority &middot; ' + (maj.leading_votes || 0) + ' of ' + (maj.attendee_basis || 0)
       : statusText(n.status);
+    section('status', statusHtml + '|' + locked, function(){
+      var el = document.getElementById('status');
+      el.className = 'status' + (locked ? ' lock' : '');
+      el.innerHTML = statusHtml;
+    });
 
-    var roll = state.rsvps || [];
     var order = { 'in':0, 'maybe':1, 'out':2 };
-    var sorted = roll.slice().sort(function(a, b){ return order[a.status] - order[b.status]; });
-    document.getElementById('rollList').innerHTML = sorted.length
-      ? sorted.map(function(r, i){
-          return '<span class="chip ' + esc(r.status) + '" style="animation-delay:' +
-            (i * 60) + 'ms">' + avatar(r) + esc(r.name) +
-            (r.plus_ones === 1 ? ' +1' : '') + '</span>';
-        }).join('')
-      : '<div class="empty">Nobody has RSVP&#39;d yet.</div>';
-    document.getElementById('rollHeads').textContent = state.headcount
-      ? state.headcount + ' coming'
-      : '';
+    var sorted = (state.rsvps || []).slice().sort(function(a, b){
+      return order[a.status] - order[b.status];
+    });
+    var rollSig = sorted.map(function(r){
+      return r.member_id + ':' + r.status + ':' + (r.plus_ones || 0) + ':' + r.name;
+    }).join('|') + '#' + (state.headcount || 0);
+    section('roll', rollSig, function(){
+      var ins = sorted.filter(function(r){ return r.status === 'in'; });
+      var maybes = sorted.filter(function(r){ return r.status === 'maybe'; });
+      var outs = sorted.filter(function(r){ return r.status === 'out'; });
+      function chip(r, i, extra){
+        return '<span class="chip' + (extra || '') + '" style="animation-delay:' +
+          (i * 60) + 'ms">' + avatar(r) + esc(r.name) +
+          (r.plus_ones === 1 ? ' +1' : '') +
+          (extra ? '<span class="q">?</span>' : '') + '</span>';
+      }
+      var html = '';
+      if (ins.length) {
+        html += '<div class="roll">' + ins.map(function(r, i){ return chip(r, i); }).join('') + '</div>';
+      }
+      if (maybes.length) {
+        html += '<div class="roll"><span class="rtag">maybe</span>' +
+          maybes.map(function(r, i){ return chip(r, i, ' maybe'); }).join('') + '</div>';
+      }
+      /* Out gets one quiet line — never a chip that could pass for someone who is coming. */
+      if (outs.length) {
+        html += '<div class="outline">out &middot; ' + outs.map(function(r){
+          return esc(r.emoji) + ' ' + esc(r.name);
+        }).join(' &middot; ') + '</div>';
+      }
+      document.getElementById('rollList').innerHTML = html ||
+        '<div class="empty">Nobody has RSVP&#39;d yet.</div>';
+      document.getElementById('rollHeads').textContent = state.headcount
+        ? state.headcount + ' coming'
+        : '';
+    });
 
-    /* The wall stays a single row so the 1080px stage never overflows.
-       A themed night only runs what was entered; the rest are shown sitting it out. */
+    /* What people are bringing. Quiet when nobody has said. */
+    var spread = state.snacks || [];
+    var spreadSig = spread.map(function(s){ return s.name + ':' + s.snack; }).join('|');
+    section('snacks', spreadSig, function(){
+      document.getElementById('snackList').innerHTML = spread.length
+        ? '&#127871; ' + spread.map(function(s){
+            return '<b>' + esc(s.snack) + '</b> ' + esc(s.emoji) + ' ' + esc(s.name);
+          }).join('<span class="sep">&middot;</span>')
+        : '';
+    });
+
+    /* A themed night only runs what was nominated; the rest are shown sitting it out. */
     var pool = state.pool || [];
     var running = pool.filter(function(c){ return c.entered !== false; });
     var sitting = pool.length - running.length;
-    var shown = pool.slice(0, 7);
-    var wallEl = document.getElementById('wallList');
-    wallEl.style.gridTemplateColumns = 'repeat(' + Math.max(shown.length, 1) + ', 1fr)';
-    wallEl.innerHTML = shown.length
-      ? shown.map(function(c, i){
-          var sittingOut = c.entered === false;
-          var isLock = !!(locked && maj.leading && c.id === maj.leading);
-          var lockedOut = !!(locked && maj.leading && c.id !== maj.leading);
-          return '<div class="pw' + (isLock ? ' lock' : '') +
-            (lockedOut || sittingOut ? ' dim' : '') +
-            '" style="animation-delay:' + (i * 55) + 'ms">' +
-            '<span class="odds' + (sittingOut ? ' sitting' : '') + '">' +
-            (sittingOut ? 'SITTING OUT' : isLock ? 'LOCKED' : pct(c.odds)) + '</span>' +
-            voteChip(c.votes) + poster(c.title, c.poster) +
-            '<div class="who"><span class="dot" style="background:' + safeColor(c.color) + '"></span>' +
-            esc(c.emoji) + ' ' + esc(c.member) + '</div></div>';
-        }).join('')
-      : '<div class="empty" style="grid-column:1/-1">The pool is empty. Fix that.</div>';
-    var moreEl = document.getElementById('wallMore');
-    moreEl.textContent = pool.length > shown.length
-      ? '+ ' + (pool.length - shown.length) + ' more on the wheel'
+    var shown = pool.slice(0, 12);
+
+    /* Which tiles exist, and with which artwork — the only thing that justifies new nodes. */
+    var wallSig = shown.map(function(c){ return c.id + ':' + (c.poster || ''); }).join('|');
+    section('wall', wallSig, function(){ buildWall(shown); });
+    paintWall(shown, locked, maj);
+
+    var moreTxt = pool.length > shown.length
+      ? '+ ' + (pool.length - shown.length) + ' more in the pool'
       : '';
-    document.getElementById('wallHeads').textContent = state.themed
-      ? running.length + ' of ' + pool.length + ' fit the theme'
-      : '';
+    var headsTxt = state.themed ? running.length + ' of ' + pool.length + ' fit the theme' : '';
+    section('wallmeta', moreTxt + '|' + headsTxt, function(){
+      document.getElementById('wallMore').textContent = moreTxt;
+      document.getElementById('wallHeads').textContent = headsTxt;
+    });
 
     var canSpin = !!n && (n.status === 'planned' || n.status === 'locked') &&
       running.length > 0 && !spinning;
-    spinBtn.disabled = !canSpin;
-    document.getElementById('hint').innerHTML = n && n.status === 'spun'
+    section('spinbtn', String(canSpin), function(){ spinBtn.disabled = !canSpin; });
+
+    var hint = n && n.status === 'spun'
       ? 'the wheel has spoken &middot; snapshot saved for the sceptics'
       : state.themed && !running.length
       ? 'nothing fits the theme yet &middot; the wheel is waiting'
@@ -645,18 +892,98 @@ body{
       : sitting
       ? 'only films that fit the theme are on the wheel &middot; nothing is rigged'
       : 'odds are printed on every slice &middot; nothing is rigged';
+    section('hint', hint, function(){
+      document.getElementById('hint').innerHTML = hint;
+    });
   }
 
   /* ------------------------------------------------ attention cycle */
   var spots = ['hdr', 'roll', 'wall'];
   var spotAt = 0;
   setInterval(function(){
-    if (spinning || revealEl.className === 'on') return;
+    if (spinning || revealEl.className === 'on' || boardOn()) return;
     spotAt = (spotAt + 1) % spots.length;
     spots.forEach(function(id, i){
-      document.getElementById(id).className = 'panel' + (i === spotAt ? ' spot' : '');
+      var want = 'panel' + (i === spotAt ? ' spot' : '');
+      var el = document.getElementById(id);
+      if (el.className !== want) el.className = want;
     });
   }, 6000);
+
+  /* ------------------------------------------------ history & stats board */
+  function boardOn(){ return location.hash === '#stats'; }
+
+  function pawLine(avg, count){
+    if (avg == null) return '<div class="bp">&mdash;<span>no paws</span></div>';
+    return '<div class="bp">&#128062; ' + (Math.round(avg * 10) / 10).toFixed(1) +
+      '<span>from ' + count + (count === 1 ? ' vote' : ' votes') + '</span></div>';
+  }
+
+  function renderBoard(data){
+    var hist = (data && data.history) || [];
+    var cards = (data && data.stats && data.stats.cards) || [];
+    var rows = hist.slice(0, 7).map(function(nt){
+      var films = (nt.films && nt.films.length)
+        ? nt.films
+        : [{ title: nt.title, poster: nt.poster }];
+      var bits = [];
+      if (nt.watched_at) bits.push(esc(fmtDate(nt.watched_at)));
+      if (nt.theme) bits.push(esc(nt.theme));
+      bits.push(esc(nt.label));
+      return '<div class="brow"><div class="bposters">' +
+        films.map(function(f){ return poster(f.title, f.poster); }).join('') + '</div>' +
+        '<div><div class="bt">' + films.map(function(f){
+          return esc(f.title);
+        }).join(' <span style="color:var(--muted)">+</span> ') + '</div>' +
+        '<div class="bm">' + bits.join(' &middot; ') + '</div></div>' +
+        pawLine(nt.avg_paws, nt.rating_count || 0) + '</div>';
+    }).join('');
+
+    document.getElementById('board').innerHTML =
+      '<div><h2>What we have watched</h2>' +
+      (rows || '<div class="bempty">Nothing on the record yet.</div>') + '</div>' +
+      '<div><h2>The folklore</h2><div class="cards">' +
+      cards.slice(0, 6).map(function(c){
+        return '<div class="scard" style="--accent:' +
+          safeColor(c.member && c.member.color) + '"><div class="in">' +
+          '<div class="bdg">' + esc(c.badge) + '</div>' +
+          '<div class="st">' + esc(c.title) + '</div>' +
+          '<div class="hd">' + esc(c.headline) + '</div>' +
+          '<div class="ln">' + esc(c.line) + '</div></div></div>';
+      }).join('') + '</div></div>' +
+      '<a class="navlink" href="#" id="navBack">back to tonight</a>';
+  }
+
+  function loadBoard(){
+    document.getElementById('board').innerHTML =
+      '<div class="bempty">Digging out the receipts...</div>';
+    fetch(API + 'tv-stats?key=' + encodeURIComponent(KEY))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d || !d.ok) {
+          document.getElementById('board').innerHTML =
+            '<div class="bempty">That did not load. The wheel does not mind.</div>';
+          return;
+        }
+        renderBoard(d);
+      })
+      .catch(function(){
+        document.getElementById('board').innerHTML =
+          '<div class="bempty">No signal from the Den.</div>';
+      });
+  }
+
+  function routeView(){
+    var on = boardOn();
+    var boardEl = document.getElementById('board');
+    boardEl.className = on ? 'on' : '';
+    document.getElementById('navBoard').style.display = on ? 'none' : '';
+    document.getElementById('lobby').style.display = on ? 'none' : '';
+    revealEl.style.display = on ? 'none' : '';
+    syncPicksLink();
+    if (on) loadBoard();
+  }
+  window.addEventListener('hashchange', routeView);
 
   /* ------------------------------------------------ polling */
   var lastRevealSig = '';
@@ -703,10 +1030,13 @@ body{
           var sig = signature(runners);
           if (sig !== signature(drawn)) buildWheel(runners, state.majority);
         }
+        syncPicksLink();
         firstState = false;
       })
       .catch(function(){ /* projector keeps calm and carries on */ });
   }
+
+  document.getElementById('navPicks').addEventListener('click', reopenReveal);
 
   spinBtn.addEventListener('click', function(){
     if (spinning || spinBtn.disabled) return;
@@ -724,6 +1054,7 @@ body{
       .catch(function(){ spinning = false; spinBtn.disabled = false; });
   });
 
+  routeView();
   poll();
   setInterval(poll, 2000);
 })();

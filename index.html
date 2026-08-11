@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>The Den</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:#0d0b14;
+  --s1:#171225;
+  --s2:#1d1731;
+  --amber:#f5b942;
+  --amber-deep:#e09e28;
+  --text:#f4efe8;
+  --muted:#8d85a3;
+  --line:rgba(244,239,232,.08);
+  --r:22px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+  font-size:15px;
+  line-height:1.45;
+  min-height:100vh;
+  padding-bottom:calc(96px + env(safe-area-inset-bottom));
+  overscroll-behavior-y:none;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(880px 400px at 50% -10%, rgba(245,185,66,.15), transparent 68%),
+    radial-gradient(640px 460px at 106% 4%, rgba(150,96,235,.14), transparent 66%),
+    radial-gradient(560px 520px at -12% 34%, rgba(66,120,245,.08), transparent 70%);
+}
+.wrap{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:0 16px}
+
+/* ---------- marquee header ---------- */
+.top{padding:22px 0 14px;text-align:center}
+.bulbs{
+  display:block;height:6px;margin:0 auto 12px;width:132px;
+  background-image:radial-gradient(circle, rgba(245,185,66,.95) 36%, transparent 40%);
+  background-size:15px 6px;background-repeat:repeat-x;
+  filter:drop-shadow(0 0 6px rgba(245,185,66,.55));
+  animation:chase 1.7s linear infinite;
+}
+@keyframes chase{to{background-position:15px 0}}
+.marquee{
+  font-size:13px;font-weight:800;letter-spacing:.44em;text-indent:.44em;
+  color:var(--amber);text-shadow:0 0 22px rgba(245,185,66,.5);
+}
+.sub{margin-top:6px;font-size:12px;color:var(--muted);letter-spacing:.02em}
+.mechip{
+  display:inline-flex;align-items:center;gap:7px;margin-top:12px;
+  padding:5px 12px 5px 6px;border-radius:999px;
+  background:rgba(255,255,255,.045);border:1px solid var(--line);
+  font-size:12px;font-weight:600;color:var(--muted);
+}
+.mechip .av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px}
+
+/* ---------- structure ---------- */
+.eyebrow{
+  font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);
+}
+h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;line-height:1.08}
+.card{
+  background:linear-gradient(158deg,var(--s2),var(--s1));
+  border:1px solid var(--line);border-radius:var(--r);
+  padding:18px;box-shadow:0 14px 34px rgba(0,0,0,.34);
+}
+.card + .card{margin-top:14px}
+.row{display:flex;align-items:center;gap:12px}
+.between{justify-content:space-between;align-items:flex-start}
+.muted{color:var(--muted)}
+.tiny{font-size:12px}
+.mt{margin-top:16px}
+.sec{margin:26px 0 0}
+
+/* ---------- tonight ---------- */
+.date{font-size:25px;font-weight:800;letter-spacing:-.03em;margin-top:5px}
+.theme{margin-top:6px;font-size:13px;color:var(--amber);font-weight:600}
+.pill{
+  flex:none;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  padding:6px 10px;border-radius:999px;color:var(--amber);
+  background:rgba(245,185,66,.1);border:1px solid rgba(245,185,66,.3);
+}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}
+.seg button{
+  font:inherit;font-weight:700;font-size:13px;color:var(--text);cursor:pointer;
+  background:rgba(255,255,255,.045);border:1px solid var(--line);
+  border-radius:15px;padding:12px 4px;transition:transform .12s ease, background .18s ease;
+}
+.seg button:active{transform:scale(.96)}
+.seg button.on{
+  background:linear-gradient(180deg,var(--amber),var(--amber-deep));
+  color:#221806;border-color:transparent;box-shadow:0 8px 22px rgba(245,185,66,.26);
+}
+.plusrow{display:flex;align-items:center;gap:11px;margin-top:9px}
+.plus{
+  flex:none;font:inherit;font-size:12px;font-weight:800;cursor:pointer;color:var(--text);
+  background:rgba(255,255,255,.045);border:1px solid var(--line);
+  border-radius:999px;padding:9px 15px;transition:transform .12s ease, background .18s ease;
+}
+.plus:active{transform:scale(.96)}
+.plus.on{
+  background:linear-gradient(180deg,var(--amber),var(--amber-deep));
+  color:#221806;border-color:transparent;box-shadow:0 8px 22px rgba(245,185,66,.26);
+}
+.heads{margin-top:14px;font-size:13px;font-weight:700;color:var(--amber)}
+.faces{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.face{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 11px 5px 5px;
+  border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);
+  font-size:12px;font-weight:600;
+}
+.face .av{width:21px;height:21px;border-radius:50%;display:grid;place-items:center;font-size:11px}
+.face.maybe{opacity:.72}
+.face.out{opacity:.4}
+
+/* ---------- posters ---------- */
+.poster{
+  aspect-ratio:2/3;width:100%;display:block;border-radius:16px;object-fit:cover;
+  background:#221b33;border:1px solid var(--line);
+  min-height:0;overflow:hidden;   /* aspect-ratio boxes otherwise grow to fit their text */
+}
+.ph{display:flex;flex-direction:column;justify-content:space-between;padding:11px;overflow:hidden}
+.ph-t{font-weight:800;font-size:15px;line-height:1.12;letter-spacing:-.025em;padding-right:46px;
+  text-shadow:0 2px 12px rgba(0,0,0,.55)}
+.ph-f{font-size:20px;opacity:.65;align-self:flex-end}
+.tile{position:relative}
+.badge{
+  position:absolute;top:8px;right:8px;z-index:2;
+  font-size:11px;font-weight:800;letter-spacing:.02em;color:var(--amber);
+  padding:4px 8px;border-radius:999px;
+  background:rgba(13,11,20,.74);border:1px solid rgba(245,185,66,.34);
+  backdrop-filter:blur(8px);
+}
+.tags{position:absolute;top:8px;left:8px;z-index:2;display:flex;gap:5px;align-items:center}
+.tag{
+  font-size:11px;font-weight:800;line-height:1;padding:5px 7px;border-radius:999px;
+  background:rgba(13,11,20,.72);border:1px solid var(--line);backdrop-filter:blur(8px);
+}
+.tag.vote{color:var(--amber);border-color:rgba(245,185,66,.34)}
+.tag.vote.mine{background:linear-gradient(180deg,var(--amber),var(--amber-deep));color:#221806;border-color:transparent}
+.tile.dim{opacity:.42;filter:grayscale(.72)}
+.lockbar{
+  margin:14px 0 2px;padding:10px 14px;border-radius:14px;text-align:center;
+  font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#221806;
+  background:linear-gradient(180deg,var(--amber),var(--amber-deep));
+  box-shadow:0 10px 26px rgba(245,185,66,.24);
+}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid .tile{display:flex;flex-direction:column}
+.grid .tile .ghost{margin-top:auto}
+.t-title{margin-top:9px;font-size:13px;font-weight:700;line-height:1.25;letter-spacing:-.01em;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.t-by{margin-top:4px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.ghost{
+  margin-top:8px;width:100%;font:inherit;font-size:11px;font-weight:700;cursor:pointer;
+  color:var(--muted);background:transparent;border:1px solid var(--line);
+  border-radius:11px;padding:7px 0;
+}
+.ghost:active{color:var(--text)}
+
+/* ---------- rail (horizontal poster strip) ---------- */
+.rail{display:flex;gap:12px;overflow-x:auto;padding:2px 16px 6px;margin:0 -16px;scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.rail .tile{flex:none;width:104px}
+.rail .tile.picked .poster{border-color:var(--amber);box-shadow:0 0 0 2px rgba(245,185,66,.45),0 10px 26px rgba(245,185,66,.2)}
+.picked-tag{margin-top:6px;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--amber)}
+
+/* ---------- suggest ---------- */
+.field{display:flex;gap:9px;margin-top:14px}
+.field input{
+  flex:1;min-width:0;font:inherit;font-size:15px;color:var(--text);
+  background:rgba(255,255,255,.05);border:1px solid var(--line);
+  border-radius:15px;padding:13px 15px;outline:none;
+}
+.field input::placeholder{color:#6d6685}
+.field input:focus{border-color:rgba(245,185,66,.45);background:rgba(255,255,255,.07)}
+.field button{
+  flex:none;font:inherit;font-weight:800;font-size:14px;cursor:pointer;color:#221806;
+  background:linear-gradient(180deg,var(--amber),var(--amber-deep));
+  border:none;border-radius:15px;padding:0 20px;
+}
+.field button:disabled{opacity:.45}
+.prev{display:none;gap:12px;margin-top:14px;align-items:center;animation:fade .28s ease}
+.prev.on{display:flex}
+.prev .poster{width:44px;height:66px;aspect-ratio:auto;border-radius:9px}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ---------- history ---------- */
+.hrow{display:grid;grid-template-columns:62px 1fr;gap:14px;align-items:start}
+.hrow + .hrow{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.paws{display:flex;gap:3px;font-size:14px;line-height:1}
+.paws span{opacity:.2;cursor:pointer}
+.paws span.on{opacity:1;filter:drop-shadow(0 0 6px rgba(245,185,66,.4))}
+.paws.small{font-size:12px}
+.avg{font-size:12px;color:var(--muted);margin-top:7px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mine-label{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- stats ---------- */
+.stat{position:relative;overflow:hidden;border-radius:24px;padding:20px;
+  background:linear-gradient(152deg,var(--s2),var(--s1));border:1px solid var(--line);
+  box-shadow:0 14px 34px rgba(0,0,0,.34)}
+.stat + .stat{margin-top:14px}
+.stat::after{
+  content:"";position:absolute;top:-70px;right:-60px;width:210px;height:210px;border-radius:50%;
+  background:var(--accent,#f5b942);opacity:.17;filter:blur(34px);pointer-events:none;
+}
+.stat .bd{position:relative;z-index:1}
+.stat .badge2{font-size:22px;line-height:1}
+.stat .st-title{margin-top:10px;font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.stat .st-head{margin-top:5px;font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.stat .st-line{margin-top:9px;font-size:13px;color:#c3bcd4;line-height:1.45}
+.stat .st-who{margin-top:14px;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;
+  padding:5px 12px 5px 5px;border-radius:999px;background:rgba(0,0,0,.28);border:1px solid var(--line)}
+.stat .st-who .av{width:21px;height:21px;border-radius:50%;display:grid;place-items:center;font-size:11px}
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.summary .card{padding:16px;text-align:center;margin:0}
+.summary .big{font-size:28px;font-weight:800;letter-spacing:-.03em}
+
+/* ---------- empty / skeleton / toast ---------- */
+.empty{text-align:center;padding:46px 20px;color:var(--muted)}
+.empty .big{font-size:30px;margin-bottom:10px;opacity:.8}
+.empty p{margin:0;font-size:14px;max-width:250px;margin-inline:auto;line-height:1.5}
+.sk{background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.1),rgba(255,255,255,.04));
+  background-size:220% 100%;animation:sh 1.25s linear infinite;border-radius:14px}
+@keyframes sh{to{background-position:-220% 0}}
+.toast{
+  position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translate(-50%,14px);
+  z-index:40;max-width:330px;padding:11px 17px;border-radius:14px;font-size:13px;font-weight:600;
+  background:rgba(29,23,49,.96);border:1px solid var(--line);color:var(--text);
+  box-shadow:0 14px 34px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:all .24s ease;
+  backdrop-filter:blur(10px);text-align:center;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.toast.bad{border-color:rgba(219,87,109,.5)}
+
+/* ---------- tabs ---------- */
+.tabs{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(4,1fr);
+  padding:10px 8px calc(10px + env(safe-area-inset-bottom));
+  background:rgba(13,11,20,.86);backdrop-filter:blur(18px);border-top:1px solid var(--line);
+}
+.tabs button{
+  font:inherit;font-size:12px;font-weight:700;letter-spacing:.02em;cursor:pointer;
+  background:none;border:none;color:var(--muted);padding:8px 0 6px;position:relative;
+}
+.tabs button.on{color:var(--amber)}
+.tabs button.on::before{
+  content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:5px;height:5px;border-radius:50%;background:var(--amber);
+  box-shadow:0 0 10px rgba(245,185,66,.9);
+}
+
+/* ---------- gate ---------- */
+.gate{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:32px;background:var(--bg)}
+.gate .box{text-align:center;max-width:300px}
+.gate .big{font-size:44px;margin-bottom:18px}
+.gate h2{font-size:22px;font-weight:800;letter-spacing:-.03em;margin:0 0 10px}
+.gate p{margin:0;color:var(--muted);font-size:14px;line-height:1.55}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important;transition-duration:.001ms !important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="bulbs"></span>
+    <div class="marquee">THE DEN</div>
+    <div class="sub" id="sub">movie nights, decided by wheel</div>
+    <div id="whoami"></div>
+  </header>
+  <main id="view"></main>
+</div>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="tonight" class="on">Tonight</button>
+  <button data-tab="pool">Pool</button>
+  <button data-tab="history">History</button>
+  <button data-tab="stats">Stats</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var W = window.Telegram && window.Telegram.WebApp;
+  if (W) {
+    try { W.ready(); W.expand(); } catch (e) {}
+    try { W.setHeaderColor('#0d0b14'); W.setBackgroundColor('#0d0b14'); } catch (e) {}
+  }
+  var initData = (W && W.initData) || '';
+  /* This page is hosted on GitHub Pages, so the API is a different origin entirely. */
+  var API = 'https://psomtujaikgcvblklzgv.supabase.co/functions/v1/app/api/';
+
+  var S = null;               /* everything /api/me returned */
+  var tab = 'tonight';
+  var busy = false;
+  var query = '';             /* live suggest box text */
+  var previewTimer = null;
+
+  var view = document.getElementById('view');
+  var toastEl = document.getElementById('toast');
+  var toastTimer = null;
+
+  /* ------------------------------------------------ helpers */
+  var ENT = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return ENT[c]; });
+  }
+  function safeColor(c){
+    return /^#[0-9a-fA-F]{3,8}$/.test(String(c || '')) ? String(c) : '#b48ef2';
+  }
+  function hash(s){
+    var h = 0, str = String(s || '');
+    for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return h;
+  }
+  function haptic(kind){
+    try { W.HapticFeedback.impactOccurred(kind || 'light'); } catch (e) {}
+  }
+  function toast(msg, bad){
+    toastEl.textContent = msg;
+    toastEl.className = 'toast on' + (bad ? ' bad' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.className = 'toast' + (bad ? ' bad' : ''); }, 2600);
+  }
+  function api(name, body){
+    var payload = Object.assign({ initData: initData }, body || {});
+    return fetch(API + name, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function(res){
+      return res.json().catch(function(){ return { ok:false, error:'bad_json' }; }).then(function(j){
+        j.__status = res.status;
+        return j;
+      });
+    });
+  }
+
+  /* Poster, or a placeholder built from the title's own hash. */
+  function poster(title, url, cls){
+    var extra = cls ? ' ' + cls : '';
+    if (url) {
+      return '<img class="poster' + extra + '" loading="lazy" alt="" src="' + esc(url) + '">';
+    }
+    var h = hash(title);
+    var a = h % 360, b = (h >> 7) % 360;
+    return '<div class="poster ph' + extra + '" style="background:linear-gradient(158deg,hsl(' +
+      a + ' 42% 27%),hsl(' + b + ' 52% 13%))">' +
+      '<span class="ph-t">' + esc(title) + '</span><span class="ph-f">&#127916;</span></div>';
+  }
+  function avatar(m, cls){
+    var c = safeColor(m && m.color);
+    return '<span class="av' + (cls ? ' ' + cls : '') + '" style="background:' + c + '33;box-shadow:inset 0 0 0 1px ' +
+      c + '88">' + ((m && m.emoji) ? esc(m.emoji) : '&#128062;') + '</span>';
+  }
+  function pawRow(n, of5, opts){
+    var out = [], i;
+    for (i = 1; i <= 5; i++) {
+      out.push('<span class="' + (i <= n ? 'on' : '') + '"' +
+        (opts && opts.act ? ' data-act="rate" data-night="' + esc(opts.night) + '" data-paws="' + i + '"' : '') +
+        '>&#128062;</span>');
+    }
+    return '<div class="paws' + (opts && opts.small ? ' small' : '') + '">' + out.join('') + '</div>';
+  }
+  function odds(c){ return Math.round((c.odds || 0) * 100) + '%'; }
+
+  function tileHtml(c, opts){
+    opts = opts || {};
+    var maj = opts.majority || {};
+    var isLock = !!(maj.locked && maj.leading && c.id === maj.leading);
+    var lockedOut = !!(maj.locked && maj.leading && c.id !== maj.leading);
+    var act = opts.act ? ' data-act="' + opts.act + '" data-id="' + esc(c.id) + '"' : '';
+    var tags = [];
+    if (c.boosted) tags.push('<span class="tag" title="underdog bonus">&#128293;</span>');
+    if (c.votes) {
+      tags.push('<span class="tag vote' + (opts.picked ? ' mine' : '') +
+        '">&#128499;&#65039;&times;' + c.votes + '</span>');
+    }
+    return '<div class="tile' + (opts.picked ? ' picked' : '') + (lockedOut ? ' dim' : '') + '"' + act + '>' +
+      '<span class="badge">' + (isLock ? 'LOCKED' : odds(c)) + '</span>' +
+      (tags.length ? '<div class="tags">' + tags.join('') + '</div>' : '') +
+      poster(c.title, c.poster) +
+      '<div class="t-title">' + esc(c.title) + '</div>' +
+      '<div class="t-by"><span class="dot" style="background:' + safeColor(c.color) + '"></span>' +
+        esc(c.emoji) + ' ' + esc(c.member) + '</div>' +
+      (opts.picked ? '<div class="picked-tag">your vote</div>' : '') +
+      (opts.removable && c.mine
+        ? '<button class="ghost" data-act="remove" data-id="' + esc(c.id) + '">Retire</button>' : '') +
+      '</div>';
+  }
+  function empty(icon, text){
+    return '<div class="empty"><div class="big">' + icon + '</div><p>' + esc(text) + '</p></div>';
+  }
+  function statusPill(status){
+    var map = { planned:'RSVPs open', locked:'Voting open', spun:'Picked', watched:'Watched' };
+    return map[status] || status;
+  }
+  function fmtDate(iso){
+    if (!iso) return '';
+    try {
+      return new Date(iso).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+    } catch (e) { return ''; }
+  }
+
+  /* ------------------------------------------------ views */
+  function skeleton(){
+    return '<div class="card"><div class="sk" style="height:14px;width:80px"></div>' +
+      '<div class="sk" style="height:28px;width:70%;margin-top:12px"></div>' +
+      '<div class="sk" style="height:44px;margin-top:20px"></div></div>' +
+      '<div class="card"><div class="sk" style="height:14px;width:110px"></div>' +
+      '<div class="sk" style="height:150px;margin-top:14px"></div></div>';
+  }
+
+  function viewTonight(){
+    var n = S.night;
+    if (!n) {
+      return '<div class="card">' + empty('&#127871;',
+        'No night on the books. A host has to start one before anything interesting happens.') + '</div>';
+    }
+    var out = [];
+    out.push('<div class="card">');
+    out.push('<div class="row between"><div>');
+    out.push('<div class="eyebrow">' + (n.status === 'watched' ? 'Last night' : 'Next up') + '</div>');
+    out.push('<div class="date">' + esc(n.label) + '</div>');
+    if (n.theme) out.push('<div class="theme">&#127917; ' + esc(n.theme) + '</div>');
+    out.push('</div><span class="pill">' + esc(statusPill(n.status)) + '</span></div>');
+
+    var mine = S.my_rsvp || {};
+    var mineStatus = mine.status || null;
+    var minePlus = mine.plus_ones === 1;
+    out.push('<div class="seg">' +
+      '<button data-act="rsvp" data-status="in" class="' + (mineStatus === 'in' ? 'on' : '') + '">&#127881; In</button>' +
+      '<button data-act="rsvp" data-status="maybe" class="' + (mineStatus === 'maybe' ? 'on' : '') + '">&#129300; Maybe</button>' +
+      '<button data-act="rsvp" data-status="out" class="' + (mineStatus === 'out' ? 'on' : '') + '">&#128575; Out</button>' +
+      '</div>');
+    out.push('<div class="plusrow">' +
+      '<button class="plus' + (minePlus ? ' on' : '') + '" data-act="plus">&#10133; +1</button>' +
+      '<span class="tiny muted">' +
+      (minePlus ? 'One guest riding along. Tap to drop them.' : 'Bringing someone? Tap +1.') +
+      '</span></div>');
+
+    var list = n.rsvps || [];
+    if (list.length) {
+      var order = { 'in':0, 'maybe':1, 'out':2 };
+      var sorted = list.slice().sort(function(a, b){ return order[a.status] - order[b.status]; });
+      out.push('<div class="faces">' + sorted.map(function(r){
+        return '<span class="face ' + esc(r.status) + '">' + avatar(r) + esc(r.name) +
+          (r.plus_ones === 1 ? ' +1' : '') + '</span>';
+      }).join('') + '</div>');
+      if (n.headcount) out.push('<div class="heads">' + n.headcount + ' coming</div>');
+    } else {
+      out.push('<div class="tiny muted mt">Nobody has committed. Be the brave one.</div>');
+    }
+    out.push('</div>');
+
+    if (n.winner) {
+      out.push('<div class="card"><div class="eyebrow">The wheel picked</div>' +
+        '<div class="row mt" style="gap:14px">' +
+        '<div style="width:74px;flex:none">' + poster(n.winner.title, n.winner.poster) + '</div>' +
+        '<div><div style="font-size:19px;font-weight:800;letter-spacing:-.03em">' + esc(n.winner.title) +
+        (n.winner.year ? ' <span class="muted" style="font-weight:600">(' + esc(n.winner.year) + ')</span>' : '') +
+        '</div><div class="tiny muted" style="margin-top:6px">suggested by ' + esc(n.winner.emoji) + ' ' +
+        esc(n.winner.member) + '</div></div></div></div>');
+    }
+
+    var pool = S.pool || [];
+    if (pool.length && n.status !== 'spun' && n.status !== 'watched') {
+      var maj = n.majority || {};
+      var picked = S.my_vote;
+      if (n.status === 'locked') {
+        out.push('<div class="sec"><div class="eyebrow">The vote</div>' +
+          '<h1 class="h">Boost your pick</h1>');
+        if (maj.locked) {
+          out.push('<div class="lockbar">Locked by majority &middot; ' + (maj.leading_votes || 0) +
+            ' of ' + (maj.attendee_basis || 0) + '</div>');
+        }
+        out.push('<div class="rail">' + pool.map(function(c){
+            return tileHtml(c, { act:'vote', picked: c.id === picked, majority: maj });
+          }).join('') + '</div>' +
+          '<div class="tiny muted" style="margin-top:6px">' +
+          'A vote adds +1 to that film&rsquo;s weight on the wheel, and ' +
+          (maj.threshold || 2) + ' votes on the same film with a clear lead wins outright' +
+          (picked ? ' &mdash; switch yours any time before the spin.' : '.') +
+          '</div></div>');
+      } else {
+        out.push('<div class="sec"><div class="eyebrow">The pool</div>' +
+          '<h1 class="h">In the running</h1>' +
+          '<div class="rail">' + pool.map(function(c){
+            return tileHtml(c, {});
+          }).join('') + '</div>' +
+          '<div class="tiny muted" style="margin-top:6px">' +
+          'Voting opens when the hosts call it.</div></div>');
+      }
+    }
+    return out.join('');
+  }
+
+  function viewPool(){
+    var pool = S.pool || [];
+    var count = S.my_suggestion_count || 0;
+    var max = S.max_suggestions || 3;
+    var out = [];
+    out.push('<div class="eyebrow">The pool</div><h1 class="h">' + pool.length +
+      (pool.length === 1 ? ' film waiting' : ' films waiting') + '</h1>');
+
+    out.push('<div class="card"><div class="eyebrow">Add one</div>' +
+      '<div class="field"><input id="q" type="text" autocomplete="off" placeholder="The Iron Giant" ' +
+      (count >= max ? 'disabled' : '') + '>' +
+      '<button id="add" data-act="suggest"' + (count >= max ? ' disabled' : '') + '>Add</button></div>' +
+      '<div class="prev" id="prev"></div>' +
+      '<div class="tiny muted" style="margin-top:10px">' +
+      (count >= max
+        ? 'You have ' + max + ' in the pool, which is the limit. Retire one below.'
+        : count + ' of ' + max + ' used. Unpicked films get better odds every spin.') +
+      '</div></div>');
+
+    if (!pool.length) {
+      out.push('<div class="card" style="margin-top:14px">' +
+        empty('&#127902;', 'The pool is empty. Fix that.') + '</div>');
+    } else {
+      var maj = (S.night && S.night.majority) || {};
+      out.push('<div class="grid" style="margin-top:18px">' + pool.map(function(c){
+        return tileHtml(c, { removable: true, majority: maj });
+      }).join('') + '</div>');
+    }
+    return out.join('');
+  }
+
+  function viewHistory(){
+    var h = S.history || [];
+    if (!h.length) {
+      return '<div class="eyebrow">History</div><h1 class="h">Nothing yet</h1><div class="card">' +
+        empty('&#128220;', 'The folklore starts after the first set of credits rolls.') + '</div>';
+    }
+    var out = ['<div class="eyebrow">History</div><h1 class="h">' + h.length +
+      (h.length === 1 ? ' night watched' : ' nights watched') + '</h1>'];
+    out.push('<div class="card">');
+    out.push(h.map(function(n){
+      var avg = n.avg_paws == null ? null : Math.round(n.avg_paws * 10) / 10;
+      return '<div class="hrow">' +
+        '<div>' + poster(n.title, n.poster) + '</div>' +
+        '<div><div style="font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.2">' +
+          esc(n.title) + '</div>' +
+        '<div class="tiny muted" style="margin-top:4px">' + esc(n.label) +
+          (n.watched_at ? ' &middot; ' + esc(fmtDate(n.watched_at)) : '') +
+          (n.theme ? ' &middot; ' + esc(n.theme) : '') + '</div>' +
+        '<div class="avg">' +
+          (avg == null
+            ? '<span>no paws recorded</span>'
+            : pawRow(Math.round(avg)) + '<span>' + avg.toFixed(1) + ' from ' + n.rating_count +
+              (n.rating_count === 1 ? ' voter' : ' voters') + '</span>') +
+        '</div>' +
+        '<div class="avg"><span class="mine-label">yours</span>' +
+          pawRow(n.my_paws || 0, 5, { act:true, night:n.night_id, small:true }) + '</div>' +
+        '</div></div>';
+    }).join(''));
+    out.push('</div>');
+    return out.join('');
+  }
+
+  function viewStats(){
+    var st = S.stats || { cards:[] };
+    var avg = st.avg_paws == null ? null : Math.round(st.avg_paws * 10) / 10;
+    var out = ['<div class="eyebrow">Folklore</div><h1 class="h">The receipts</h1>'];
+    out.push('<div class="summary">' +
+      '<div class="card"><div class="big">' + (st.nights_watched || 0) + '</div>' +
+      '<div class="tiny muted">nights watched</div></div>' +
+      '<div class="card"><div class="big">' + (avg == null ? '&mdash;' : avg.toFixed(1)) + '</div>' +
+      '<div class="tiny muted">average paws</div></div></div>');
+    out.push((st.cards || []).map(function(c){
+      var accent = safeColor(c.member && c.member.color);
+      return '<div class="stat" style="--accent:' + accent + '"><div class="bd">' +
+        '<div class="badge2">' + esc(c.badge) + '</div>' +
+        '<div class="st-title">' + esc(c.title) + '</div>' +
+        '<div class="st-head">' + esc(c.headline) + '</div>' +
+        '<div class="st-line">' + esc(c.line) + '</div>' +
+        (c.member ? '<div class="st-who">' + avatar(c.member) + esc(c.member.name) + '</div>' : '') +
+        '</div></div>';
+    }).join(''));
+    return out.join('');
+  }
+
+  function render(){
+    if (!S) { view.innerHTML = skeleton(); return; }
+    var me = S.me;
+    document.getElementById('whoami').innerHTML =
+      '<span class="mechip">' + avatar(me) + esc(me.name) + (me.is_host ? ' &middot; host' : '') + '</span>';
+    if (tab === 'tonight') view.innerHTML = viewTonight();
+    else if (tab === 'pool') view.innerHTML = viewPool();
+    else if (tab === 'history') view.innerHTML = viewHistory();
+    else view.innerHTML = viewStats();
+
+    var q = document.getElementById('q');
+    if (q) {
+      q.value = query;
+      q.addEventListener('input', onQuery);
+      q.addEventListener('keydown', function(e){ if (e.key === 'Enter') doSuggest(); });
+      if (query) renderPreview(lastPreview);
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function gate(){
+    document.body.innerHTML =
+      '<div class="gate"><div class="box"><div class="big">&#127917;</div>' +
+      '<h2>Open me from Telegram</h2>' +
+      '<p>The Den only unlocks from inside the chat &mdash; tap the menu button on the bot ' +
+      'and it will let you straight in. &#128062;</p></div></div>';
+  }
+
+  /* ------------------------------------------------ data */
+  function load(){
+    return api('me').then(function(j){
+      if (j.__status === 401) { gate(); return; }
+      if (!j.ok) { toast('That did not load. Try again in a moment.', true); return; }
+      S = j;
+      render();
+    }).catch(function(){
+      toast('No signal from the Den.', true);
+    });
+  }
+
+  /* ------------------------------------------------ actions */
+  /* plusOnes null leaves any existing guest alone; 0 or 1 sets it. Server rules mirrored here
+     so the optimistic redraw matches what comes back. */
+  function doRsvp(status, plusOnes){
+    if (!S.night || busy) return;
+    busy = true;
+    haptic('light');
+    var was = S.my_rsvp;
+    var next = {
+      status: status,
+      plus_ones: plusOnes == null ? ((was && was.plus_ones) || 0) : plusOnes
+    };
+    if (next.plus_ones === 1) next.status = 'in';
+    if (next.status === 'out') next.plus_ones = 0;
+    S.my_rsvp = next;
+    render();
+    var payload = { night_id: S.night.id, status: status };
+    if (plusOnes != null) payload.plus_ones = plusOnes;
+    api('rsvp', payload).then(function(j){
+      busy = false;
+      if (!j.ok) { S.my_rsvp = was; render(); toast('Could not save that.', true); return; }
+      S.my_rsvp = j.my_rsvp || next;
+      S.night.rsvps = j.rsvps || S.night.rsvps;
+      if (typeof j.headcount === 'number') S.night.headcount = j.headcount;
+      render();
+      if (plusOnes === 1) toast('+1 riding along.');
+      else if (plusOnes === 0) toast('+1 dropped.');
+      else toast(status === 'in' ? 'Seat reserved.' : status === 'maybe' ? 'Noncommittal. Noted.' : 'Out. The couch will cope.');
+    }).catch(function(){ busy = false; S.my_rsvp = was; render(); toast('Could not save that.', true); });
+  }
+
+  function doVote(id){
+    if (!S.night || busy) return;
+    if (S.night.status !== 'locked') { toast('Voting is not open yet.', true); return; }
+    busy = true;
+    haptic('light');
+    var was = S.my_vote;
+    S.my_vote = id;
+    render();
+    api('vote', { night_id: S.night.id, suggestion_id: id }).then(function(j){
+      busy = false;
+      if (!j.ok) {
+        S.my_vote = was; render();
+        toast(j.error === 'voting_closed'
+          ? 'Voting is closed. The wheel has moved on.'
+          : 'Vote did not stick.', true);
+        return;
+      }
+      S.pool = j.pool || S.pool;
+      if (S.night) S.night.majority = j.majority || S.night.majority;
+      render();
+      toast(j.majority && j.majority.locked && j.majority.leading === id
+        ? 'That is a majority. Locked in unless the room changes its mind.'
+        : 'Vote counted. +1 weight on that slice.');
+    }).catch(function(){ busy = false; S.my_vote = was; render(); toast('Vote did not stick.', true); });
+  }
+
+  function doRemove(id){
+    if (busy) return;
+    busy = true;
+    haptic('medium');
+    api('unsuggest', { suggestion_id: id }).then(function(j){
+      busy = false;
+      if (!j.ok) { toast('That one is not yours to retire.', true); return; }
+      S.pool = j.pool || [];
+      S.my_suggestion_count = S.pool.filter(function(c){ return c.mine; }).length;
+      render();
+      toast('Retired. Odds recalculated.');
+    }).catch(function(){ busy = false; toast('Could not retire that.', true); });
+  }
+
+  function doSuggest(){
+    var q = document.getElementById('q');
+    if (!q || busy) return;
+    var title = q.value.trim();
+    if (title.length < 2) { toast('Give it a title first.', true); return; }
+    busy = true;
+    var btn = document.getElementById('add');
+    if (btn) { btn.disabled = true; btn.textContent = '...'; }
+    api('suggest', { title: title }).then(function(j){
+      busy = false;
+      if (!j.ok) {
+        toast(j.error === 'limit' ? 'Three is the limit. Retire one first.' : 'That did not go in.', true);
+        render();
+        return;
+      }
+      query = '';
+      lastPreview = null;
+      S.pool = j.pool || [];
+      S.my_suggestion_count = S.pool.filter(function(c){ return c.mine; }).length;
+      render();
+      toast('In the pool. Odds recalculated.');
+      haptic('medium');
+    }).catch(function(){ busy = false; render(); toast('That did not go in.', true); });
+  }
+
+  function doRate(nightId, paws){
+    if (busy) return;
+    busy = true;
+    haptic('light');
+    api('rate', { night_id: nightId, paws: paws }).then(function(j){
+      busy = false;
+      if (!j.ok) { toast('Rating did not save.', true); return; }
+      (S.history || []).forEach(function(n){
+        if (n.night_id === nightId) {
+          n.my_paws = paws;
+          n.avg_paws = j.avg_paws;
+          n.rating_count = j.rating_count;
+        }
+      });
+      render();
+      toast(paws >= 4 ? 'Generous. Logged.' : paws <= 2 ? 'Brutal. Logged.' : 'Logged.');
+    }).catch(function(){ busy = false; toast('Rating did not save.', true); });
+  }
+
+  /* ------------------------------------------------ live lookup preview */
+  var lastPreview = null;
+  function onQuery(e){
+    query = e.target.value;
+    clearTimeout(previewTimer);
+    var q = query.trim();
+    if (q.length < 3) { lastPreview = null; renderPreview(null); return; }
+    previewTimer = setTimeout(function(){ fetchPreview(q); }, 420);
+  }
+  function fetchPreview(q){
+    fetch('https://v3-cinemeta.strem.io/catalog/movie/top/search=' + encodeURIComponent(q) + '.json')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (query.trim() !== q) return;
+        var m = d && d.metas && d.metas[0];
+        lastPreview = m ? { title:m.name, year:m.releaseInfo, poster:m.poster } : null;
+        renderPreview(lastPreview);
+      })
+      .catch(function(){ /* preview is a nicety; the server does the real lookup */ });
+  }
+  function renderPreview(p){
+    var el = document.getElementById('prev');
+    if (!el) return;
+    if (!p) { el.className = 'prev'; el.innerHTML = ''; return; }
+    el.className = 'prev on';
+    el.innerHTML = poster(p.title, p.poster) +
+      '<div><div style="font-weight:700;font-size:14px;letter-spacing:-.02em">' + esc(p.title) + '</div>' +
+      '<div class="tiny muted" style="margin-top:3px">' +
+      (p.year ? esc(p.year) + ' &middot; ' : '') + 'looks like this one</div></div>';
+  }
+
+  /* ------------------------------------------------ wiring */
+  document.getElementById('tabs').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-tab]');
+    if (!b) return;
+    tab = b.getAttribute('data-tab');
+    Array.prototype.forEach.call(this.querySelectorAll('button'), function(x){
+      x.className = x.getAttribute('data-tab') === tab ? 'on' : '';
+    });
+    haptic('light');
+    render();
+  });
+
+  view.addEventListener('click', function(e){
+    var el = e.target.closest('[data-act]');
+    if (!el || !S) return;
+    var act = el.getAttribute('data-act');
+    if (act === 'rsvp') doRsvp(el.getAttribute('data-status'), null);
+    else if (act === 'plus') {
+      /* Adding a guest commits you; dropping one leaves your status where it is. */
+      var mineNow = S.my_rsvp || {};
+      var adding = mineNow.plus_ones !== 1;
+      doRsvp(adding ? 'in' : (mineNow.status || 'in'), adding ? 1 : 0);
+    }
+    else if (act === 'vote') doVote(el.getAttribute('data-id'));
+    else if (act === 'remove') { e.stopPropagation(); doRemove(el.getAttribute('data-id')); }
+    else if (act === 'suggest') doSuggest();
+    else if (act === 'rate') doRate(el.getAttribute('data-night'), Number(el.getAttribute('data-paws')));
+  });
+
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden && S) load();
+  });
+
+  render();
+  load();
+})();
+</script>
+</body>
+</html>

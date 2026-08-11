@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>The Den &middot; TV</title>
+<style>
+:root{
+  --bg:#0d0b14;
+  --s1:#171225;
+  --s2:#1d1731;
+  --amber:#f5b942;
+  --amber-deep:#e09e28;
+  --text:#f4efe8;
+  --muted:#8d85a3;
+  --line:rgba(244,239,232,.09);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#07060b}
+body{
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+  cursor:none;
+}
+#stage{
+  position:fixed;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center center;
+  background:
+    radial-gradient(1200px 700px at 22% -12%, rgba(245,185,66,.13), transparent 66%),
+    radial-gradient(1000px 800px at 100% 10%, rgba(150,96,235,.15), transparent 64%),
+    radial-gradient(900px 900px at -8% 90%, rgba(66,120,245,.09), transparent 70%),
+    var(--bg);
+  overflow:hidden;
+}
+.vignette{
+  position:absolute;inset:0;z-index:6;pointer-events:none;
+  background:radial-gradient(115% 92% at 50% 46%, transparent 52%, rgba(0,0,0,.62) 100%);
+}
+.grain{
+  position:absolute;inset:-100px;z-index:7;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/></filter><rect width='220' height='220' filter='url(%23n)'/></svg>");
+  animation:grain .8s steps(3) infinite;
+}
+@keyframes grain{
+  0%{transform:translate(0,0)} 33%{transform:translate(-14px,9px)} 66%{transform:translate(11px,-12px)} 100%{transform:translate(0,0)}
+}
+
+/* ---------------- layout ---------------- */
+#lobby{position:absolute;inset:0;z-index:2;display:grid;grid-template-columns:900px 1fr;gap:60px;padding:64px}
+.left{display:flex;flex-direction:column;justify-content:space-between;gap:44px;min-height:0}
+.right{display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
+.panel{transition:opacity .9s ease, transform .9s ease;opacity:.6}
+.panel.spot{opacity:1;transform:scale(1.012)}
+#stage.busy .left{opacity:.25;filter:blur(3px);transition:opacity .7s ease, filter .7s ease}
+.left{transition:opacity .7s ease, filter .7s ease}
+
+/* ---------------- header ---------------- */
+.bulbs{
+  display:block;height:9px;width:250px;margin-bottom:20px;
+  background-image:radial-gradient(circle, rgba(245,185,66,.95) 34%, transparent 38%);
+  background-size:22px 9px;background-repeat:repeat-x;
+  filter:drop-shadow(0 0 9px rgba(245,185,66,.6));animation:chase 1.6s linear infinite;
+}
+@keyframes chase{to{background-position:22px 0}}
+.brand{font-size:19px;font-weight:800;letter-spacing:.52em;color:var(--amber);text-shadow:0 0 30px rgba(245,185,66,.55)}
+.label{margin-top:16px;font-size:88px;font-weight:800;letter-spacing:-.045em;line-height:.98}
+.theme{margin-top:16px;font-size:31px;font-weight:600;color:var(--amber);letter-spacing:-.01em;
+  text-shadow:0 0 34px rgba(245,185,66,.35)}
+.status{
+  display:inline-block;margin-top:22px;font-size:14px;font-weight:800;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--amber);padding:9px 16px;border-radius:999px;
+  background:rgba(245,185,66,.1);border:1px solid rgba(245,185,66,.32);
+}
+.status.lock{
+  color:#231806;border-color:transparent;
+  background:linear-gradient(180deg,var(--amber),var(--amber-deep));
+  box-shadow:0 0 48px rgba(245,185,66,.42);
+}
+.eyebrow{font-size:14px;font-weight:800;letter-spacing:.28em;text-transform:uppercase;color:var(--muted)}
+.heads{margin-left:18px;color:var(--amber);text-shadow:0 0 26px rgba(245,185,66,.4)}
+
+/* ---------------- rsvp roll ---------------- */
+.roll{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
+.chip{
+  display:inline-flex;align-items:center;gap:12px;padding:10px 22px 10px 10px;border-radius:999px;
+  background:rgba(255,255,255,.045);border:1px solid var(--line);font-size:23px;font-weight:700;
+  animation:arrive .55s cubic-bezier(.2,.9,.3,1) both;
+}
+.chip .av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:22px}
+.chip.maybe{opacity:.66} .chip.out{opacity:.34}
+@keyframes arrive{from{opacity:0;transform:translateY(14px) scale(.94)}to{opacity:1;transform:none}}
+
+/* ---------------- poster wall ---------------- */
+.wall{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:20px;align-items:start}
+.pw{position:relative;animation:arrive .6s cubic-bezier(.2,.9,.3,1) both}
+.poster{
+  width:100%;aspect-ratio:2/3;border-radius:14px;object-fit:cover;display:block;
+  background:#221b33;border:1px solid var(--line);box-shadow:0 16px 34px rgba(0,0,0,.5);
+  min-height:0;overflow:hidden;   /* aspect-ratio boxes otherwise grow to fit their text */
+}
+.ph{display:flex;flex-direction:column;justify-content:space-between;padding:12px;overflow:hidden}
+.ph-t{font-size:17px;font-weight:800;line-height:1.1;letter-spacing:-.02em;padding-right:52px;
+  text-shadow:0 2px 12px rgba(0,0,0,.55)}
+.ph-f{font-size:22px;opacity:.6;align-self:flex-end}
+.pw .odds{
+  position:absolute;top:9px;right:9px;font-size:14px;font-weight:800;color:var(--amber);
+  padding:5px 9px;border-radius:999px;background:rgba(13,11,20,.76);
+  border:1px solid rgba(245,185,66,.34);backdrop-filter:blur(6px);
+}
+.pw .tally{
+  position:absolute;top:9px;left:9px;font-size:14px;font-weight:800;color:var(--text);
+  padding:5px 9px;border-radius:999px;background:rgba(13,11,20,.76);
+  border:1px solid var(--line);backdrop-filter:blur(6px);
+}
+.pw.dim{filter:grayscale(1);opacity:.36}
+.pw.lock .poster{
+  border-color:rgba(245,185,66,.7);
+  box-shadow:0 0 0 3px rgba(245,185,66,.42), 0 16px 40px rgba(245,185,66,.22);
+}
+.pw .who{margin-top:9px;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:7px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.more{margin-top:14px;font-size:15px;color:var(--muted);letter-spacing:.04em}
+.pw .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.empty{color:var(--muted);font-size:26px;margin-top:26px;font-weight:600}
+
+/* ---------------- wheel ---------------- */
+.needle{
+  width:0;height:0;border-left:23px solid transparent;border-right:23px solid transparent;
+  border-top:44px solid var(--amber);filter:drop-shadow(0 6px 16px rgba(245,185,66,.6));z-index:4;
+}
+.wheelbox{position:relative;width:720px;height:720px;margin-top:8px}
+#wheel{
+  position:absolute;inset:0;border-radius:50%;
+  box-shadow:0 0 0 12px rgba(13,11,20,.9), 0 0 0 15px rgba(245,185,66,.35),
+             0 40px 110px rgba(0,0,0,.65), inset 0 0 90px rgba(0,0,0,.55);
+  will-change:transform;
+}
+.lab{
+  position:absolute;left:50%;top:50%;width:268px;height:36px;margin-left:-134px;margin-top:-18px;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  font-size:20px;font-weight:800;letter-spacing:-.015em;color:#0f0c17;
+  text-shadow:0 1px 0 rgba(255,255,255,.26);white-space:nowrap;overflow:hidden;
+}
+.lab .o{font-size:17px;font-weight:800;opacity:.6}
+.hub{
+  position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;
+  background:radial-gradient(circle at 40% 34%, #241d3a, #120e1e);
+  border:3px solid rgba(245,185,66,.5);z-index:3;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  box-shadow:0 0 44px rgba(0,0,0,.7), 0 0 30px rgba(245,185,66,.18);
+}
+.hub .paw{font-size:46px;line-height:1}
+.hub .t{font-size:11px;font-weight:800;letter-spacing:.24em;color:var(--amber);opacity:.85}
+#spin{
+  margin-top:30px;font:inherit;font-size:23px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  color:#231806;background:linear-gradient(180deg,var(--amber),var(--amber-deep));
+  border:none;border-radius:999px;padding:22px 74px;cursor:pointer;
+  box-shadow:0 20px 54px rgba(245,185,66,.32);transition:transform .16s ease, box-shadow .16s ease;
+}
+#spin:hover{transform:translateY(-2px);box-shadow:0 26px 64px rgba(245,185,66,.42)}
+#spin:disabled{opacity:.35;box-shadow:none;transform:none;cursor:default}
+.hint{margin-top:16px;font-size:15px;color:var(--muted);letter-spacing:.06em}
+
+/* ---------------- reveal ---------------- */
+#reveal{
+  position:absolute;inset:0;z-index:8;display:none;align-items:center;justify-content:center;gap:70px;
+  padding:90px;background:rgba(8,6,14,.9);backdrop-filter:blur(16px);
+}
+#reveal.on{display:flex;animation:rise .7s cubic-bezier(.2,.9,.3,1) both}
+@keyframes rise{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
+#reveal .art{width:400px;flex:none}
+#reveal .art .poster{border-radius:22px;box-shadow:0 50px 120px rgba(0,0,0,.75),0 0 0 1px rgba(245,185,66,.28)}
+#reveal .meta{max-width:1010px}
+#reveal .kicker{font-size:15px;font-weight:800;letter-spacing:.34em;text-transform:uppercase;color:var(--amber)}
+#reveal h1{margin-top:20px;font-size:84px;font-weight:800;letter-spacing:-.05em;line-height:.97}
+#reveal .yr{font-weight:600;color:var(--muted)}
+#reveal .by{margin-top:26px;display:inline-flex;align-items:center;gap:14px;font-size:26px;font-weight:700;
+  padding:12px 26px 12px 12px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+#reveal .by .av{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-size:25px}
+#reveal .voted{margin-top:40px}
+#reveal .voted .eyebrow{margin-bottom:14px;display:block}
+#reveal .votedrow{display:flex;flex-wrap:wrap;gap:12px}
+#confetti{position:absolute;inset:0;z-index:9;pointer-events:none}
+
+@media (prefers-reduced-motion: reduce){
+  .grain,.bulbs,.chip,.pw{animation:none}
+  .panel{transition:none}
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="lobby">
+    <div class="left">
+      <section class="panel spot" id="hdr">
+        <span class="bulbs"></span>
+        <div class="brand">THE DEN</div>
+        <div class="label" id="label">Loading the projector</div>
+        <div class="theme" id="theme"></div>
+        <div><span class="status" id="status">standby</span></div>
+      </section>
+
+      <section class="panel" id="roll">
+        <div class="eyebrow">Who is coming<span class="heads" id="rollHeads"></span></div>
+        <div class="roll" id="rollList"></div>
+      </section>
+
+      <section class="panel" id="wall">
+        <div class="eyebrow">In the pool</div>
+        <div class="wall" id="wallList"></div>
+        <div class="more" id="wallMore"></div>
+      </section>
+    </div>
+
+    <div class="right">
+      <div class="needle"></div>
+      <div class="wheelbox">
+        <div id="wheel"></div>
+        <div class="hub"><span class="paw">&#128062;</span><span class="t">THE DEN</span></div>
+      </div>
+      <button id="spin">Spin the wheel</button>
+      <div class="hint" id="hint">odds are printed on every slice &middot; nothing is rigged</div>
+    </div>
+  </div>
+
+  <div id="reveal"></div>
+  <canvas id="confetti" width="1920" height="1080"></canvas>
+  <div class="vignette"></div>
+  <div class="grain"></div>
+</div>
+
+<script>
+(function(){
+  var KEY = new URLSearchParams(location.search).get('key') || '';
+  /* This page is hosted on GitHub Pages, so the API is a different origin entirely. */
+  var API = 'https://psomtujaikgcvblklzgv.supabase.co/functions/v1/app/api/';
+  var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var stage = document.getElementById('stage');
+  var wheel = document.getElementById('wheel');
+  var spinBtn = document.getElementById('spin');
+  var revealEl = document.getElementById('reveal');
+  var canvas = document.getElementById('confetti');
+  var ctx = canvas.getContext('2d');
+
+  var rotation = 0;         /* current wheel angle, degrees, monotonically increasing */
+  var drawn = [];           /* candidates currently painted on the wheel */
+  var shownSpins = {};      /* spin ids already revealed */
+  var spinning = false;
+  var firstState = true;
+
+  /* ------------------------------------------------ helpers */
+  var ENT = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return ENT[c]; }); }
+  function safeColor(c){ return /^#[0-9a-fA-F]{3,8}$/.test(String(c || '')) ? String(c) : '#b48ef2'; }
+  function hash(s){
+    var h = 0, str = String(s || '');
+    for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return h;
+  }
+  function rgba(hex, a){
+    var h = safeColor(hex).slice(1);
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    var n = parseInt(h.slice(0, 6), 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+  function poster(title, url){
+    if (url) return '<img class="poster" alt="" src="' + esc(url) + '">';
+    var h = hash(title), a = h % 360, b = (h >> 7) % 360;
+    return '<div class="poster ph" style="background:linear-gradient(158deg,hsl(' + a +
+      ' 42% 27%),hsl(' + b + ' 52% 13%))"><span class="ph-t">' + esc(title) +
+      '</span><span class="ph-f">&#127916;</span></div>';
+  }
+  function avatar(m){
+    var c = safeColor(m && m.color);
+    return '<span class="av" style="background:' + c + '33;box-shadow:inset 0 0 0 2px ' + c + '99">' +
+      ((m && m.emoji) ? esc(m.emoji) : '&#128062;') + '</span>';
+  }
+  function pct(o){ return Math.round((o || 0) * 100) + '%'; }
+  function statusText(s){
+    var map = { planned:'RSVPs open', locked:'Voting is open', spun:'The wheel has spoken', watched:'Watched' };
+    return map[s] || 'standby';
+  }
+  function voteChip(n){
+    return n ? '<span class="tally">&#128499;&#65039;&times;' + n + '</span>' : '';
+  }
+
+  /* ------------------------------------------------ stage fit */
+  function fit(){
+    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    stage.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+
+  /* ------------------------------------------------ the wheel */
+  function signature(list){
+    return list.map(function(c){
+      return c.id + ':' + Math.round((c.odds || 0) * 1000) + ':' + (c.votes || 0);
+    }).join('|');
+  }
+
+  /**
+   * Slices run clockwise from 12 o'clock, matching CSS conic-gradient's own origin,
+   * so a slice's on-screen angle is exactly its cumulative-odds position.
+   *
+   * The odds handed in are already honest about a majority lock (the winner is on 100%,
+   * everyone else on 0), so a locked wheel is one full slice and the rest vanish. Slivers too
+   * thin to read get no label.
+   */
+  function buildWheel(list, majority){
+    drawn = list.slice();
+    var maj = majority || {};
+    if (!drawn.length) {
+      wheel.style.background = 'radial-gradient(circle, #1d1731, #120e1e)';
+      wheel.innerHTML = '';
+      return;
+    }
+    var stops = [], labels = [], acc = 0, i;
+    for (i = 0; i < drawn.length; i++) {
+      var c = drawn[i];
+      var start = acc * 360;
+      acc += (c.odds || 0);
+      var end = acc * 360;
+      var span = end - start;
+      var tone = rgba(c.color, i % 2 === 0 ? 0.92 : 0.68);
+      stops.push('rgba(244,239,232,.24) ' + start.toFixed(3) + 'deg ' + (start + 0.4).toFixed(3) + 'deg');
+      stops.push(tone + ' ' + (start + 0.4).toFixed(3) + 'deg ' + end.toFixed(3) + 'deg');
+      if (span < 6) continue;
+
+      var full = span >= 359;
+      var mid = full ? 0 : (start + end) / 2;
+      var title = String(c.title || '');
+      if (title.length > 15) title = title.slice(0, 14) + '…';
+      var flip = mid > 180;
+      labels.push('<div class="lab" style="transform:rotate(' + mid.toFixed(3) +
+        'deg) translateY(-218px) rotate(' + (flip ? '90' : '-90') + 'deg)">' +
+        ((c.u || c.weight || 0) > 1 ? '<span>&#128293;</span>' : '') +
+        '<span>' + esc(title) + '</span>' +
+        (c.votes ? '<span class="o">&#128499;&#65039;&times;' + c.votes + '</span>' : '') +
+        '<span class="o">' + (maj.locked && full ? 'LOCKED' : pct(c.odds)) + '</span></div>');
+    }
+    wheel.style.background = 'conic-gradient(from 0deg, ' + stops.join(', ') + ')';
+    wheel.innerHTML = labels.join('');
+  }
+
+  /**
+   * Land the winner's slice under the needle at 12 o'clock.
+   *   slice centre (clockwise from top) = 360 * (cumulative odds before it + own odds / 2)
+   *   final rotation R must satisfy (centre + R) = 0 (mod 360), plus whole extra turns.
+   * The landing point is nudged inside the slice by the server's own roll, so the stop
+   * position is deterministic and always strictly within the winning wedge.
+   */
+  function landingAngle(list, winnerId, roll){
+    var acc = 0, i;
+    for (i = 0; i < list.length; i++) {
+      var o = list[i].odds || 0;
+      if (list[i].id === winnerId) {
+        var span = o * 360;
+        var centre = acc * 360 + span / 2;
+        var jitter = ((roll == null ? 0.5 : roll) - 0.5) * span * 0.6;
+        return centre + jitter;
+      }
+      acc += o;
+    }
+    return null;
+  }
+
+  function runSpinAnimation(spin, voters){
+    var res = spin && spin.result;
+    if (!res || !res.candidates || !res.candidates.length) return;
+    spinning = true;
+    stage.classList.add('busy');
+    spinBtn.disabled = true;
+
+    buildWheel(res.candidates, res.majority);
+    var land = landingAngle(res.candidates, res.winner_id, res.roll);
+    if (land == null) { spinning = false; spinBtn.disabled = false; return; }
+
+    var target = ((-land) % 360 + 360) % 360;
+    var delta = ((target - (rotation % 360)) % 360 + 360) % 360;
+    var TURNS = 6;
+    var end = rotation + TURNS * 360 + delta;
+
+    if (REDUCED) {
+      wheel.style.transition = 'none';
+      wheel.style.transform = 'rotate(' + (rotation + delta) + 'deg)';
+      rotation = rotation + delta;
+      showReveal(res, voters);
+      return;
+    }
+
+    wheel.style.transition = 'transform 4.5s cubic-bezier(.16,.72,.16,1)';
+    wheel.style.transform = 'rotate(' + end.toFixed(3) + 'deg)';
+    rotation = end;
+    setTimeout(function(){ showReveal(res, voters); }, 4700);
+  }
+
+  /* ------------------------------------------------ reveal + confetti */
+  function showReveal(res, voters, quiet){
+    var cands = (res && res.candidates) || [];
+    var maj = (res && res.majority) || {};
+    var winner = null, i;
+    for (i = 0; i < cands.length; i++) {
+      if (cands[i].id === res.winner_id) winner = cands[i];
+    }
+    if (!winner) { spinning = false; return; }
+
+    var backers = (voters || []).filter(function(p){ return p.for_winner; });
+    var others = (voters || []).length - backers.length;
+
+    var tally = '';
+    if ((voters || []).length) {
+      tally = '<div class="voted"><span class="eyebrow">' +
+        (maj.locked ? 'The majority' : backers.length ? 'Who voted for it' : 'The vote') +
+        '</span><div class="votedrow">' +
+        (backers.length
+          ? backers.map(function(p){
+              return '<span class="chip">' + avatar(p) + esc(p.name) + '</span>';
+            }).join('')
+          : '<span class="chip" style="opacity:.6">Nobody voted for this one</span>') +
+        '</div>' +
+        (backers.length && others
+          ? '<div class="hint" style="margin-top:14px">' + others + ' voted elsewhere.</div>'
+          : '') +
+        '</div>';
+    }
+
+    /* A locked win was decided by the room, so it is quoted as a majority, not as odds. */
+    var line = maj.locked
+      ? 'locked by majority &middot; ' + (winner.votes || 0) + ' of ' + (maj.attendee_basis || 0)
+      : pct(winner.odds) + ' odds';
+
+    revealEl.innerHTML =
+      '<div class="art">' + poster(winner.title, winner.poster) + '</div>' +
+      '<div class="meta">' +
+      '<div class="kicker">' + (maj.locked ? 'The room locked it in' : 'Tonight you are watching') +
+        '</div>' +
+      '<h1>' + esc(winner.title) +
+        (winner.year ? ' <span class="yr">(' + esc(winner.year) + ')</span>' : '') + '</h1>' +
+      '<div class="by">' + avatar(winner) + 'suggested by ' + esc(winner.member) +
+        '<span style="color:var(--muted);font-weight:600"> &middot; ' + line + '</span></div>' +
+      tally + '</div>';
+    revealEl.className = 'on';
+    var head = revealEl.querySelector('h1');
+    var len = head.textContent.length;
+    head.style.fontSize = (len > 34 ? 52 : len > 26 ? 60 : len > 18 ? 68 : 84) + 'px';
+    if (!REDUCED && !quiet) confetti(winner.color);
+    spinning = false;
+    stage.classList.remove('busy');
+  }
+
+  var parts = [];
+  var raf = null;
+  /* Two cannons at the bottom corners, firing inward across the frame. */
+  function confetti(accent){
+    var colors = [safeColor(accent), '#f5b942', '#f4efe8', '#8e57db', '#57d0db'];
+    var cannons = [{ x: 130, dir: 1 }, { x: 1790, dir: -1 }];
+    parts = [];
+    for (var c = 0; c < cannons.length; c++) {
+      for (var i = 0; i < 105; i++) {
+        parts.push({
+          x: cannons[c].x + (Math.random() - 0.5) * 90,
+          y: 1070,
+          vx: cannons[c].dir * (9 + Math.random() * 26),
+          vy: -21 - Math.random() * 22,
+          w: 7 + Math.random() * 11,
+          h: 10 + Math.random() * 16,
+          a: Math.random() * Math.PI * 2,
+          va: (Math.random() - 0.5) * 0.3,
+          c: colors[(Math.random() * colors.length) | 0],
+          life: 165 + Math.random() * 70
+        });
+      }
+    }
+    if (raf) cancelAnimationFrame(raf);
+    tick();
+  }
+  function tick(){
+    ctx.clearRect(0, 0, 1920, 1080);
+    var alive = 0;
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      if (p.life <= 0) continue;
+      alive++;
+      p.life--;
+      p.vy += 0.42;
+      p.vx *= 0.995;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.a += p.va;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.a);
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 60));
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    }
+    if (alive) raf = requestAnimationFrame(tick);
+    else ctx.clearRect(0, 0, 1920, 1080);
+  }
+
+  /* ------------------------------------------------ lobby rendering */
+  function renderLobby(state){
+    var n = state.night;
+    var maj = state.majority || {};
+    document.getElementById('label').textContent = n ? n.label : 'No night on the books';
+    document.getElementById('theme').textContent = n && n.theme ? n.theme : '';
+
+    var statusEl = document.getElementById('status');
+    var locked = !!(maj.locked && n && n.status === 'locked');
+    statusEl.className = 'status' + (locked ? ' lock' : '');
+    statusEl.innerHTML = !n
+      ? 'waiting on a host'
+      : locked
+      ? 'Locked by majority &middot; ' + (maj.leading_votes || 0) + ' of ' + (maj.attendee_basis || 0)
+      : statusText(n.status);
+
+    var roll = state.rsvps || [];
+    var order = { 'in':0, 'maybe':1, 'out':2 };
+    var sorted = roll.slice().sort(function(a, b){ return order[a.status] - order[b.status]; });
+    document.getElementById('rollList').innerHTML = sorted.length
+      ? sorted.map(function(r, i){
+          return '<span class="chip ' + esc(r.status) + '" style="animation-delay:' +
+            (i * 60) + 'ms">' + avatar(r) + esc(r.name) +
+            (r.plus_ones === 1 ? ' +1' : '') + '</span>';
+        }).join('')
+      : '<div class="empty">Nobody has RSVP&#39;d yet.</div>';
+    document.getElementById('rollHeads').textContent = state.headcount
+      ? state.headcount + ' coming'
+      : '';
+
+    /* The wall stays a single row so the 1080px stage never overflows. */
+    var pool = state.pool || [];
+    var shown = pool.slice(0, 7);
+    var wallEl = document.getElementById('wallList');
+    wallEl.style.gridTemplateColumns = 'repeat(' + Math.max(shown.length, 1) + ', 1fr)';
+    wallEl.innerHTML = shown.length
+      ? shown.map(function(c, i){
+          var isLock = !!(locked && maj.leading && c.id === maj.leading);
+          var lockedOut = !!(locked && maj.leading && c.id !== maj.leading);
+          return '<div class="pw' + (isLock ? ' lock' : '') + (lockedOut ? ' dim' : '') +
+            '" style="animation-delay:' + (i * 55) + 'ms">' +
+            '<span class="odds">' + (isLock ? 'LOCKED' : pct(c.odds)) + '</span>' +
+            voteChip(c.votes) + poster(c.title, c.poster) +
+            '<div class="who"><span class="dot" style="background:' + safeColor(c.color) + '"></span>' +
+            esc(c.emoji) + ' ' + esc(c.member) + '</div></div>';
+        }).join('')
+      : '<div class="empty" style="grid-column:1/-1">The pool is empty. Fix that.</div>';
+    var moreEl = document.getElementById('wallMore');
+    moreEl.textContent = pool.length > shown.length
+      ? '+ ' + (pool.length - shown.length) + ' more on the wheel'
+      : '';
+
+    var canSpin = !!n && (n.status === 'planned' || n.status === 'locked') && pool.length > 0 && !spinning;
+    spinBtn.disabled = !canSpin;
+    document.getElementById('hint').innerHTML = n && n.status === 'spun'
+      ? 'the wheel has spoken &middot; snapshot saved for the sceptics'
+      : locked
+      ? 'the room reached a majority &middot; the wheel is a formality now'
+      : 'odds are printed on every slice &middot; nothing is rigged';
+  }
+
+  /* ------------------------------------------------ attention cycle */
+  var spots = ['hdr', 'roll', 'wall'];
+  var spotAt = 0;
+  setInterval(function(){
+    if (spinning || revealEl.className === 'on') return;
+    spotAt = (spotAt + 1) % spots.length;
+    spots.forEach(function(id, i){
+      document.getElementById(id).className = 'panel' + (i === spotAt ? ' spot' : '');
+    });
+  }, 6000);
+
+  /* ------------------------------------------------ polling */
+  function poll(){
+    fetch(API + 'tv-state?key=' + encodeURIComponent(KEY))
+      .then(function(r){ return r.json(); })
+      .then(function(state){
+        if (!state || !state.ok) return;
+        renderLobby(state);
+
+        if (state.spin && state.spin.id) {
+          if (firstState) {
+            /* Opened after the ceremony: show the outcome, do not re-run the theatre. */
+            shownSpins[state.spin.id] = true;
+            var res = state.spin.result || {};
+            buildWheel(res.candidates || [], res.majority);
+            var land = landingAngle(res.candidates || [], res.winner_id, res.roll);
+            if (land != null) {
+              rotation = ((-land) % 360 + 360) % 360;
+              wheel.style.transition = 'none';
+              wheel.style.transform = 'rotate(' + rotation.toFixed(3) + 'deg)';
+            }
+            showReveal(res, state.votes, true);
+          } else if (!shownSpins[state.spin.id] && !spinning) {
+            shownSpins[state.spin.id] = true;
+            runSpinAnimation(state.spin, state.votes);
+          }
+        } else if (!spinning && revealEl.className !== 'on') {
+          var sig = signature(state.pool || []);
+          if (sig !== signature(drawn)) buildWheel(state.pool || [], state.majority);
+        }
+        firstState = false;
+      })
+      .catch(function(){ /* projector keeps calm and carries on */ });
+  }
+
+  spinBtn.addEventListener('click', function(){
+    if (spinning || spinBtn.disabled) return;
+    spinning = true;
+    spinBtn.disabled = true;
+    fetch(API + 'spin?key=' + encodeURIComponent(KEY), { method: 'POST' })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        spinning = false;
+        if (!j || !j.ok || !j.spin) { spinBtn.disabled = false; return; }
+        if (shownSpins[j.spin.id]) return;
+        shownSpins[j.spin.id] = true;
+        runSpinAnimation(j.spin, j.votes);
+      })
+      .catch(function(){ spinning = false; spinBtn.disabled = false; });
+  });
+
+  poll();
+  setInterval(poll, 2000);
+})();
+</script>
+</body>
+</html>

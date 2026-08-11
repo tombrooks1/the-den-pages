@@ -659,6 +659,11 @@ body{
   }, 6000);
 
   /* ------------------------------------------------ polling */
+  var lastRevealSig = '';
+  function revealSig(state){
+    return (state.spin ? state.spin.id : '') + '|' + (canRollAgain ? '1' : '0') + '|' +
+      features.length;
+  }
   function poll(){
     fetch(API + 'tv-state?key=' + encodeURIComponent(KEY))
       .then(function(r){ return r.json(); })
@@ -681,9 +686,16 @@ body{
               wheel.style.transform = 'rotate(' + rotation.toFixed(3) + 'deg)';
             }
             showReveal(res, state.votes, true);
+            lastRevealSig = revealSig(state);
           } else if (!shownSpins[state.spin.id] && !spinning) {
             shownSpins[state.spin.id] = true;
             runSpinAnimation(state.spin, state.votes);
+          } else if (!spinning && revealEl.className === 'on' &&
+              revealSig(state) !== lastRevealSig) {
+            /* The roll-again button's inputs arrive a poll behind a live spin —
+               repaint the reveal when they change so the host actually sees it. */
+            lastRevealSig = revealSig(state);
+            showReveal(state.spin.result || {}, state.votes, true);
           }
         } else if (!spinning && revealEl.className !== 'on') {
           /* Only what can actually win goes on the wheel. */

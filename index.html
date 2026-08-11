@@ -112,6 +112,23 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
   color:#221806;border-color:transparent;box-shadow:0 8px 22px rgba(245,185,66,.26);
 }
 .heads{margin-top:14px;font-size:13px;font-weight:700;color:var(--amber)}
+.whenline{margin-top:5px;font-size:13px;color:var(--muted);font-weight:600}
+.notes{margin:14px 0 0;font-size:13px;line-height:1.5;color:#c3bcd4}
+.snackrow{display:flex;gap:8px;margin-top:10px}
+.snackrow input{
+  flex:1;min-width:0;font:inherit;font-size:13px;color:var(--text);
+  background:rgba(255,255,255,.05);border:1px solid var(--line);
+  border-radius:13px;padding:10px 13px;outline:none;
+}
+.snackrow input::placeholder{color:#6d6685}
+.snackrow input:focus{border-color:rgba(245,185,66,.45);background:rgba(255,255,255,.07)}
+.ghostbtn{
+  flex:none;font:inherit;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted);
+  background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:13px;padding:0 14px;
+}
+.ghostbtn:active{color:var(--text)}
+.spread{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.spread .faces{margin-top:9px}
 .faces{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 .face{
   display:inline-flex;align-items:center;gap:6px;padding:5px 11px 5px 5px;
@@ -221,10 +238,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 
 /* ---------- history ---------- */
 .hrow{display:grid;grid-template-columns:62px 1fr;gap:14px;align-items:start}
-.hrow.double{grid-template-columns:96px 1fr}
-.hrow + .hrow{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
-.bill{display:flex;gap:5px}
-.bill .poster{width:auto;flex:1;min-width:0}
+.hnight + .hnight{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.hrow.more{margin-top:12px;padding-top:12px;border-top:1px dashed rgba(244,239,232,.09)}
 .paws{display:flex;gap:3px;font-size:14px;line-height:1}
 .paws span{opacity:.2;cursor:pointer}
 .paws span.on{opacity:1;filter:drop-shadow(0 0 6px rgba(245,185,66,.4))}
@@ -293,6 +308,13 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 .gate .big{font-size:44px;margin-bottom:18px}
 .gate h2{font-size:22px;font-weight:800;letter-spacing:-.03em;margin:0 0 10px}
 .gate p{margin:0;color:var(--muted);font-size:14px;line-height:1.55}
+.gate .gatebtn{
+  display:inline-block;margin-top:24px;font-size:15px;font-weight:800;text-decoration:none;
+  color:#221806;background:linear-gradient(180deg,var(--amber),var(--amber-deep));
+  border-radius:15px;padding:13px 22px;box-shadow:0 10px 26px rgba(245,185,66,.26);
+}
+.gate .after{margin-top:14px;font-size:13px;opacity:.85}
+.gate .after b{color:var(--text)}
 
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.001ms !important;transition-duration:.001ms !important}
@@ -398,7 +420,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     var out = [], i;
     for (i = 1; i <= 5; i++) {
       out.push('<span class="' + (i <= n ? 'on' : '') + '"' +
-        (opts && opts.act ? ' data-act="rate" data-night="' + esc(opts.night) + '" data-paws="' + i + '"' : '') +
+        (opts && opts.act ? ' data-act="rate" data-film="' + esc(opts.film) + '" data-paws="' + i + '"' : '') +
         '>&#128062;</span>');
     }
     return '<div class="paws' + (opts && opts.small ? ' small' : '') + '">' + out.join('') + '</div>';
@@ -420,6 +442,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     }
     if (sittingOut) tags.push('<span class="tag out">sitting out</span>');
     else if (opts.themeToggle) tags.push('<span class="tag nom">nominated</span>');
+    if (opts.yours) tags.push('<span class="tag out">yours</span>');
 
     /* One nomination each: owners manage their own, hosts manage anyone's. */
     var acts = [];
@@ -478,8 +501,10 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     out.push('<div class="row between"><div>');
     out.push('<div class="eyebrow">' + (n.status === 'watched' ? 'Last night' : 'Next up') + '</div>');
     out.push('<div class="date">' + esc(n.label) + '</div>');
+    if (n.date_label) out.push('<div class="whenline">' + esc(n.date_label) + '</div>');
     if (n.theme) out.push('<div class="theme">&#127917; ' + esc(n.theme) + '</div>');
     out.push('</div><span class="pill">' + esc(statusPill(n.status)) + '</span></div>');
+    if (n.notes) out.push('<p class="notes">' + esc(n.notes) + '</p>');
 
     var mine = S.my_rsvp || {};
     var mineStatus = mine.status || null;
@@ -495,6 +520,17 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       (minePlus ? 'One guest riding along. Tap to drop them.' : 'Bringing someone? Tap +1.') +
       '</span></div>');
 
+    /* Optional, asked once, never nagged. */
+    if (n.status !== 'watched') {
+      out.push('<div class="snackrow"><input id="sn" type="text" autocomplete="off" maxlength="60" ' +
+        'placeholder="bringing something?" value="' + esc(mine.snack || '') + '">' +
+        '<button class="ghostbtn" data-act="snack">Save</button>' +
+        (mine.snack
+          ? '<button class="ghostbtn" data-act="snackclear">Clear</button>'
+          : '') +
+        '</div>');
+    }
+
     var list = n.rsvps || [];
     if (list.length) {
       var order = { 'in':0, 'maybe':1, 'out':2 };
@@ -504,6 +540,14 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
           (r.plus_ones === 1 ? ' +1' : '') + '</span>';
       }).join('') + '</div>');
       if (n.headcount) out.push('<div class="heads">' + n.headcount + ' coming</div>');
+      var spread = n.snacks || [];
+      if (spread.length) {
+        out.push('<div class="spread"><div class="eyebrow">&#127871; On the table</div>' +
+          '<div class="faces">' + spread.map(function(s){
+            return '<span class="face">' + avatar(s) + esc(s.name) +
+              ' <span class="muted">&mdash; ' + esc(s.snack) + '</span></span>';
+          }).join('') + '</div></div>');
+      }
     } else {
       out.push('<div class="tiny muted mt">Nobody has committed. Be the brave one.</div>');
     }
@@ -538,6 +582,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
             'or suggest something that fits.') +
           '</div></div>');
       } else if (n.status === 'locked') {
+        /* You have to be coming to have a say, and you cannot boost your own. */
+        var canVote = mineStatus === 'in' || mineStatus === 'maybe';
         out.push('<div class="sec"><div class="eyebrow">The vote</div>' +
           '<h1 class="h">Boost your pick</h1>');
         if (maj.locked) {
@@ -545,13 +591,20 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
             ' of ' + (maj.attendee_basis || 0) + '</div>');
         }
         out.push('<div class="rail">' + running.map(function(c){
-            return tileHtml(c, { act:'vote', picked: c.id === picked, majority: maj });
+            return tileHtml(c, {
+              act: (canVote && !c.mine) ? 'vote' : null,
+              picked: c.id === picked,
+              majority: maj,
+              yours: !!c.mine
+            });
           }).join('') + '</div>' +
           '<div class="tiny muted" style="margin-top:6px">' +
-          'A vote adds +1 to that film&rsquo;s weight on the wheel, and ' +
-          (maj.threshold || 2) + ' votes on the same film with a clear lead wins outright' +
-          (picked ? ' &mdash; switch yours any time before the spin.' : '.') +
-          (themeNote ? ' ' + themeNote : '') +
+          (canVote
+            ? 'A vote adds +1 to that film&rsquo;s weight on the wheel, and ' +
+              (maj.threshold || 2) + ' votes on the same film with a clear lead wins outright' +
+              (picked ? ' &mdash; switch yours any time before the spin.' : '.') +
+              (themeNote ? ' ' + themeNote : '')
+            : 'RSVP first &mdash; the wheel is for people in the room.') +
           '</div></div>');
       } else {
         out.push('<div class="sec"><div class="eyebrow">The pool</div>' +
@@ -580,7 +633,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       '</h1>'];
     out.push(list.map(function(u){
       var bits = [];
-      if (u.starts_at) bits.push(esc(fmtDate(u.starts_at)));
+      if (u.date_label) bits.push(esc(u.date_label));
+      else if (u.starts_at) bits.push(esc(fmtDate(u.starts_at)));
       if (u.headcount) bits.push(u.headcount + ' coming');
       if (u.themed) {
         bits.push(u.nominations + (u.nominations === 1 ? ' nomination' : ' nominations'));
@@ -688,33 +742,38 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       (h.length === 1 ? ' night watched' : ' nights watched') + '</h1>'];
     out.push('<div class="card">');
     out.push(h.map(function(n){
-      var avg = n.avg_paws == null ? null : Math.round(n.avg_paws * 10) / 10;
-      var films = (n.films && n.films.length) ? n.films : [{ title:n.title, poster:n.poster }];
-      var art = films.length > 1
-        ? '<div class="bill">' + films.map(function(f){
-            return poster(f.title, f.poster);
-          }).join('') + '</div>'
-        : poster(n.title, n.poster);
-      var titles = films.length > 1
-        ? films.map(function(f){ return esc(f.title); }).join(' <span class="muted">+</span> ')
-        : esc(n.title);
-      return '<div class="hrow' + (films.length > 1 ? ' double' : '') + '">' +
-        '<div>' + art + '</div>' +
-        '<div><div style="font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.2">' +
-          titles + '</div>' +
-        (films.length > 1 ? '<div class="mine-label" style="margin-top:4px">double bill</div>' : '') +
-        '<div class="tiny muted" style="margin-top:4px">' + esc(n.label) +
-          (n.watched_at ? ' &middot; ' + esc(fmtDate(n.watched_at)) : '') +
-          (n.theme ? ' &middot; ' + esc(n.theme) : '') + '</div>' +
-        '<div class="avg">' +
-          (avg == null
-            ? '<span>no paws recorded</span>'
-            : pawRow(Math.round(avg)) + '<span>' + avg.toFixed(1) + ' from ' + n.rating_count +
-              (n.rating_count === 1 ? ' voter' : ' voters') + '</span>') +
-        '</div>' +
-        '<div class="avg"><span class="mine-label">yours</span>' +
-          pawRow(n.my_paws || 0, 5, { act:true, night:n.night_id, small:true }) + '</div>' +
-        '</div></div>';
+      var films = (n.films && n.films.length)
+        ? n.films
+        : [{ id:null, title:n.title, poster:n.poster, avg_paws:n.avg_paws,
+             rating_count:n.rating_count, my_paws:n.my_paws }];
+      /* Every film gets its own verdict — a double bill is two opinions, not one. */
+      var rows = films.map(function(f, i){
+        var avg = f.avg_paws == null ? null : Math.round(f.avg_paws * 10) / 10;
+        return '<div class="hrow' + (i ? ' more' : '') + '">' +
+          '<div>' + poster(f.title, f.poster) + '</div>' +
+          '<div><div style="font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.2">' +
+            esc(f.title) +
+            (f.year ? ' <span class="muted" style="font-weight:600">(' + esc(f.year) + ')</span>' : '') +
+            '</div>' +
+          (i === 0
+            ? '<div class="tiny muted" style="margin-top:4px">' + esc(n.label) +
+              (n.watched_at ? ' &middot; ' + esc(fmtDate(n.watched_at)) : '') +
+              (n.theme ? ' &middot; ' + esc(n.theme) : '') +
+              (films.length > 1 ? ' &middot; double bill' : '') + '</div>'
+            : '') +
+          '<div class="avg">' +
+            (avg == null
+              ? '<span>no paws recorded</span>'
+              : pawRow(Math.round(avg)) + '<span>' + avg.toFixed(1) + ' from ' + f.rating_count +
+                (f.rating_count === 1 ? ' voter' : ' voters') + '</span>') +
+          '</div>' +
+          (f.id
+            ? '<div class="avg"><span class="mine-label">yours</span>' +
+              pawRow(f.my_paws || 0, 5, { act:true, film:f.id, small:true }) + '</div>'
+            : '') +
+          '</div></div>';
+      }).join('');
+      return '<div class="hnight">' + rows + '</div>';
     }).join(''));
     out.push('</div>');
     return out.join('');
@@ -759,6 +818,12 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       q.addEventListener('keydown', function(e){ if (e.key === 'Enter') doSuggest(); });
       if (query) renderPreview(lastPreview);
     }
+    var sn = document.getElementById('sn');
+    if (sn) {
+      sn.addEventListener('keydown', function(e){
+        if (e.key === 'Enter') doSnack(sn.value.trim());
+      });
+    }
     var th = document.getElementById('th');
     if (th) {
       th.value = themeDraft;
@@ -772,8 +837,11 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     document.body.innerHTML =
       '<div class="gate"><div class="box"><div class="big">&#127917;</div>' +
       '<h2>Open me from Telegram</h2>' +
-      '<p>The Den only unlocks from inside the chat &mdash; tap the menu button on the bot ' +
-      'and it will let you straight in. &#128062;</p></div></div>';
+      '<p>The Den only unlocks from inside the chat. This link on its own cannot let you in. ' +
+      '&#128062;</p>' +
+      '<a class="gatebtn" href="https://t.me/kits_movienight_bot">Open @kits_movienight_bot</a>' +
+      '<p class="after">then tap the menu button and pick <b>The Den</b></p>' +
+      '</div></div>';
   }
 
   /* ------------------------------------------------ data */
@@ -831,10 +899,10 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       busy = false;
       if (!j.ok) {
         S.my_vote = was; render();
-        toast(j.error === 'voting_closed'
+        toast(j.message
+          ? j.message
+          : j.error === 'voting_closed'
           ? 'Voting is closed. The wheel has moved on.'
-          : j.error === 'not_in_theme'
-          ? 'That one is sitting tonight out.'
           : 'Vote did not stick.', true);
         return;
       }
@@ -868,6 +936,23 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       render();
       toast(entered ? 'Nominated.' : 'Withdrawn.');
     }).catch(function(){ busy = false; toast('Could not change that.', true); });
+  }
+
+  /* Snacks ride the rsvp. Saving one when you had not committed puts you in. */
+  function doSnack(text){
+    if (!S.night || busy) return;
+    busy = true;
+    haptic('light');
+    api('rsvp', { night_id: S.night.id, snack: text }).then(function(j){
+      busy = false;
+      if (!j.ok) { toast('That did not save.', true); return; }
+      S.my_rsvp = j.my_rsvp || S.my_rsvp;
+      S.night.rsvps = j.rsvps || S.night.rsvps;
+      if (j.snacks) S.night.snacks = j.snacks;
+      if (typeof j.headcount === 'number') S.night.headcount = j.headcount;
+      render();
+      toast(text ? 'On the table.' : 'Taken off the table.');
+    }).catch(function(){ busy = false; toast('That did not save.', true); });
   }
 
   function doSuggestTheme(){
@@ -938,19 +1023,21 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     }).catch(function(){ busy = false; render(); toast('That did not go in.', true); });
   }
 
-  function doRate(nightId, paws){
-    if (busy) return;
+  function doRate(filmId, paws){
+    if (busy || !filmId) return;
     busy = true;
     haptic('light');
-    api('rate', { night_id: nightId, paws: paws }).then(function(j){
+    api('rate', { suggestion_id: filmId, paws: paws }).then(function(j){
       busy = false;
-      if (!j.ok) { toast('Rating did not save.', true); return; }
+      if (!j.ok) { toast(j.message || 'Rating did not save.', true); return; }
       (S.history || []).forEach(function(n){
-        if (n.night_id === nightId) {
-          n.my_paws = paws;
-          n.avg_paws = j.avg_paws;
-          n.rating_count = j.rating_count;
-        }
+        (n.films || []).forEach(function(f){
+          if (f.id === filmId) {
+            f.my_paws = paws;
+            f.avg_paws = j.avg_paws;
+            f.rating_count = j.rating_count;
+          }
+        });
       });
       render();
       toast(paws >= 4 ? 'Generous. Logged.' : paws <= 2 ? 'Brutal. Logged.' : 'Logged.');
@@ -1022,9 +1109,14 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
         el.getAttribute('data-night'));
     }
     else if (act === 'suggesttheme') doSuggestTheme();
+    else if (act === 'snack') {
+      var sn = document.getElementById('sn');
+      doSnack(sn ? sn.value.trim() : '');
+    }
+    else if (act === 'snackclear') doSnack('');
     else if (act === 'remove') { e.stopPropagation(); doRemove(el.getAttribute('data-id')); }
     else if (act === 'suggest') doSuggest();
-    else if (act === 'rate') doRate(el.getAttribute('data-night'), Number(el.getAttribute('data-paws')));
+    else if (act === 'rate') doRate(el.getAttribute('data-film'), Number(el.getAttribute('data-paws')));
   });
 
   document.addEventListener('visibilitychange', function(){

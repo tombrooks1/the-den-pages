@@ -392,6 +392,20 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 .gen{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
 .syn{margin-top:15px;font-size:13px;line-height:1.55;color:#c3bcd4}
 .castline{margin-top:10px;font-size:12px;line-height:1.45;color:var(--muted)}
+/* Where to watch it. Same block as the big screen, sized for a thumb. */
+.watch{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.watch .wrow{display:flex;align-items:flex-start;gap:9px;margin-top:9px}
+.watch .wrow:first-of-type{margin-top:0}
+.watch .wk{flex:none;width:46px;padding-top:4px;font-size:10px;font-weight:800;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.watch .wp{display:flex;flex-wrap:wrap;gap:6px}
+.watch .wp span{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
+  padding:4px 9px 4px 4px;border-radius:999px;background:rgba(255,255,255,.06);
+  border:1px solid var(--line)}
+.watch .wp img{width:18px;height:18px;border-radius:5px;display:block}
+.watch .wlink{display:inline-block;margin-top:11px;font-size:12px;font-weight:800;
+  color:var(--amber);text-decoration:none}
+.watch .wattr{margin-top:8px;font-size:10px;color:var(--muted);opacity:.7}
 .tl{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .tlrow{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:9px 0}
 .tlrow + .tlrow{border-top:1px dashed rgba(244,239,232,.08)}
@@ -1019,6 +1033,33 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     return out.join('');
   }
 
+  /* TMDB serves the logos; w92 is their own recommendation for a chip this size. */
+  var TMDB_IMG = 'https://image.tmdb.org/t/p/w92';
+
+  function watchRow(key, list){
+    if (!list || !list.length) return '';
+    return '<div class="wrow"><span class="wk">' + key + '</span><span class="wp">' +
+      list.map(function(p){
+        return '<span>' +
+          (p.logo ? '<img src="' + esc(TMDB_IMG + p.logo) + '" alt="">' : '') +
+          esc(p.name) + '</span>';
+      }).join('') + '</span></div>';
+  }
+
+  /**
+   * Where to watch it. Nothing at all when the film has never been looked up or has nothing
+   * on offer. The attribution line is required by TMDB's terms and is never optional.
+   */
+  function watchBlock(w){
+    if (!w) return '';
+    var rows = watchRow('Stream', w.flatrate) + watchRow('Rent', w.rent) + watchRow('Buy', w.buy);
+    if (!rows && !w.link) return '';
+    return '<div class="watch">' + rows +
+      (w.link ? '<a class="wlink" href="' + esc(w.link) + '" target="_blank" rel="noopener">' +
+        'more on TMDB &#8599;</a>' : '') +
+      '<div class="wattr">streaming data by JustWatch via TMDB</div></div>';
+  }
+
   /* ------------------------------------------------ the dossier sheet */
   function renderSheet(){
     if (!dossier) { sheetEl.innerHTML = ''; return; }
@@ -1081,6 +1122,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     if (st.total_votes) totals.push(st.total_votes + ' votes');
     if (st.total_jokers) totals.push(st.total_jokers + ' jokers burned');
     out.push('<div class="tiny muted" style="margin-top:14px">' + totals.join(' &middot; ') + '</div>');
+    out.push(watchBlock(f.watch_providers));
     out.push('</div></div>');
     sheetEl.innerHTML = out.join('');
   }

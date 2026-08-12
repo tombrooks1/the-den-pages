@@ -501,9 +501,21 @@ body.idlecursor, body.idlecursor *{cursor:none}
   border:1px solid var(--line);box-shadow:0 60px 140px rgba(0,0,0,.8);
   animation:popin .26s cubic-bezier(.2,.9,.3,1) both;transform-origin:center center;
 }
-#modal .cover{width:380px;flex:none}
+#modal .cover{width:380px;flex:none;position:relative}
 #modal .cover .poster{width:380px;height:570px;aspect-ratio:auto;border-radius:18px;
   box-shadow:0 30px 70px rgba(0,0,0,.6)}
+/* Mouse over the poster and the trailer offers itself. */
+.playbtn{position:absolute;inset:0;border-radius:18px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;text-decoration:none;
+  background:rgba(13,11,20,.55);opacity:0;transition:opacity .18s ease}
+#modal .cover:hover .playbtn,.playbtn:focus-visible{opacity:1}
+@media(hover:none){.playbtn{opacity:1;background:none}
+  .playbtn i{background:rgba(13,11,20,.65)}}
+.playbtn span{width:86px;height:86px;border-radius:50%;display:grid;place-items:center;
+  background:var(--amber);color:#0d0b14;font-size:34px;padding-left:7px;
+  box-shadow:0 18px 50px rgba(0,0,0,.65)}
+.playbtn i{font-style:normal;font-size:13px;font-weight:800;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--text);padding:4px 12px;border-radius:999px}
 #modal .side{flex:1;min-width:0}
 #modal h3{font-size:46px;font-weight:800;letter-spacing:-.04em;line-height:1.04;margin:0}
 #modal .yr{color:var(--muted);font-weight:600}
@@ -526,9 +538,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
 .watch .wk{flex:none;width:64px;font-size:12px;font-weight:800;letter-spacing:.2em;
   text-transform:uppercase;color:var(--muted)}
 .watch .wp{display:flex;flex-wrap:wrap;gap:8px}
-.watch .wp span{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:700;
+.watch .wp a{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:700;
   padding:6px 12px 6px 6px;border-radius:999px;background:rgba(255,255,255,.05);
-  border:1px solid var(--line)}
+  border:1px solid var(--line);color:var(--text);text-decoration:none;
+  transition:border-color .15s ease}
+.watch .wp a:hover,.watch .wp a:focus-visible{border-color:var(--amber);outline:none}
 .watch .wp img{width:26px;height:26px;border-radius:7px;display:block}
 .watch .wlink{display:inline-block;margin-top:16px;font-size:14px;font-weight:800;
   letter-spacing:.04em;color:var(--amber);text-decoration:none}
@@ -2334,13 +2348,39 @@ body.idlecursor, body.idlecursor *{cursor:none}
   /* TMDB serves the logos; this is the size their own docs recommend for a chip. */
   var TMDB_IMG = 'https://image.tmdb.org/t/p/w92';
 
-  function watchRow(key, list){
+  /**
+   * The closest thing each storefront has to a front door for one film: a search for the
+   * exact title on the big services, and the TMDB watch page (real deep links, kept by
+   * JustWatch) for anything we don't know a pattern for.
+   */
+  function providerUrl(name, title, fallback){
+    var n = String(name || '').toLowerCase();
+    var q = encodeURIComponent(title || '');
+    if (n.indexOf('netflix') >= 0) return 'https://www.netflix.com/search?q=' + q;
+    if (n.indexOf('disney') >= 0) return 'https://www.disneyplus.com/search?q=' + q;
+    /* Amazon channels (Crave/Starz "…Amazon Channel") play inside Prime Video. */
+    if (n.indexOf('amazon') >= 0 || n.indexOf('prime') >= 0) {
+      return 'https://www.primevideo.com/search?phrase=' + q;
+    }
+    if (n.indexOf('apple tv') >= 0) return 'https://tv.apple.com/ca/search?term=' + q;
+    if (n.indexOf('crave') >= 0) return 'https://www.crave.ca/en/search?q=' + q;
+    if (n.indexOf('google play') >= 0) {
+      return 'https://play.google.com/store/search?c=movies&q=' + q;
+    }
+    if (n.indexOf('youtube') >= 0) return 'https://www.youtube.com/results?search_query=' + q;
+    if (n.indexOf('tubi') >= 0) return 'https://tubitv.com/search/' + q;
+    return fallback || ('https://www.google.com/search?q=' + q + '+watch+' +
+      encodeURIComponent(name || ''));
+  }
+
+  function watchRow(key, list, title, fallback){
     if (!list || !list.length) return '';
     return '<div class="wrow"><span class="wk">' + key + '</span><span class="wp">' +
       list.map(function(p){
-        return '<span>' +
+        return '<a href="' + esc(providerUrl(p.name, title, fallback)) +
+          '" target="_blank" rel="noopener">' +
           (p.logo ? '<img src="' + esc(TMDB_IMG + p.logo) + '" alt="">' : '') +
-          esc(p.name) + '</span>';
+          esc(p.name) + '</a>';
       }).join('') + '</span></div>';
   }
 
@@ -2349,14 +2389,27 @@ body.idlecursor, body.idlecursor *{cursor:none}
    * film has never been looked up or has nothing on offer — an empty box says less than no
    * box. The attribution line is required by TMDB's terms and is never optional.
    */
-  function watchBlock(w){
+  function watchBlock(w, title){
     if (!w) return '';
-    var rows = watchRow('Stream', w.flatrate) + watchRow('Rent', w.rent) + watchRow('Buy', w.buy);
+    var rows = watchRow('Stream', w.flatrate, title, w.link) +
+      watchRow('Rent', w.rent, title, w.link) + watchRow('Buy', w.buy, title, w.link);
     if (!rows && !w.link) return '';
     return '<div class="watch">' + rows +
       (w.link ? '<a class="wlink" href="' + esc(w.link) + '" target="_blank" rel="noopener">' +
         'more on TMDB &#8599;</a>' : '') +
       '<div class="wattr">streaming data by JustWatch via TMDB</div></div>';
+  }
+
+  /* The trailer, one click away: TMDB's own YouTube key when we have it, an exact-title
+     YouTube search when we don't. */
+  function trailerBtn(f){
+    var w = f.watch_providers;
+    var href = w && w.trailer
+      ? 'https://www.youtube.com/watch?v=' + encodeURIComponent(w.trailer)
+      : 'https://www.youtube.com/results?search_query=' +
+        encodeURIComponent(f.title + ' ' + (f.year || '') + ' trailer');
+    return '<a class="playbtn" href="' + esc(href) + '" target="_blank" rel="noopener"' +
+      ' aria-label="Watch the trailer on YouTube"><span>&#9654;</span><i>trailer</i></a>';
   }
 
   /* "streaming on Disney Plus &middot; Crave" — the passing version, for a hover panel. */
@@ -2401,7 +2454,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
     el.innerHTML = '<div class="scrim" data-close="1"></div><div class="box">' +
       '<button class="pillbtn x" data-close="1">close</button>' +
-      '<div class="cover">' + poster(f.title, f.poster) + '</div>' +
+      '<div class="cover">' + poster(f.title, f.poster) + trailerBtn(f) + '</div>' +
       '<div class="side"><h3>' + esc(f.title) +
       (f.year ? ' <span class="yr">(' + esc(f.year) + ')</span>' : '') + '</h3>' +
       (facts.length ? '<div class="mfacts">' + facts.join('') + '</div>' : '') +
@@ -2414,7 +2467,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
           }).join('') + '</div>'
         : '') +
       '<div class="den">' + den.join('') + '</div>' +
-      watchBlock(f.watch_providers) + '</div></div>';
+      watchBlock(f.watch_providers, f.title) + '</div></div>';
     el.className = 'on';
   }
 

@@ -164,7 +164,6 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 }
 .tag.vote{color:var(--amber);border-color:rgba(245,185,66,.34)}
 .tag.out{font-weight:700;letter-spacing:.04em;color:var(--muted)}
-.tag.nom{font-weight:700;letter-spacing:.04em;color:var(--amber);border-color:rgba(245,185,66,.34)}
 
 /* ---------- coming up ---------- */
 .up{margin-top:14px;padding:16px;border-radius:18px;
@@ -186,7 +185,6 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 .throw.sep{margin-top:11px;padding-top:11px;border-top:1px solid var(--line)}
 .throw .av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;flex:none}
 .tag.vote.mine{background:linear-gradient(180deg,var(--amber),var(--amber-deep));color:#221806;border-color:transparent}
-.tile.dim{opacity:.42;filter:grayscale(.72)}
 .lockbar{
   margin:14px 0 2px;padding:10px 14px;border-radius:14px;text-align:center;
   font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#221806;
@@ -319,6 +317,59 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.001ms !important;transition-duration:.001ms !important}
 }
+
+/* ---------- entry, jokers, library ---------- */
+.mine{margin-top:14px;padding:16px;border-radius:18px;
+  background:linear-gradient(158deg,var(--s2),var(--s1));border:1px solid var(--line)}
+.mine.slot{border-style:dashed}
+.mine .poster{width:52px;height:78px;aspect-ratio:auto;border-radius:10px;flex:none}
+.mine .t{font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.cta{margin-top:12px;display:flex;gap:8px}
+.cta button{
+  flex:1;font:inherit;font-size:12px;font-weight:800;cursor:pointer;color:var(--text);
+  background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:13px;padding:11px 8px;
+}
+.cta button.go{background:linear-gradient(180deg,var(--amber),var(--amber-deep));color:#221806;border-color:transparent}
+.jokerbar{display:flex;align-items:center;gap:11px;margin-top:14px}
+.jokerbtn{
+  flex:none;font:inherit;font-size:13px;font-weight:800;cursor:pointer;color:var(--text);
+  background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:10px 16px;
+}
+.jokerbtn.armed{background:linear-gradient(180deg,var(--amber),var(--amber-deep));color:#221806;border-color:transparent}
+.jokerbtn:disabled{opacity:.4}
+.chiprow{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.mini{font-size:10px;font-weight:800;padding:3px 7px;border-radius:999px;
+  background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--muted)}
+.mini.v{color:var(--amber);border-color:rgba(245,185,66,.3)}
+.mini.j{color:#e2c6ff;border-color:rgba(200,150,255,.32)}
+.filters{display:flex;gap:8px;margin:16px 0 4px}
+.filters button{
+  font:inherit;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted);
+  background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:8px 14px;
+}
+.filters button.on{color:#221806;background:linear-gradient(180deg,var(--amber),var(--amber-deep));border-color:transparent}
+.lib{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-top:14px}
+.lib .t-title{font-size:11px;margin-top:6px}
+.seen{position:absolute;bottom:6px;left:6px;z-index:2;font-size:10px;font-weight:800;
+  padding:3px 7px;border-radius:999px;background:rgba(13,11,20,.82);border:1px solid var(--line);
+  color:var(--amber)}
+.sheet{position:fixed;inset:0;z-index:50;background:rgba(8,6,14,.74);backdrop-filter:blur(8px);
+  display:flex;align-items:flex-end}
+.sheet .inner{position:relative;width:100%;max-height:88vh;overflow-y:auto;border-radius:24px 24px 0 0;
+  background:linear-gradient(158deg,var(--s2),var(--s1));border:1px solid var(--line);
+  padding:22px 18px calc(28px + env(safe-area-inset-bottom));animation:up .3s cubic-bezier(.2,.9,.3,1)}
+@keyframes up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.sheet .x{position:absolute;top:14px;right:16px;font:inherit;font-size:11px;font-weight:800;
+  color:var(--muted);background:none;border:none;cursor:pointer;letter-spacing:.14em;text-transform:uppercase}
+.sheet .hd{display:flex;gap:14px;padding-right:56px}
+.sheet .hd .poster{width:84px;height:126px;aspect-ratio:auto;border-radius:12px;flex:none}
+.sheet h2{font-size:21px;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin:0}
+.gen{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.syn{margin-top:15px;font-size:13px;line-height:1.55;color:#c3bcd4}
+.tl{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.tlrow{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:9px 0}
+.tlrow + .tlrow{border-top:1px dashed rgba(244,239,232,.08)}
+.tlrow .w{color:var(--amber);font-weight:800;flex:none}
 </style>
 </head>
 <body>
@@ -326,7 +377,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
   <header class="top">
     <span class="bulbs"></span>
     <div class="marquee">THE DEN</div>
-    <div class="sub" id="sub">movie nights, decided by wheel</div>
+    <div class="sub" id="sub">one film each &middot; the wheel decides</div>
     <div id="whoami"></div>
   </header>
   <main id="view"></main>
@@ -334,12 +385,13 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 
 <nav class="tabs" id="tabs">
   <button data-tab="tonight" class="on">Tonight</button>
-  <button data-tab="pool">Pool</button>
+  <button data-tab="library">Library</button>
   <button data-tab="history">History</button>
   <button data-tab="stats">Stats</button>
 </nav>
 
 <div class="toast" id="toast"></div>
+<div id="sheet"></div>
 
 <script>
 (function(){
@@ -355,11 +407,16 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
   var S = null;               /* everything /api/me returned */
   var tab = 'tonight';
   var busy = false;
-  var query = '';             /* live suggest box text */
+  var query = '';             /* live entry-search text */
   var themeDraft = '';        /* live theme-idea box text */
   var previewTimer = null;
+  var pickerFor = null;       /* night id whose entry picker is open */
+  var jokerArmed = false;     /* next tap on a film burns my joker */
+  var libFilter = 'all';
+  var dossier = null;         /* the open film sheet */
 
   var view = document.getElementById('view');
+  var sheetEl = document.getElementById('sheet');
   var toastEl = document.getElementById('toast');
   var toastTimer = null;
 
@@ -406,7 +463,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       return '<img class="poster' + extra + '" loading="lazy" alt="" src="' + esc(url) + '">';
     }
     var h = hash(title);
-    var a = h % 360, b = (h >> 7) % 360;
+    var a = h % 360, b = (h >>> 7) % 360;
     return '<div class="poster ph' + extra + '" style="background:linear-gradient(158deg,hsl(' +
       a + ' 42% 27%),hsl(' + b + ' 52% 13%))">' +
       '<span class="ph-t">' + esc(title) + '</span><span class="ph-f">&#127916;</span></div>';
@@ -416,62 +473,24 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     return '<span class="av' + (cls ? ' ' + cls : '') + '" style="background:' + c + '33;box-shadow:inset 0 0 0 1px ' +
       c + '88">' + ((m && m.emoji) ? esc(m.emoji) : '&#128062;') + '</span>';
   }
-  function pawRow(n, of5, opts){
+  function pawRow(n, opts){
     var out = [], i;
     for (i = 1; i <= 5; i++) {
       out.push('<span class="' + (i <= n ? 'on' : '') + '"' +
-        (opts && opts.act ? ' data-act="rate" data-film="' + esc(opts.film) + '" data-paws="' + i + '"' : '') +
+        (opts && opts.act
+          ? ' data-act="rate" data-night="' + esc(opts.night) + '" data-film="' + esc(opts.film) +
+            '" data-paws="' + i + '"'
+          : '') +
         '>&#128062;</span>');
     }
     return '<div class="paws' + (opts && opts.small ? ' small' : '') + '">' + out.join('') + '</div>';
   }
   function odds(c){ return Math.round((c.odds || 0) * 100) + '%'; }
-
-  function tileHtml(c, opts){
-    opts = opts || {};
-    var maj = opts.majority || {};
-    var isLock = !!(maj.locked && maj.leading && c.id === maj.leading);
-    var lockedOut = !!(maj.locked && maj.leading && c.id !== maj.leading);
-    var act = opts.act ? ' data-act="' + opts.act + '" data-id="' + esc(c.id) + '"' : '';
-    var tags = [];
-    var sittingOut = c.entered === false;
-    if (c.boosted) tags.push('<span class="tag" title="underdog bonus">&#128293;</span>');
-    if (c.votes) {
-      tags.push('<span class="tag vote' + (opts.picked ? ' mine' : '') +
-        '">&#128499;&#65039;&times;' + c.votes + '</span>');
-    }
-    if (sittingOut) tags.push('<span class="tag out">sitting out</span>');
-    else if (opts.themeToggle) tags.push('<span class="tag nom">nominated</span>');
-    if (opts.yours) tags.push('<span class="tag out">yours</span>');
-
-    /* One nomination each: owners manage their own, hosts manage anyone's. */
-    var acts = [];
-    if (opts.themeToggle && (c.mine || (S.me && S.me.is_host))) {
-      acts.push('<button class="ghost" data-act="enter" data-id="' + esc(c.id) +
-        '" data-enter="' + (sittingOut ? '1' : '0') + '">' +
-        (sittingOut ? 'Nominate' : 'Withdraw') + '</button>');
-    }
-    if (opts.removable && c.mine) {
-      acts.push('<button class="ghost" data-act="remove" data-id="' + esc(c.id) + '">Retire</button>');
-    }
-
-    return '<div class="tile' + (opts.picked ? ' picked' : '') +
-      (lockedOut || sittingOut ? ' dim' : '') + '"' + act + '>' +
-      '<span class="badge">' + (sittingOut ? '&mdash;' : isLock ? 'LOCKED' : odds(c)) + '</span>' +
-      (tags.length ? '<div class="tags">' + tags.join('') + '</div>' : '') +
-      poster(c.title, c.poster) +
-      '<div class="t-title">' + esc(c.title) + '</div>' +
-      '<div class="t-by"><span class="dot" style="background:' + safeColor(c.color) + '"></span>' +
-        esc(c.emoji) + ' ' + esc(c.member) + '</div>' +
-      (opts.picked ? '<div class="picked-tag">your vote</div>' : '') +
-      (acts.length ? '<div class="acts">' + acts.join('') + '</div>' : '') +
-      '</div>';
-  }
   function empty(icon, text){
     return '<div class="empty"><div class="big">' + icon + '</div><p>' + esc(text) + '</p></div>';
   }
   function statusPill(status){
-    var map = { planned:'RSVPs open', locked:'Voting open', spun:'Picked', watched:'Watched' };
+    var map = { planned:'Entries open', locked:'Voting open', spun:'Picked', watched:'Watched' };
     return map[status] || status;
   }
   function fmtDate(iso){
@@ -479,6 +498,43 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     try {
       return new Date(iso).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
     } catch (e) { return ''; }
+  }
+  function myId(){ return (S && S.me && S.me.telegram_id) || 0; }
+  /* Rule one has a doorway: you say you are coming, then you put a film up. */
+  function attending(rsvp){
+    var st = (rsvp || {}).status;
+    return st === 'in' || st === 'maybe';
+  }
+  var GATE = 'You must mark yourself attending before you can enter a movie';
+  /* The in/maybe pair an upcoming night needs, since its RSVP buttons live elsewhere. */
+  function rsvpPair(nightId){
+    return '<div class="cta">' +
+      '<button class="go" data-act="rsvpthen" data-night="' + esc(nightId) +
+      '" data-status="in">&#127881; In</button>' +
+      '<button data-act="rsvpthen" data-night="' + esc(nightId) +
+      '" data-status="maybe">&#129300; Maybe</button></div>';
+  }
+
+  /* A candidate card: the film, who entered it, and what the room has put on it. */
+  function entryTile(c, opts){
+    opts = opts || {};
+    var maj = opts.majority || {};
+    var isLock = !!(maj.locked && maj.leading && c.film_id === maj.leading);
+    var mine = c.member_id === myId();
+    var act = opts.act ? ' data-act="' + opts.act + '" data-id="' + esc(c.film_id) + '"' : '';
+    var chips = [];
+    if (c.votes) chips.push('<span class="mini v">' + c.votes + ' &#128499;&#65039;</span>');
+    if (c.jokers) chips.push('<span class="mini j">' + c.jokers + ' &#127183;</span>');
+    return '<div class="tile' + (opts.picked ? ' picked' : '') + '"' + act + '>' +
+      '<span class="badge">' + (isLock ? 'LOCKED' : odds(c)) + '</span>' +
+      (mine ? '<div class="tags"><span class="tag out">yours</span></div>' : '') +
+      poster(c.title, c.poster) +
+      '<div class="t-title">' + esc(c.title) + '</div>' +
+      '<div class="t-by"><span class="dot" style="background:' + safeColor(c.color) + '"></span>' +
+        esc(c.emoji) + ' ' + esc(c.member) + '</div>' +
+      (chips.length ? '<div class="chiprow">' + chips.join('') + '</div>' : '') +
+      (opts.picked ? '<div class="picked-tag">your vote</div>' : '') +
+      '</div>';
   }
 
   /* ------------------------------------------------ views */
@@ -494,7 +550,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     var n = S.night;
     if (!n) {
       return '<div class="card">' + empty('&#127871;',
-        'No night on the books. A host has to start one before anything interesting happens.') + '</div>';
+        'No night on the books. A host has to start one before anything interesting happens.') +
+        '</div>' + comingUp(null);
     }
     var out = [];
     out.push('<div class="card">');
@@ -520,14 +577,11 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       (minePlus ? 'One guest riding along. Tap to drop them.' : 'Bringing someone? Tap +1.') +
       '</span></div>');
 
-    /* Optional, asked once, never nagged. */
     if (n.status !== 'watched') {
       out.push('<div class="snackrow"><input id="sn" type="text" autocomplete="off" maxlength="60" ' +
         'placeholder="bringing something?" value="' + esc(mine.snack || '') + '">' +
         '<button class="ghostbtn" data-act="snack">Save</button>' +
-        (mine.snack
-          ? '<button class="ghostbtn" data-act="snackclear">Clear</button>'
-          : '') +
+        (mine.snack ? '<button class="ghostbtn" data-act="snackclear">Clear</button>' : '') +
         '</div>');
     }
 
@@ -553,80 +607,157 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     }
     out.push('</div>');
 
-    if (n.winner) {
-      out.push('<div class="card"><div class="eyebrow">The wheel picked</div>' +
-        '<div class="row mt" style="gap:14px">' +
-        '<div style="width:74px;flex:none">' + poster(n.winner.title, n.winner.poster) + '</div>' +
-        '<div><div style="font-size:19px;font-weight:800;letter-spacing:-.03em">' + esc(n.winner.title) +
-        (n.winner.year ? ' <span class="muted" style="font-weight:600">(' + esc(n.winner.year) + ')</span>' : '') +
-        '</div><div class="tiny muted" style="margin-top:6px">suggested by ' + esc(n.winner.emoji) + ' ' +
-        esc(n.winner.member) + '</div></div></div></div>');
-    }
-
-    var pool = S.pool || [];
-    /* A themed night only runs what has been entered for it. */
-    var running = pool.filter(function(c){ return c.entered !== false; });
-    var sitting = pool.length - running.length;
-    if (pool.length && n.status !== 'spun' && n.status !== 'watched') {
-      var maj = n.majority || {};
-      var picked = S.my_vote;
-      var themeNote = sitting
-        ? sitting + (sitting === 1 ? ' film does not fit ' : ' films do not fit ') +
-          'tonight&rsquo;s theme. They sit this one out.'
-        : '';
-      if (!running.length) {
-        out.push('<div class="sec"><div class="eyebrow">' + esc(n.theme || 'The theme') + '</div>' +
-          '<h1 class="h">Nothing fits yet</h1><div class="card">' +
-          empty('&#127917;',
-            'Every film in the pool is sitting this theme out. Somebody has to enter one, ' +
-            'or suggest something that fits.') +
-          '</div></div>');
-      } else if (n.status === 'locked') {
-        /* You have to be coming to have a say, and you cannot boost your own. */
-        var canVote = mineStatus === 'in' || mineStatus === 'maybe';
-        out.push('<div class="sec"><div class="eyebrow">The vote</div>' +
-          '<h1 class="h">Boost your pick</h1>');
-        if (maj.locked) {
-          out.push('<div class="lockbar">Locked by majority &middot; ' + (maj.leading_votes || 0) +
-            ' of ' + (maj.attendee_basis || 0) + '</div>');
-        }
-        out.push('<div class="rail">' + running.map(function(c){
-            return tileHtml(c, {
-              act: (canVote && !c.mine) ? 'vote' : null,
-              picked: c.id === picked,
-              majority: maj,
-              yours: !!c.mine
-            });
-          }).join('') + '</div>' +
-          '<div class="tiny muted" style="margin-top:6px">' +
-          (canVote
-            ? 'A vote adds +1 to that film&rsquo;s weight on the wheel, and ' +
-              (maj.threshold || 2) + ' votes on the same film with a clear lead wins outright' +
-              (picked ? ' &mdash; switch yours any time before the spin.' : '.') +
-              (themeNote ? ' ' + themeNote : '')
-            : 'RSVP first &mdash; the wheel is for people in the room.') +
-          '</div></div>');
-      } else {
-        out.push('<div class="sec"><div class="eyebrow">The pool</div>' +
-          '<h1 class="h">In the running</h1>' +
-          '<div class="rail">' + running.map(function(c){
-            return tileHtml(c, {});
-          }).join('') + '</div>' +
-          '<div class="tiny muted" style="margin-top:6px">' +
-          'Voting opens when the hosts call it.' + (themeNote ? ' ' + themeNote : '') +
-          '</div></div>');
-      }
-    }
-
+    if (n.entries_open) out.push(myEntryCard(n));
+    out.push(lineUp(n));
     out.push(comingUp(n));
     return out.join('');
   }
 
-  /* Nights already on the books beyond tonight. Themed ones take nominations early. */
-  function comingUp(current){
-    var list = (S.upcoming || []).filter(function(u){
-      return !current || u.id !== current.id;
+  /* Rule one: one film each, and entering means you are coming. */
+  function myEntryCard(n){
+    var mineFilm = null;
+    (n.entries || []).forEach(function(c){ if (c.member_id === myId()) mineFilm = c; });
+    var canEnter = attending(S.my_rsvp);
+    var out = ['<div class="sec"><div class="eyebrow">Your entry</div>'];
+    if (!canEnter && !mineFilm) {
+      out.push('<div class="mine slot">' +
+        '<div class="t">' + GATE + '</div>' +
+        '<div class="tiny muted" style="margin-top:6px">The In and Maybe buttons are ' +
+        'just above &mdash; then the film.</div></div></div>');
+      return out.join('');
+    }
+    if (mineFilm) {
+      out.push('<div class="mine"><div class="row">' +
+        poster(mineFilm.title, mineFilm.poster) +
+        '<div><div class="t">' + esc(mineFilm.title) +
+        (mineFilm.year ? ' <span class="muted" style="font-weight:600">(' + esc(mineFilm.year) + ')</span>' : '') +
+        '</div><div class="tiny muted" style="margin-top:5px">Yours for this night. ' +
+        'Nobody votes for their own.</div></div></div>' +
+        (canEnter
+          ? '<div class="cta">' +
+            '<button class="go" data-act="picker" data-night="' + esc(n.id) + '">Swap it</button>' +
+            '<button data-act="withdraw" data-night="' + esc(n.id) + '">Withdraw</button>' +
+            '</div>'
+          : '<div class="tiny muted" style="margin-top:11px">' + GATE +
+            ' &mdash; the buttons are just above.</div>' +
+            '<div class="cta"><button data-act="withdraw" data-night="' + esc(n.id) +
+            '">Withdraw</button></div>') +
+        '</div>');
+    } else {
+      out.push('<div class="mine slot">' +
+        '<div class="t">Nothing entered yet</div>' +
+        '<div class="tiny muted" style="margin-top:6px">One film each. Entering puts you in ' +
+        'the room and on the wheel.</div>' +
+        '<div class="cta"><button class="go" data-act="picker" data-night="' + esc(n.id) +
+        '">Enter a film</button></div></div>');
+    }
+    if (pickerFor === n.id && canEnter) out.push(picker(n));
+    out.push('</div>');
+    return out.join('');
+  }
+
+  /* Search the world, or re-enter something the Den already owns. */
+  function picker(n){
+    var lib = S.library || [];
+    var taken = {};
+    (n.entries || n.taken_film_ids || []).forEach(function(c){
+      if (typeof c === 'string') taken[c] = true;
+      else if (c.member_id !== myId()) taken[c.film_id] = true;
     });
+    var minefirst = lib.filter(function(f){
+      return f.brought_by && f.brought_by.member_id === myId();
+    });
+    var pick = (minefirst.length ? minefirst : lib).slice(0, 6);
+    var out = ['<div class="card" style="margin-top:12px">'];
+    out.push('<div class="eyebrow">Find one</div>' +
+      '<div class="field"><input id="q" type="text" autocomplete="off" placeholder="The Iron Giant">' +
+      '<button id="add" data-act="entertitle" data-night="' + esc(n.id) + '">Enter</button></div>' +
+      '<div class="prev" id="prev"></div>');
+    if (pick.length) {
+      out.push('<div class="eyebrow" style="margin-top:18px">' +
+        (minefirst.length ? 'Films you have brought' : 'On the shelf') + '</div>');
+      out.push('<div class="lib">' + pick.map(function(f){
+        var isTaken = !!taken[f.film_id];
+        return '<div class="tile"' +
+          (isTaken ? '' : ' data-act="enterfilm" data-id="' + esc(f.film_id) +
+            '" data-night="' + esc(n.id) + '"') + '>' +
+          poster(f.title, f.poster) +
+          '<div class="t-title">' + esc(f.title) + '</div>' +
+          (isTaken ? '<div class="tiny muted">taken tonight</div>' : '') +
+          '</div>';
+      }).join('') + '</div>');
+    }
+    out.push('<div class="tiny muted" style="margin-top:12px">' +
+      'No two people can enter the same film on the same night.</div>');
+    out.push('</div>');
+    return out.join('');
+  }
+
+  /* The night's line-up: vote when it opens, burn a joker whenever you like. */
+  function lineUp(n){
+    var entries = n.entries || [];
+    if (!entries.length) {
+      return '<div class="sec"><div class="eyebrow">The line-up</div>' +
+        '<h1 class="h">Nothing entered yet</h1>' +
+        '<div class="card">' + empty('&#127916;',
+          'The wheel needs films. One each, and whoever enters is coming.') + '</div></div>';
+    }
+    var maj = n.majority || {};
+    var voting = n.status === 'locked';
+    var mineStatus = (S.my_rsvp || {}).status || null;
+    var canAct = mineStatus === 'in' || mineStatus === 'maybe';
+    var picked = S.my_vote;
+    var out = ['<div class="sec"><div class="eyebrow">The line-up</div>' +
+      '<h1 class="h">' + (voting ? 'Vote for one' : entries.length + ' in the running') + '</h1>'];
+    if (maj.locked) {
+      out.push('<div class="lockbar">Locked by majority &middot; ' + (maj.leading_votes || 0) +
+        ' of ' + (maj.attendee_basis || 0) + '</div>');
+    }
+    out.push('<div class="rail">' + entries.map(function(c){
+      var own = c.member_id === myId();
+      var act = jokerArmed ? 'joker' : (voting && canAct && !own ? 'vote' : null);
+      return entryTile(c, { act: act, picked: c.film_id === picked, majority: maj });
+    }).join('') + '</div>');
+
+    if (jokerArmed) {
+      out.push('<div class="tiny muted" style="margin-top:6px">' +
+        'Tap a film to burn your joker on it &mdash; your own counts too.</div>');
+    } else if (voting) {
+      out.push('<div class="tiny muted" style="margin-top:6px">' +
+        (canAct
+          ? 'One vote each, never your own. ' + (maj.threshold || 2) +
+            ' votes on the same film with a clear lead wins outright.'
+          : 'RSVP first &mdash; the wheel is for people in the room.') +
+        '</div>');
+    } else {
+      out.push('<div class="tiny muted" style="margin-top:6px">' +
+        'Voting opens when the hosts call it. Weight is 1 + votes + jokers.</div>');
+    }
+
+    var bal = (S.me && S.me.jokers) || 0;
+    var played = S.my_joker;
+    var canJoker = voting && canAct && bal > 0 && !played;
+    out.push('<div class="jokerbar">' +
+      '<button class="jokerbtn' + (jokerArmed ? ' armed' : '') + '" data-act="armjoker"' +
+      (canJoker ? '' : ' disabled') + '>&#127183; ' + (jokerArmed ? 'Pick a film' : bal + ' banked') +
+      '</button><span class="tiny muted">' +
+      (played
+        ? 'Joker spent tonight. No takebacks.'
+        : bal === 0
+        ? 'No jokers banked. Lose a night you entered and you earn one.'
+        : !voting
+        ? 'Playable once voting opens.'
+        : !canAct
+        ? 'RSVP first.'
+        : '+1 weight on any film, yours included. Never counts toward the lock.') +
+      '</span></div>');
+    out.push('</div>');
+    return out.join('');
+  }
+
+  /* Nights already on the books beyond tonight. */
+  function comingUp(current){
+    var list = (S.upcoming || []).filter(function(u){ return !current || u.id !== current.id; });
     if (!list.length) return '';
     var out = ['<div class="sec"><div class="eyebrow">Coming up</div>' +
       '<h1 class="h">' + list.length + (list.length === 1 ? ' night booked' : ' nights booked') +
@@ -636,99 +767,64 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       if (u.date_label) bits.push(esc(u.date_label));
       else if (u.starts_at) bits.push(esc(fmtDate(u.starts_at)));
       if (u.headcount) bits.push(u.headcount + ' coming');
-      if (u.themed) {
-        bits.push(u.nominations + (u.nominations === 1 ? ' nomination' : ' nominations'));
-      }
-      var picks = '';
-      if (u.themed) {
-        var opts = u.my_options || [];
-        picks = opts.length
-          ? '<div class="picks">' + opts.map(function(o){
-              var on = o.id === u.my_nomination;
-              return '<button class="pick' + (on ? ' on' : '') + '"' +
-                (o.eligible ? '' : ' disabled') +
-                ' data-act="nominate" data-night="' + esc(u.id) + '" data-id="' + esc(o.id) +
-                '" data-on="' + (on ? '1' : '0') + '">' + esc(o.title) +
-                (o.year ? ' <span class="yr">' + esc(o.year) + '</span>' : '') + '</button>';
-            }).join('') + '</div>' +
-            '<div class="tiny muted" style="margin-top:8px">' +
-            (u.my_nomination
-              ? 'Your one nomination. Tap another to swap it.'
-              : 'Pick one of yours. One nomination each, greyed ones do not fit the theme.') +
-            '</div>'
-          : '<div class="tiny muted" style="margin-top:10px">' +
-            'Nothing of yours in the pool to nominate yet.</div>';
-      }
+      bits.push(u.entry_count + (u.entry_count === 1 ? ' entry' : ' entries'));
+      var canEnter = attending(u.my_rsvp);
+      var gate = '<div class="tiny muted" style="margin-top:11px">' + GATE + '</div>' +
+        rsvpPair(u.id);
+      var body = u.my_entry
+        ? '<div class="row" style="margin-top:11px;gap:11px">' +
+          poster(u.my_entry.title, u.my_entry.poster) +
+          '<div><div class="tiny muted">Your entry</div><div class="t">' +
+          esc(u.my_entry.title) + '</div></div></div>' +
+          (canEnter
+            ? '<div class="cta"><button class="go" data-act="picker" data-night="' + esc(u.id) +
+              '">Swap it</button><button data-act="withdraw" data-night="' + esc(u.id) +
+              '">Withdraw</button></div>'
+            : gate + '<div class="cta"><button data-act="withdraw" data-night="' + esc(u.id) +
+              '">Withdraw</button></div>')
+        : (canEnter
+          ? '<div class="cta"><button class="go" data-act="picker" data-night="' + esc(u.id) +
+            '">Enter a film</button></div>'
+          : gate);
       return '<div class="up"><div class="when">' + esc(u.label) + '</div>' +
         (u.theme ? '<div class="th">&#127917; ' + esc(u.theme) + '</div>' : '') +
         (bits.length ? '<div class="meta">' + bits.join(' &middot; ') + '</div>' : '') +
-        picks + '</div>';
+        body +
+        (pickerFor === u.id && canEnter ? picker(u) : '') +
+        '</div>';
     }).join(''));
     out.push('</div>');
     return out.join('');
   }
 
-  function viewPool(){
-    var pool = S.pool || [];
-    var count = S.my_suggestion_count || 0;
-    var max = S.max_suggestions || 3;
-    var n = S.night;
-    var themed = !!(n && n.themed && n.status !== 'spun' && n.status !== 'watched');
-    var out = [];
-    out.push('<div class="eyebrow">The pool</div><h1 class="h">' + pool.length +
-      (pool.length === 1 ? ' film waiting' : ' films waiting') + '</h1>');
-
-    if (themed) {
-      out.push('<div class="card"><div class="eyebrow">Tonight&rsquo;s theme</div>' +
-        '<div class="theme" style="margin-top:8px;font-size:17px">&#127917; ' + esc(n.theme) + '</div>' +
-        '<div class="tiny muted" style="margin-top:8px">' + (n.entered_count || 0) + ' of ' +
-        pool.length + ' entered. Only these can be voted for or spun' +
-        (n.sitting_out ? ' &mdash; the rest sit this one out.' : '.') +
-        '</div></div>');
-    }
-
-    out.push('<div class="card"><div class="eyebrow">Add one</div>' +
-      '<div class="field"><input id="q" type="text" autocomplete="off" placeholder="The Iron Giant" ' +
-      (count >= max ? 'disabled' : '') + '>' +
-      '<button id="add" data-act="suggest"' + (count >= max ? ' disabled' : '') + '>Add</button></div>' +
-      '<div class="prev" id="prev"></div>' +
-      '<div class="tiny muted" style="margin-top:10px">' +
-      (count >= max
-        ? 'You have ' + max + ' in the pool, which is the limit. Retire one below.'
-        : count + ' of ' + max + ' used. Unpicked films get better odds every spin.') +
-      '</div></div>');
-
-    if (!pool.length) {
+  /* The shelf: everything the Den has ever brought in. */
+  function viewLibrary(){
+    var lib = S.library || [];
+    var shown = lib.filter(function(f){
+      return libFilter === 'all' || (libFilter === 'watched' ? f.watched : !f.watched);
+    });
+    var out = ['<div class="eyebrow">The library</div><h1 class="h">' + lib.length +
+      (lib.length === 1 ? ' film on the shelf' : ' films on the shelf') + '</h1>'];
+    out.push('<div class="filters">' +
+      ['all', 'watched', 'unwatched'].map(function(f){
+        return '<button data-act="filter" data-f="' + f + '" class="' +
+          (libFilter === f ? 'on' : '') + '">' + f + '</button>';
+      }).join('') + '</div>');
+    if (!shown.length) {
       out.push('<div class="card" style="margin-top:14px">' +
-        empty('&#127902;', 'The pool is empty. Fix that.') + '</div>');
-    } else {
-      var maj = (S.night && S.night.majority) || {};
-      out.push('<div class="grid" style="margin-top:18px">' + pool.map(function(c){
-        return tileHtml(c, { removable: true, majority: maj, themeToggle: themed });
-      }).join('') + '</div>');
+        empty('&#128218;', lib.length
+          ? 'Nothing here under that filter.'
+          : 'The shelf is empty. Enter a film and it lands here forever.') + '</div>');
+      return out.join('');
     }
-
-    out.push(themePanel());
-    return out.join('');
-  }
-
-  /* The group's running list of theme ideas. Hosts pick from it when they announce a night. */
-  function themePanel(){
-    var list = S.themes || [];
-    var out = ['<div class="sec"><div class="eyebrow">Theme ideas</div>' +
-      '<h1 class="h">What should we watch?</h1>'];
-    out.push('<div class="card"><div class="field">' +
-      '<input id="th" type="text" autocomplete="off" maxlength="80" placeholder="Films with terrible dads">' +
-      '<button id="addth" data-act="suggesttheme">Put up</button></div>' +
-      '<div class="tiny muted" style="margin-top:10px">Anyone can add one. 80 characters, ' +
-      'no promises.</div></div>');
-    if (list.length) {
-      out.push('<div class="card" style="margin-top:14px">' + list.map(function(t, i){
-        return '<div class="throw' + (i ? ' sep' : '') + '">' + avatar(t) +
-          '<span>' + esc(t.text) + '</span></div>';
-      }).join('') + '</div>');
-    }
-    out.push('</div>');
+    out.push('<div class="lib">' + shown.map(function(f){
+      var avg = f.avg_paws == null ? null : Math.round(f.avg_paws * 10) / 10;
+      return '<div class="tile" data-act="dossier" data-id="' + esc(f.film_id) + '">' +
+        (avg != null ? '<span class="badge">&#128062; ' + avg.toFixed(1) + '</span>' : '') +
+        (f.watched ? '<span class="seen">seen</span>' : '') +
+        poster(f.title, f.poster) +
+        '<div class="t-title">' + esc(f.title) + '</div></div>';
+    }).join('') + '</div>');
     return out.join('');
   }
 
@@ -739,14 +835,10 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
         empty('&#128220;', 'The folklore starts after the first set of credits rolls.') + '</div>';
     }
     var out = ['<div class="eyebrow">History</div><h1 class="h">' + h.length +
-      (h.length === 1 ? ' night watched' : ' nights watched') + '</h1>'];
+      (h.length === 1 ? ' night on the record' : ' nights on the record') + '</h1>'];
     out.push('<div class="card">');
     out.push(h.map(function(n){
-      var films = (n.films && n.films.length)
-        ? n.films
-        : [{ id:null, title:n.title, poster:n.poster, avg_paws:n.avg_paws,
-             rating_count:n.rating_count, my_paws:n.my_paws }];
-      /* Every film gets its own verdict — a double bill is two opinions, not one. */
+      var films = n.films || [];
       var rows = films.map(function(f, i){
         var avg = f.avg_paws == null ? null : Math.round(f.avg_paws * 10) / 10;
         return '<div class="hrow' + (i ? ' more' : '') + '">' +
@@ -759,19 +851,24 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
             ? '<div class="tiny muted" style="margin-top:4px">' + esc(n.label) +
               (n.watched_at ? ' &middot; ' + esc(fmtDate(n.watched_at)) : '') +
               (n.theme ? ' &middot; ' + esc(n.theme) : '') +
-              (films.length > 1 ? ' &middot; double bill' : '') + '</div>'
+              (films.length > 1 ? ' &middot; double bill' : '') +
+              (n.queued ? ' &middot; queued' : '') + '</div>'
+            : '') +
+          (f.entered_by
+            ? '<div class="tiny muted" style="margin-top:3px">' + esc(f.entered_by.emoji) + ' ' +
+              esc(f.entered_by.name) + (f.by_majority ? ' &middot; locked by majority' : '') + '</div>'
             : '') +
           '<div class="avg">' +
-            (avg == null
+            (n.queued && avg == null
+              ? '<span>not watched yet</span>'
+              : avg == null
               ? '<span>no paws recorded</span>'
               : pawRow(Math.round(avg)) + '<span>' + avg.toFixed(1) + ' from ' + f.rating_count +
                 (f.rating_count === 1 ? ' voter' : ' voters') + '</span>') +
           '</div>' +
-          (f.id
-            ? '<div class="avg"><span class="mine-label">yours</span>' +
-              pawRow(f.my_paws || 0, 5, { act:true, film:f.id, small:true }) + '</div>'
-            : '') +
-          '</div></div>';
+          '<div class="avg"><span class="mine-label">yours</span>' +
+            pawRow(f.my_paws || 0, { act:true, night:n.night_id, film:f.film_id, small:true }) +
+          '</div></div></div>';
       }).join('');
       return '<div class="hnight">' + rows + '</div>';
     }).join(''));
@@ -798,16 +895,96 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
         (c.member ? '<div class="st-who">' + avatar(c.member) + esc(c.member.name) + '</div>' : '') +
         '</div></div>';
     }).join(''));
+    out.push(themePanel());
     return out.join('');
+  }
+
+  /* The group's running list of theme ideas. Hosts pick from it when they announce a night. */
+  function themePanel(){
+    var list = S.themes || [];
+    var out = ['<div class="sec"><div class="eyebrow">Theme ideas</div>' +
+      '<h1 class="h">What should we watch?</h1>'];
+    out.push('<div class="card"><div class="field">' +
+      '<input id="th" type="text" autocomplete="off" maxlength="80" placeholder="Films with terrible dads">' +
+      '<button id="addth" data-act="suggesttheme">Put up</button></div>' +
+      '<div class="tiny muted" style="margin-top:10px">Anyone can add one. 80 characters, ' +
+      'no promises.</div></div>');
+    if (list.length) {
+      out.push('<div class="card" style="margin-top:14px">' + list.map(function(t, i){
+        return '<div class="throw' + (i ? ' sep' : '') + '">' + avatar(t) +
+          '<span>' + esc(t.text) + '</span></div>';
+      }).join('') + '</div>');
+    }
+    out.push('</div>');
+    return out.join('');
+  }
+
+  /* ------------------------------------------------ the dossier sheet */
+  function renderSheet(){
+    if (!dossier) { sheetEl.innerHTML = ''; return; }
+    if (dossier.loading) {
+      sheetEl.innerHTML = '<div class="sheet"><div class="inner">' +
+        '<div class="tiny muted">Opening the file...</div></div></div>';
+      return;
+    }
+    var f = dossier.film || {};
+    var st = dossier.stats || {};
+    var tl = dossier.timeline || [];
+    var avg = st.avg_paws == null ? null : Math.round(st.avg_paws * 10) / 10;
+    var facts = [];
+    if (f.year) facts.push(esc(f.year));
+    if (f.runtime) facts.push(esc(f.runtime));
+    if (avg != null) facts.push('&#128062; ' + avg.toFixed(1) + ' from ' + st.rating_count);
+    var out = ['<div class="sheet" data-act="closesheet"><div class="inner">'];
+    out.push('<button class="x" data-act="closesheet">close</button>');
+    out.push('<div class="hd">' + poster(f.title, f.poster) +
+      '<div><h2>' + esc(f.title) + '</h2>' +
+      (facts.length ? '<div class="tiny muted" style="margin-top:7px">' + facts.join(' &middot; ') + '</div>' : '') +
+      (f.brought_by
+        ? '<div class="tiny muted" style="margin-top:6px">brought in by ' + esc(f.brought_by.emoji) +
+          ' ' + esc(f.brought_by.name) + '</div>'
+        : '') +
+      ((f.genres && f.genres.length)
+        ? '<div class="gen">' + f.genres.map(function(g){
+            return '<span class="mini">' + esc(g) + '</span>';
+          }).join('') + '</div>'
+        : '') +
+      '</div></div>');
+    if (f.synopsis) out.push('<p class="syn">' + esc(f.synopsis) + '</p>');
+    out.push('<div class="tl"><div class="eyebrow">In the Den</div>');
+    if (!tl.length) {
+      out.push('<div class="tiny muted" style="margin-top:10px">On the shelf, never entered. Yet.</div>');
+    } else {
+      out.push(tl.map(function(t){
+        var bits = [];
+        if (t.votes) bits.push(t.votes + ' &#128499;&#65039;');
+        if (t.jokers) bits.push(t.jokers + ' &#127183;');
+        return '<div class="tlrow"><div>' + esc(t.label) +
+          (t.entered_by ? ' <span class="muted">&middot; ' + esc(t.entered_by.name) + '</span>' : '') +
+          (bits.length ? ' <span class="muted">&middot; ' + bits.join(' ') + '</span>' : '') +
+          '</div><div class="w">' +
+          (t.won ? (t.by_majority ? 'won by majority' : 'won') : 'lost') + '</div></div>';
+      }).join(''));
+    }
+    out.push('</div>');
+    var totals = [];
+    totals.push(st.times_entered + (st.times_entered === 1 ? ' entry' : ' entries'));
+    if (st.total_votes) totals.push(st.total_votes + ' votes');
+    if (st.total_jokers) totals.push(st.total_jokers + ' jokers burned');
+    out.push('<div class="tiny muted" style="margin-top:14px">' + totals.join(' &middot; ') + '</div>');
+    out.push('</div></div>');
+    sheetEl.innerHTML = out.join('');
   }
 
   function render(){
     if (!S) { view.innerHTML = skeleton(); return; }
     var me = S.me;
     document.getElementById('whoami').innerHTML =
-      '<span class="mechip">' + avatar(me) + esc(me.name) + (me.is_host ? ' &middot; host' : '') + '</span>';
+      '<span class="mechip">' + avatar(me) + esc(me.name) +
+      ' &middot; ' + (me.jokers || 0) + '&#127183;' +
+      (me.is_host ? ' &middot; host' : '') + '</span>';
     if (tab === 'tonight') view.innerHTML = viewTonight();
-    else if (tab === 'pool') view.innerHTML = viewPool();
+    else if (tab === 'library') view.innerHTML = viewLibrary();
     else if (tab === 'history') view.innerHTML = viewHistory();
     else view.innerHTML = viewStats();
 
@@ -815,7 +992,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     if (q) {
       q.value = query;
       q.addEventListener('input', onQuery);
-      q.addEventListener('keydown', function(e){ if (e.key === 'Enter') doSuggest(); });
+      q.addEventListener('keydown', function(e){ if (e.key === 'Enter') doEnterTitle(); });
       if (query) renderPreview(lastPreview);
     }
     var sn = document.getElementById('sn');
@@ -830,7 +1007,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       th.addEventListener('input', function(e){ themeDraft = e.target.value; });
       th.addEventListener('keydown', function(e){ if (e.key === 'Enter') doSuggestTheme(); });
     }
-    window.scrollTo(0, 0);
+    renderSheet();
   }
 
   function gate(){
@@ -856,9 +1033,15 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     });
   }
 
+  /* Every night-writing endpoint hands back the same shape. */
+  function applyNight(j){
+    if (j.entries && S.night) S.night.entries = j.entries;
+    if (j.majority && S.night) S.night.majority = j.majority;
+    if (j.upcoming) S.upcoming = j.upcoming;
+    if (typeof j.my_entry !== 'undefined') S.my_entry = j.my_entry;
+  }
+
   /* ------------------------------------------------ actions */
-  /* plusOnes null leaves any existing guest alone; 0 or 1 sets it. Server rules mirrored here
-     so the optimistic redraw matches what comes back. */
   function doRsvp(status, plusOnes){
     if (!S.night || busy) return;
     busy = true;
@@ -866,7 +1049,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     var was = S.my_rsvp;
     var next = {
       status: status,
-      plus_ones: plusOnes == null ? ((was && was.plus_ones) || 0) : plusOnes
+      plus_ones: plusOnes == null ? ((was && was.plus_ones) || 0) : plusOnes,
+      snack: (was && was.snack) || null
     };
     if (next.plus_ones === 1) next.status = 'in';
     if (next.status === 'out') next.plus_ones = 0;
@@ -879,6 +1063,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       if (!j.ok) { S.my_rsvp = was; render(); toast('Could not save that.', true); return; }
       S.my_rsvp = j.my_rsvp || next;
       S.night.rsvps = j.rsvps || S.night.rsvps;
+      if (j.snacks) S.night.snacks = j.snacks;
       if (typeof j.headcount === 'number') S.night.headcount = j.headcount;
       render();
       if (plusOnes === 1) toast('+1 riding along.');
@@ -887,58 +1072,20 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     }).catch(function(){ busy = false; S.my_rsvp = was; render(); toast('Could not save that.', true); });
   }
 
-  function doVote(id){
-    if (!S.night || busy) return;
-    if (S.night.status !== 'locked') { toast('Voting is not open yet.', true); return; }
+  /* The gate's own buttons: mark attending, then open the film picker for that night. */
+  function doRsvpThen(nightId, status){
+    if (busy) return;
     busy = true;
     haptic('light');
-    var was = S.my_vote;
-    S.my_vote = id;
-    render();
-    api('vote', { night_id: S.night.id, suggestion_id: id }).then(function(j){
+    api('rsvp', { night_id: nightId, status: status }).then(function(j){
       busy = false;
-      if (!j.ok) {
-        S.my_vote = was; render();
-        toast(j.message
-          ? j.message
-          : j.error === 'voting_closed'
-          ? 'Voting is closed. The wheel has moved on.'
-          : 'Vote did not stick.', true);
-        return;
-      }
-      applyPool(j);
-      render();
-      toast(j.majority && j.majority.locked && j.majority.leading === id
-        ? 'That is a majority. Locked in unless the room changes its mind.'
-        : 'Vote counted. +1 weight on that slice.');
-    }).catch(function(){ busy = false; S.my_vote = was; render(); toast('Vote did not stick.', true); });
+      if (!j.ok) { toast('Could not save that.', true); return; }
+      pickerFor = nightId;
+      load();
+      toast(status === 'in' ? 'You are in. Now the film.' : 'Noncommittal. Now the film.');
+    }).catch(function(){ busy = false; toast('Could not save that.', true); });
   }
 
-  /* Nominate or withdraw one film for a themed night — tonight's, or one weeks out. */
-  function doEnter(id, entered, nightId){
-    var target = nightId || (S.night && S.night.id);
-    if (!target || busy) return;
-    busy = true;
-    haptic('light');
-    api('enter', { night_id: target, suggestion_id: id, entered: entered }).then(function(j){
-      busy = false;
-      if (!j.ok) {
-        toast(j.message
-          ? j.message
-          : j.error === 'not_yours'
-          ? 'That one is not yours to move.'
-          : j.error === 'entries_closed'
-          ? 'Too late to change the line-up.'
-          : 'Could not change that.', true);
-        return;
-      }
-      applyPool(j);
-      render();
-      toast(entered ? 'Nominated.' : 'Withdrawn.');
-    }).catch(function(){ busy = false; toast('Could not change that.', true); });
-  }
-
-  /* Snacks ride the rsvp. Saving one when you had not committed puts you in. */
   function doSnack(text){
     if (!S.night || busy) return;
     busy = true;
@@ -953,6 +1100,98 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       render();
       toast(text ? 'On the table.' : 'Taken off the table.');
     }).catch(function(){ busy = false; toast('That did not save.', true); });
+  }
+
+  /* Enter, swap or withdraw. The server enforces one each and one copy of a film. */
+  function doEnter(payload, okMsg){
+    if (busy) return;
+    busy = true;
+    haptic('medium');
+    api('enter', payload).then(function(j){
+      busy = false;
+      if (!j.ok) {
+        toast(j.message || (j.error === 'entries_closed'
+          ? 'Entries for that night are closed.'
+          : 'That did not go in.'), true);
+        return;
+      }
+      pickerFor = null;
+      query = '';
+      lastPreview = null;
+      applyNight(j);
+      toast(okMsg);
+      load();
+    }).catch(function(){ busy = false; toast('That did not go in.', true); });
+  }
+
+  function doEnterTitle(){
+    var q = document.getElementById('q');
+    if (!q || !pickerFor) return;
+    var title = q.value.trim();
+    if (title.length < 2) { toast('Give it a title first.', true); return; }
+    doEnter({ night_id: pickerFor, title: title }, 'Entered. Good luck.');
+  }
+
+  function doVote(filmId){
+    if (!S.night || busy) return;
+    busy = true;
+    haptic('light');
+    var was = S.my_vote;
+    S.my_vote = filmId;
+    render();
+    api('vote', { night_id: S.night.id, film_id: filmId }).then(function(j){
+      busy = false;
+      if (!j.ok) {
+        S.my_vote = was; render();
+        toast(j.message || (j.error === 'voting_closed'
+          ? 'Voting is closed. The wheel has moved on.'
+          : 'Vote did not stick.'), true);
+        return;
+      }
+      applyNight(j);
+      render();
+      toast(j.majority && j.majority.locked && j.majority.leading === filmId
+        ? 'That is a majority. Locked in unless the room changes its mind.'
+        : 'Vote counted. +1 weight on that film.');
+    }).catch(function(){ busy = false; S.my_vote = was; render(); toast('Vote did not stick.', true); });
+  }
+
+  function doJoker(filmId){
+    if (!S.night || busy) return;
+    busy = true;
+    haptic('medium');
+    api('joker', { night_id: S.night.id, film_id: filmId }).then(function(j){
+      busy = false;
+      jokerArmed = false;
+      if (!j.ok) { render(); toast(j.message || 'The joker stayed in the bank.', true); return; }
+      S.my_joker = filmId;
+      if (typeof j.jokers_left === 'number') S.me.jokers = j.jokers_left;
+      applyNight(j);
+      render();
+      toast('Joker burned. +1, and the lock never sees it.');
+    }).catch(function(){ busy = false; jokerArmed = false; render(); toast('The joker stayed in the bank.', true); });
+  }
+
+  function doRate(nightId, filmId, paws){
+    if (busy || !filmId) return;
+    busy = true;
+    haptic('light');
+    api('rate', { night_id: nightId, film_id: filmId, paws: paws }).then(function(j){
+      busy = false;
+      if (!j.ok) { toast(j.message || 'Rating did not save.', true); return; }
+      (S.history || []).forEach(function(n){
+        if (n.night_id !== nightId) return;
+        (n.films || []).forEach(function(f){
+          if (f.film_id === filmId) {
+            f.my_paws = paws;
+            f.avg_paws = j.avg_paws;
+            f.rating_count = j.rating_count;
+          }
+        });
+      });
+      render();
+      toast(paws >= 4 ? 'Generous. Logged.' : paws <= 2 ? 'Brutal. Logged.' : 'Logged.');
+    }).catch(function(){ busy = false; toast('Rating did not save.', true); });
   }
 
   function doSuggestTheme(){
@@ -972,76 +1211,14 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     }).catch(function(){ busy = false; toast('That did not go up.', true); });
   }
 
-  /* Every pool-returning endpoint hands back the same shape. */
-  function applyPool(j){
-    S.pool = j.pool || S.pool;
-    S.my_suggestion_count = (S.pool || []).filter(function(c){ return c.mine; }).length;
-    if (j.upcoming) S.upcoming = j.upcoming;
-    if (typeof j.my_nomination !== 'undefined') S.my_nomination = j.my_nomination;
-    if (S.night) {
-      if (j.majority) S.night.majority = j.majority;
-      if (typeof j.entered_count === 'number') S.night.entered_count = j.entered_count;
-      if (typeof j.sitting_out === 'number') S.night.sitting_out = j.sitting_out;
-      if (typeof j.themed === 'boolean') S.night.themed = j.themed;
-    }
-  }
-
-  function doRemove(id){
-    if (busy) return;
-    busy = true;
-    haptic('medium');
-    api('unsuggest', { suggestion_id: id }).then(function(j){
-      busy = false;
-      if (!j.ok) { toast('That one is not yours to retire.', true); return; }
-      applyPool(j);
-      render();
-      toast('Retired. Odds recalculated.');
-    }).catch(function(){ busy = false; toast('Could not retire that.', true); });
-  }
-
-  function doSuggest(){
-    var q = document.getElementById('q');
-    if (!q || busy) return;
-    var title = q.value.trim();
-    if (title.length < 2) { toast('Give it a title first.', true); return; }
-    busy = true;
-    var btn = document.getElementById('add');
-    if (btn) { btn.disabled = true; btn.textContent = '...'; }
-    api('suggest', { title: title }).then(function(j){
-      busy = false;
-      if (!j.ok) {
-        toast(j.error === 'limit' ? 'Three is the limit. Retire one first.' : 'That did not go in.', true);
-        render();
-        return;
-      }
-      query = '';
-      lastPreview = null;
-      applyPool(j);
-      render();
-      toast(j.themed ? 'In the pool and entered for tonight.' : 'In the pool. Odds recalculated.');
-      haptic('medium');
-    }).catch(function(){ busy = false; render(); toast('That did not go in.', true); });
-  }
-
-  function doRate(filmId, paws){
-    if (busy || !filmId) return;
-    busy = true;
-    haptic('light');
-    api('rate', { suggestion_id: filmId, paws: paws }).then(function(j){
-      busy = false;
-      if (!j.ok) { toast(j.message || 'Rating did not save.', true); return; }
-      (S.history || []).forEach(function(n){
-        (n.films || []).forEach(function(f){
-          if (f.id === filmId) {
-            f.my_paws = paws;
-            f.avg_paws = j.avg_paws;
-            f.rating_count = j.rating_count;
-          }
-        });
-      });
-      render();
-      toast(paws >= 4 ? 'Generous. Logged.' : paws <= 2 ? 'Brutal. Logged.' : 'Logged.');
-    }).catch(function(){ busy = false; toast('Rating did not save.', true); });
+  function openDossier(filmId){
+    dossier = { loading: true };
+    renderSheet();
+    api('film', { film_id: filmId }).then(function(j){
+      if (!j.ok) { dossier = null; renderSheet(); toast('No file on that one.', true); return; }
+      dossier = j;
+      renderSheet();
+    }).catch(function(){ dossier = null; renderSheet(); toast('No file on that one.', true); });
   }
 
   /* ------------------------------------------------ live lookup preview */
@@ -1085,6 +1262,12 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     });
     haptic('light');
     render();
+    window.scrollTo(0, 0);
+  });
+
+  sheetEl.addEventListener('click', function(e){
+    var el = e.target.closest('[data-act]');
+    if (el && el.getAttribute('data-act') === 'closesheet') { dossier = null; renderSheet(); }
   });
 
   view.addEventListener('click', function(e){
@@ -1093,30 +1276,42 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     var act = el.getAttribute('data-act');
     if (act === 'rsvp') doRsvp(el.getAttribute('data-status'), null);
     else if (act === 'plus') {
-      /* Adding a guest commits you; dropping one leaves your status where it is. */
       var mineNow = S.my_rsvp || {};
       var adding = mineNow.plus_ones !== 1;
       doRsvp(adding ? 'in' : (mineNow.status || 'in'), adding ? 1 : 0);
     }
-    else if (act === 'vote') doVote(el.getAttribute('data-id'));
-    else if (act === 'enter') {
-      e.stopPropagation();
-      doEnter(el.getAttribute('data-id'), el.getAttribute('data-enter') === '1');
-    }
-    else if (act === 'nominate') {
-      /* Tapping your current nomination withdraws it; tapping another swaps. */
-      doEnter(el.getAttribute('data-id'), el.getAttribute('data-on') !== '1',
-        el.getAttribute('data-night'));
-    }
-    else if (act === 'suggesttheme') doSuggestTheme();
     else if (act === 'snack') {
       var sn = document.getElementById('sn');
       doSnack(sn ? sn.value.trim() : '');
     }
     else if (act === 'snackclear') doSnack('');
-    else if (act === 'remove') { e.stopPropagation(); doRemove(el.getAttribute('data-id')); }
-    else if (act === 'suggest') doSuggest();
-    else if (act === 'rate') doRate(el.getAttribute('data-film'), Number(el.getAttribute('data-paws')));
+    else if (act === 'picker') {
+      var nid = el.getAttribute('data-night');
+      pickerFor = pickerFor === nid ? null : nid;
+      query = '';
+      render();
+    }
+    else if (act === 'withdraw') {
+      doEnter({ night_id: el.getAttribute('data-night'), withdraw: true }, 'Withdrawn.');
+    }
+    else if (act === 'rsvpthen') {
+      doRsvpThen(el.getAttribute('data-night'), el.getAttribute('data-status'));
+    }
+    else if (act === 'entertitle') doEnterTitle();
+    else if (act === 'enterfilm') {
+      doEnter({ night_id: el.getAttribute('data-night'), film_id: el.getAttribute('data-id') },
+        'Entered. Good luck.');
+    }
+    else if (act === 'vote') doVote(el.getAttribute('data-id'));
+    else if (act === 'joker') doJoker(el.getAttribute('data-id'));
+    else if (act === 'armjoker') { jokerArmed = !jokerArmed; haptic('light'); render(); }
+    else if (act === 'filter') { libFilter = el.getAttribute('data-f'); render(); }
+    else if (act === 'dossier') openDossier(el.getAttribute('data-id'));
+    else if (act === 'suggesttheme') doSuggestTheme();
+    else if (act === 'rate') {
+      doRate(el.getAttribute('data-night'), el.getAttribute('data-film'),
+        Number(el.getAttribute('data-paws')));
+    }
   });
 
   document.addEventListener('visibilitychange', function(){

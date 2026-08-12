@@ -266,6 +266,21 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 .summary .card{padding:16px;text-align:center;margin:0}
 .summary .big{font-size:28px;font-weight:800;letter-spacing:-.03em}
 
+/* ---------- the shared language, at phone scale ---------- */
+.seatrow{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;margin-top:14px}
+.sdot{height:24px;border-radius:7px;background:rgba(255,255,255,.05);border:1px solid var(--line);
+  display:grid;place-items:center;font-size:11px;line-height:1;overflow:hidden}
+.sdot.free{background:rgba(255,255,255,.014);border-style:dashed;border-color:rgba(244,239,232,.13)}
+.sdot.guest{opacity:.62}
+.capline{margin-top:9px;font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:baseline}
+.capline b{color:var(--amber);font-weight:800;font-variant-numeric:tabular-nums}
+.frame{border-radius:16px;border:1px dashed rgba(244,239,232,.13);background:rgba(255,255,255,.014);
+  aspect-ratio:2/3;position:relative}
+.frame::after{content:"";position:absolute;left:50%;top:44%;width:24px;height:24px;
+  margin:-12px 0 0 -12px;border-radius:50%;border:1px dashed rgba(244,239,232,.14)}
+.rail .frame{width:104px;flex:none}
+.slotcount{margin-top:6px;font-size:11px;color:var(--muted);text-align:center}
+
 /* ---------- empty / skeleton / toast ---------- */
 .empty{text-align:center;padding:46px 20px;color:var(--muted)}
 .empty .big{font-size:30px;margin-bottom:10px;opacity:.8}
@@ -593,7 +608,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
         return '<span class="face ' + esc(r.status) + '">' + avatar(r) + esc(r.name) +
           (r.plus_ones === 1 ? ' +1' : '') + '</span>';
       }).join('') + '</div>');
-      if (n.headcount) out.push('<div class="heads">' + n.headcount + ' coming</div>');
+      out.push(seatRow(n));
       var spread = n.snacks || [];
       if (spread.length) {
         out.push('<div class="spread"><div class="eyebrow">&#127871; On the table</div>' +
@@ -604,6 +619,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       }
     } else {
       out.push('<div class="tiny muted mt">Are you coming? Select one of the options above.</div>');
+      out.push(seatRow(n));
     }
     out.push('</div>');
 
@@ -611,6 +627,28 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     out.push(lineUp(n));
     out.push(comingUp(n));
     return out.join('');
+  }
+
+  /* The same fourteen-seat picture the Big Screen draws, at phone scale. */
+  function seatRow(n){
+    var cap = n.seat_cap || 14;
+    var taken = [];
+    (n.rsvps || []).forEach(function(r){
+      if (r.status !== 'in') return;
+      taken.push({ r: r, guest: false });
+      if (r.plus_ones === 1) taken.push({ r: r, guest: true });
+    });
+    var dots = [];
+    for (var i = 0; i < cap; i++) {
+      var t = taken[i];
+      dots.push(t
+        ? '<span class="sdot' + (t.guest ? ' guest' : '') + '" title="' +
+          esc(t.r.name) + (t.guest ? ' +1' : '') + '">' + esc(t.r.emoji) + '</span>'
+        : '<span class="sdot free"></span>');
+    }
+    var seats = n.seats == null ? taken.length : n.seats;
+    return '<div class="seatrow">' + dots.join('') + '</div>' +
+      '<div class="capline"><b>' + seats + ' of ' + cap + '</b><span>seats taken</span></div>';
   }
 
   /* Rule one: one film each, and entering means you are coming. */
@@ -713,11 +751,19 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       out.push('<div class="lockbar">Locked by majority &middot; ' + (maj.leading_votes || 0) +
         ' of ' + (maj.attendee_basis || 0) + '</div>');
     }
-    out.push('<div class="rail">' + entries.map(function(c){
+    var cap = n.seat_cap || 14;
+    var slots = entries.map(function(c){
       var own = c.member_id === myId();
       var act = jokerArmed ? 'joker' : (voting && canAct && !own ? 'vote' : null);
       return entryTile(c, { act: act, picked: c.film_id === picked, majority: maj });
-    }).join('') + '</div>');
+    });
+    /* A few empty frames so a thin line-up reads as room to fill, not as a fault. */
+    var openSlots = Math.max(0, Math.min(4, cap - entries.length));
+    for (var g = 0; g < openSlots; g++) {
+      slots.push('<div class="tile"><div class="frame"></div>' +
+        '<div class="slotcount">open</div></div>');
+    }
+    out.push('<div class="rail">' + slots.join('') + '</div>');
 
     if (jokerArmed) {
       out.push('<div class="tiny muted" style="margin-top:6px">' +

@@ -161,6 +161,46 @@ body.idlecursor, body.idlecursor *{cursor:none}
 .srow .st i{display:block;font-style:normal;font-size:15px;color:var(--muted);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .srow .tb{display:flex;gap:3px;align-items:center}
+/* One line, in passing: what it is streaming on right now. */
+.srow .dstream{margin-top:10px;font-size:14px;font-weight:700;color:var(--amber)}
+.srow .dstream:empty{display:none}
+.card .detail .cstream{margin-top:8px;font-size:13px;font-weight:700;color:var(--amber)}
+
+/* The dossier. Same manners as the library cards: it lifts out over its neighbours rather
+   than pushing them around, in the same fifth of a second. Rows on the bottom of the page
+   open it upward so it can never fall off a 1080 screen. */
+.srow .dossier{
+  position:absolute;left:-10px;right:-10px;top:calc(100% + 6px);z-index:25;
+  padding:16px 18px 18px;border-radius:16px;
+  background:linear-gradient(158deg,var(--s2),var(--s1));
+  border:1px solid rgba(245,185,66,.34);box-shadow:0 30px 70px rgba(0,0,0,.72);
+  opacity:0;transform:translateY(-8px);pointer-events:none;
+  transition:opacity .2s cubic-bezier(.2,.9,.3,1), transform .2s cubic-bezier(.2,.9,.3,1);
+}
+.srow.up .dossier{top:auto;bottom:calc(100% + 6px);transform:translateY(8px)}
+.srow:hover{z-index:25}
+.srow:hover .dossier{opacity:1;transform:none;pointer-events:auto}
+.srow .dfacts{display:flex;flex-wrap:wrap;gap:8px}
+.srow .dfacts:empty{display:none}
+.srow .dfacts span{font-size:13px;font-weight:700;line-height:1;padding:6px 10px;
+  border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--line);
+  color:var(--muted);white-space:nowrap}
+.srow .dfacts span.star{color:var(--amber);border-color:rgba(245,185,66,.32);
+  background:rgba(245,185,66,.09)}
+.srow .dsyn{margin:12px 0 0;font-size:15px;line-height:1.5;color:#c9c2da;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.srow .dwho{margin-top:12px;font-size:14px;font-weight:700;color:var(--muted)}
+.srow .dmore{margin-top:14px;min-height:38px;padding:0 20px;font-size:12px}
+
+/* Already played tonight: still on the board, plainly out of the running. */
+.srow .wontag{display:none}
+.srow.won .wontag{display:inline-flex;align-self:flex-start;align-items:center;gap:5px;
+  font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;line-height:1;
+  padding:5px 9px;border-radius:999px;color:#0f0b16;
+  background:linear-gradient(180deg,var(--amber),var(--amber-deep))}
+.srow.won .st b{color:var(--amber)}
+.srow.won .th{box-shadow:0 0 0 2px var(--amber)}
+.srow.won .tb, .srow.won .sp{opacity:.4}
 .srow .jk{display:flex;gap:5px;flex-wrap:nowrap;overflow:hidden}
 .srow .jk:empty{display:none}
 .srow .jk span{font-size:12px;font-weight:700;line-height:1;padding:5px 9px;border-radius:999px;
@@ -478,6 +518,22 @@ body.idlecursor, body.idlecursor *{cursor:none}
 #modal .den b{display:block;margin-top:3px;font-size:22px;font-weight:800;color:var(--text);
   font-variant-numeric:tabular-nums}
 #modal .x{position:absolute;top:22px;right:26px}
+/* Where to watch it. Logos come from TMDB's own image host, so they are plain images with
+   a name beside them — nobody should have to recognise a roundel. */
+.watch{margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}
+.watch .wrow{display:flex;align-items:center;gap:12px;margin-top:12px}
+.watch .wrow:first-of-type{margin-top:0}
+.watch .wk{flex:none;width:64px;font-size:12px;font-weight:800;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--muted)}
+.watch .wp{display:flex;flex-wrap:wrap;gap:8px}
+.watch .wp span{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:700;
+  padding:6px 12px 6px 6px;border-radius:999px;background:rgba(255,255,255,.05);
+  border:1px solid var(--line)}
+.watch .wp img{width:26px;height:26px;border-radius:7px;display:block}
+.watch .wlink{display:inline-block;margin-top:16px;font-size:14px;font-weight:800;
+  letter-spacing:.04em;color:var(--amber);text-decoration:none}
+.watch .wlink:hover{text-decoration:underline}
+.watch .wattr{margin-top:12px;font-size:12px;color:var(--muted);opacity:.7}
 
 /* ---------------- the stat strip ---------------- */
 .strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:14px;
@@ -541,6 +597,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   .grain,.bulbs,.chip,.pw,.slot{animation:none}
   .scoreboard{transition:none}
   .pagedots .dot::before,.pgbtn{transition:none}
+  .srow .dossier{transition:none}
   .panel{transition:none}
   .card,.card .art,.card .detail{transition:none}
   #modal .box,#modal .scrim{animation:none}
@@ -634,6 +691,13 @@ body.idlecursor, body.idlecursor *{cursor:none}
   var firstState = true;
   var features = [];        /* every film that has won tonight, in running order */
   var canRollAgain = false; /* is there anything left for a second feature? */
+  var SECOND_LABEL = 'Roll a second movie';
+  var FIRST_LABEL = 'Spin the wheel';
+  var lobbyRolls = false;   /* the lobby button is offering the second feature, not the first */
+  var wonIds = {};          /* every film that has already won tonight */
+  var dossiers = {};        /* film_id -> the library's file on it, for the hover panels */
+  var dossiersAsked = false;
+  var hoverRow = '';        /* the row under the pointer, if any */
   var lastReveal = null;    /* the reveal we can put back on screen */
   var SEAT_CAP = 14;        /* the living room's capacity, mirrored from the API */
   /* The ceremony's clock. The group announcement is scheduled 10s after the spin resolves,
@@ -736,6 +800,28 @@ body.idlecursor, body.idlecursor *{cursor:none}
    * everyone else on 0), so a locked wheel is one full slice and the rest vanish. Slivers too
    * thin to read get no label.
    */
+  /**
+   * What a second roll would actually draw from: tonight's entries minus whatever has
+   * already won, with the weights shared out again over what is left. Weight is the honest
+   * basis — a night locked by majority has odds of 1 and 0 on the board, and those mean
+   * nothing once the winner is off the wheel.
+   */
+  function remainingRunners(entries, won){
+    var out = [], total = 0, i, k;
+    for (i = 0; i < entries.length; i++) {
+      if (won[entries[i].film_id]) continue;
+      var c = {};
+      for (k in entries[i]) c[k] = entries[i][k];
+      var w = c.weight;
+      if (!(w > 0)) w = 1 + (c.votes || 0) + (c.jokers || 0);
+      c.weight = w;
+      total += w;
+      out.push(c);
+    }
+    for (i = 0; i < out.length; i++) out[i].odds = total > 0 ? out[i].weight / total : 0;
+    return out;
+  }
+
   function buildWheel(list, majority){
     drawn = list.slice();
     var maj = majority || {};
@@ -885,11 +971,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
     var again = '';
     if (IS_HOST && canRollAgain && !second) {
-      again = '<button id="again">Roll a second movie</button>';
+      again = '<button id="again">' + SECOND_LABEL + '</button>';
     }
 
     revealEl.innerHTML =
-      '<button id="revClose">back to the lobby</button>' + art +
+      '<button id="revClose">Back to The Lobby</button>' + art +
       '<div class="meta">' +
       '<div class="kicker">' +
         (second ? 'A double bill' : maj.locked ? 'The room locked it in' : 'Tonight you are watching') +
@@ -933,10 +1019,33 @@ body.idlecursor, body.idlecursor *{cursor:none}
     if (el.className !== cls) el.className = cls;
   }
 
-  /* Host asked for a second feature: hide the reveal, run the wheel again on what is left. */
+  /**
+   * The lobby's own copy of the shelf, fetched once and never polled. tv-state carries what
+   * the room is doing; the library carries what a film IS — synopsis, ratings, cast — and
+   * that does not change from one poll to the next.
+   */
+  function loadDossiers(){
+    if (dossiersAsked) return;
+    dossiersAsked = true;
+    fetch(API + 'tv-library?key=' + encodeURIComponent(KEY))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var list = (d && d.ok && d.library) ? d.library : [];
+        for (var i = 0; i < list.length; i++) dossiers[list[i].film_id] = list[i];
+        /* Fill in the panels already on screen. The board itself is not touched. */
+        repaintBoard();
+      })
+      .catch(function(){ dossiersAsked = false; });
+  }
+
+  /* Host asked for a second feature: hide the reveal, run the wheel again on what is left.
+     One path, two doors — the button on the reveal and the one in the lobby both come here. */
   function rollAgain(){
+    rollSecond(document.getElementById('again'), SECOND_LABEL);
+  }
+
+  function rollSecond(btn, label){
     if (spinning) return;
-    var btn = document.getElementById('again');
     if (btn) { btn.disabled = true; btn.textContent = 'Rolling...'; }
     spinning = true;
     fetch(spinUrl(), {
@@ -948,7 +1057,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       .then(function(j){
         spinning = false;
         if (!j || !j.ok || !j.spin) {
-          if (btn) { btn.disabled = false; btn.textContent = 'Roll a second movie'; }
+          if (btn) { btn.disabled = false; btn.textContent = label; }
           if (j && j.message) {
             document.getElementById('hint').textContent = j.message;
           }
@@ -962,7 +1071,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       })
       .catch(function(){
         spinning = false;
-        if (btn) { btn.disabled = false; btn.textContent = 'Roll a second movie'; }
+        if (btn) { btn.disabled = false; btn.textContent = label; }
       });
   }
 
@@ -1061,6 +1170,32 @@ body.idlecursor, body.idlecursor *{cursor:none}
     return out;
   }
 
+  /* Numbers read as numbers on the bar; in a sentence they read as words. */
+  var COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+    'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen'];
+  function countWord(n){
+    return COUNT_WORDS[n] === undefined ? String(n) : COUNT_WORDS[n];
+  }
+  function nameList(names){
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return names[0] + ' and ' + names[1];
+    return names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+  }
+  /* "Three votes &middot; Kit and Asher played a joker on it" */
+  function dossierWho(c, voting){
+    var votes = voting ? (c.votes || 0) : 0;
+    var line = votes === 0
+      ? 'No votes yet'
+      : countWord(votes).charAt(0).toUpperCase() + countWord(votes).slice(1) +
+        (votes === 1 ? ' vote' : ' votes');
+    var players = (c.joker_players || []).map(function(j){ return j.name; });
+    if (players.length) {
+      line += ' &middot; ' + esc(nameList(players)) +
+        (players.length === 1 ? ' played a joker on it' : ' played jokers on it');
+    }
+    return line;
+  }
+
   function slotCount(threshold, entries){
     var most = 0;
     for (var i = 0; i < entries.length; i++) {
@@ -1076,6 +1211,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   function buildScoreboard(entries, threshold, slots){
     var el = document.getElementById('scoreboard');
     scoreNodes = {};
+    hoverRow = '';
     var segW = segWidth(slots);
     var rows = [];
     for (var i = 0; i < PAGE_SIZE; i++) {
@@ -1084,15 +1220,22 @@ body.idlecursor, body.idlecursor *{cursor:none}
       for (var k = 0; k < slots; k++) {
         segs += '<span class="seg" style="width:' + segW + 'px"></span>';
       }
-      rows.push('<div class="srow' + (c ? '' : ' free') + '"' +
+      rows.push('<div class="srow' + (c ? '' : ' free') + (i % 3 === 2 ? ' up' : '') + '"' +
         (c ? ' data-id="' + esc(c.film_id) + '"' : '') +
         ' style="animation-delay:' + i * 26 + 'ms">' +
         '<div class="th">' + (c ? poster(c.title, c.poster) : '<div class="frame"></div>') + '</div>' +
         '<div class="st"><b>' + (c ? esc(c.title) : 'open slot') + '</b>' +
         '<i>' + (c ? esc(c.emoji) + ' ' + esc(c.member) : 'waiting for a film') + '</i>' +
+        '<span class="wontag">&#128081; won tonight</span>' +
         '<div class="jk"></div></div>' +
         '<div class="tb">' + segs + '</div>' +
         '<div class="sp">' + (c ? '' : '&mdash;') + '</div>' +
+        (c
+          ? '<div class="dossier"><div class="dfacts"></div><p class="dsyn"></p>' +
+            '<div class="dstream"></div><div class="dwho"></div>' +
+            '<button class="pillbtn dmore" data-dossier="' + esc(c.film_id) + '">' +
+            'Full details</button></div>'
+          : '') +
         (c && IS_HOST
           ? '<button class="ejx" data-eject="' + esc(c.film_id) + '">&times;</button>' +
             '<div class="ejc"><span class="q">Eject ' + esc(c.title) + '?</span>' +
@@ -1118,7 +1261,12 @@ body.idlecursor, body.idlecursor *{cursor:none}
         segs: list[j].querySelectorAll('.seg'),
         jk: list[j].querySelector('.jk'),
         pct: list[j].querySelector('.sp'),
-        v: -1, p: '', j: '', cls: ''
+        facts: list[j].querySelector('.dfacts'),
+        syn: list[j].querySelector('.dsyn'),
+        who: list[j].querySelector('.dwho'),
+        stream: list[j].querySelector('.dstream'),
+        more: list[j].querySelector('.dmore'),
+        v: -1, p: '', j: '', cls: '', df: '', ds: '', dw: '', dm: '', dst: ''
       };
     }
   }
@@ -1133,7 +1281,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       return c ? c.film_id + ':' + (c.poster || '') : '-';
     }).join('|');
     section('scoreboard', sig, function(){ buildScoreboard(rows, b.threshold, b.slots); });
-    paintScoreboard(rows, b.threshold, b.maj, b.voting);
+    paintScoreboard(rows, b.threshold, b.maj, b.voting, b.won || {});
     paintDots();
   }
 
@@ -1185,14 +1333,14 @@ body.idlecursor, body.idlecursor *{cursor:none}
   function startPageCycle(){
     if (pageTimer) return;
     pageTimer = setInterval(function(){
-      if (boardPages < 2 || ejectArmed || spinning || manualHold) return;
+      if (boardPages < 2 || ejectArmed || spinning || manualHold || hoverRow) return;
       /* Nobody is looking at the board during the ceremony or on another screen. */
       if (document.getElementById('lobby').style.display === 'none') return;
       turnTo((boardPage + 1) % boardPages);
     }, PAGE_MS);
   }
 
-  function paintScoreboard(entries, threshold, maj, voting){
+  function paintScoreboard(entries, threshold, maj, voting, won){
     for (var i = 0; i < entries.length; i++) {
       var c = entries[i];
       if (!c) continue;
@@ -1200,8 +1348,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
       if (!node) continue;
 
       var isLock = !!(maj.locked && maj.leading === c.film_id);
-      var cls = 'srow' + (isLock ? ' lock' : '') + (maj.leading === c.film_id ? ' lead' : '') +
-        (ejectArmed === c.film_id ? ' arm' : '');
+      /* A film that has already won keeps its row, so the picture of the night stays whole,
+         but it wears a crown so nobody reads it as still in the running. */
+      var cls = 'srow' + (won[c.film_id] ? ' won' : '') + (isLock ? ' lock' : '') +
+        (maj.leading === c.film_id ? ' lead' : '') + (ejectArmed === c.film_id ? ' arm' : '');
       if (node.cls !== cls) { node.cls = cls; node.root.className = cls; }
 
       /* Segments are human votes and nothing else — the bar is the lock rule made visible. */
@@ -1225,6 +1375,40 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
       var pct = isLock ? 'LOCK' : Math.round((c.odds || 0) * 100) + '%';
       if (node.p !== pct) { node.p = pct; node.pct.textContent = pct; }
+
+      /* The hover panel. Its facts arrive with the library, which lands once and late, so
+         everything here is written only when the text itself has changed. */
+      var d = dossiers[c.film_id];
+      var facts = '';
+      if (d) {
+        if (d.imdb_rating) {
+          facts += '<span class="star">&#11088; ' + esc(d.imdb_rating) + ' imdb</span>';
+        }
+        if (d.avg_paws != null) {
+          facts += '<span class="star">&#128062; ' +
+            (Math.round(d.avg_paws * 10) / 10).toFixed(1) + ' from ' + (d.rating_count || 0) +
+            '</span>';
+        }
+        if (d.runtime) facts += '<span>' + esc(d.runtime) + '</span>';
+        var gs = (d.genres || []).slice(0, 2);
+        for (var g = 0; g < gs.length; g++) facts += '<span>' + esc(gs[g]) + '</span>';
+      }
+      if (node.df !== facts) { node.df = facts; node.facts.innerHTML = facts; }
+
+      var syn = d && d.synopsis
+        ? d.synopsis
+        : (d ? 'No synopsis on file for this one.' : 'Looking this one up...');
+      if (node.ds !== syn) { node.ds = syn; node.syn.textContent = syn; }
+
+      var stream = d ? streamLine(d.watch_providers) : '';
+      if (node.dst !== stream) { node.dst = stream; node.stream.innerHTML = stream; }
+
+      var who = dossierWho(c, voting);
+      if (node.dw !== who) { node.dw = who; node.who.innerHTML = who; }
+
+      /* Nothing to open until the shelf has answered. */
+      var more = d ? '' : 'none';
+      if (node.dm !== more) { node.dm = more; node.more.style.display = more; }
     }
   }
 
@@ -1351,11 +1535,15 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
     /* Ranked once, here, and paged from there. Everything the board needs to redraw itself
        between polls is kept, so the page timer never has to ask the server. */
+    /* Whatever has already played tonight, so the board and the wheel agree on it. */
+    wonIds = {};
+    for (var w = 0; w < features.length; w++) wonIds[features[w].film_id] = true;
+
     var sorted = rankEntries(shown);
     boardPages = pageCountOf(sorted.length);
     if (boardPage >= boardPages) boardPage = 0;
     lastBoard = {
-      sorted: sorted, threshold: threshold, maj: maj, voting: voting,
+      sorted: sorted, threshold: threshold, maj: maj, voting: voting, won: wonIds,
       slots: slotCount(threshold, entries)
     };
     repaintBoard();
@@ -1370,16 +1558,31 @@ body.idlecursor, body.idlecursor *{cursor:none}
       document.getElementById('wallHeads').textContent = headsTxt;
     });
 
-    var canSpin = IS_HOST && !!n && (n.status === 'planned' || n.status === 'locked') &&
-      entries.length > 0 && !spinning;
-    section('spinauth', String(IS_HOST), function(){
-      spinBtn.style.display = IS_HOST ? '' : 'none';
-      document.getElementById('spinnote').textContent = IS_HOST ? '' : 'a host spins the wheel';
-    });
-    section('spinbtn', String(canSpin), function(){ spinBtn.disabled = !canSpin; });
+    /* Three states for one button. Before the wheel it spins; between features it rolls the
+       second one; once the night is settled there is nothing to press and it goes away. */
+    var openForSpin = !!n && (n.status === 'planned' || n.status === 'locked');
+    var rollable = !!n && n.status === 'spun' && canRollAgain &&
+      remainingRunners(entries, wonIds).length > 0;
+    lobbyRolls = rollable && IS_HOST;
 
-    var jokersOut = 0;
-    for (var k = 0; k < entries.length; k++) jokersOut += (entries[k].jokers || 0);
+    var offered = IS_HOST && (rollable || (openForSpin && entries.length > 0));
+    var label = rollable ? SECOND_LABEL : FIRST_LABEL;
+    var live = !spinning && (rollable || (openForSpin && entries.length > 0));
+    var note = IS_HOST
+      ? ''
+      : rollable
+      ? 'a host can roll a second film'
+      : openForSpin
+      ? 'a host spins the wheel'
+      : '';
+
+    section('spinbtn', String(offered) + '|' + label + '|' + String(live) + '|' + note, function(){
+      spinBtn.style.display = offered ? '' : 'none';
+      spinBtn.textContent = label;
+      spinBtn.disabled = !live;
+      document.getElementById('spinnote').textContent = note;
+    });
+
     var hint = n && n.status === 'spun'
       ? 'the wheel has chosen &middot; every number is on the record'
       : !entries.length
@@ -1417,7 +1620,22 @@ body.idlecursor, body.idlecursor *{cursor:none}
     else driveTo(Number(where));
   });
 
+  /* Knowing which row is under the pointer is a variable, not a repaint — the panel itself
+     opens in CSS. The board will not turn the page out from under a reader. */
+  document.getElementById('scoreboard').addEventListener('mouseover', function(e){
+    var row = e.target.closest ? e.target.closest('.srow') : null;
+    if (row) hoverRow = row.getAttribute('data-id') || 'row';
+  });
+  document.getElementById('scoreboard').addEventListener('mouseout', function(e){
+    var to = e.relatedTarget;
+    var still = to && to.closest ? to.closest('.srow') : null;
+    if (!still) hoverRow = '';
+  });
+
   document.getElementById('scoreboard').addEventListener('click', function(e){
+    /* The same centred modal the library opens, from the same data. */
+    var det = e.target.closest('[data-dossier]');
+    if (det) { openModal(det.getAttribute('data-dossier')); return; }
     var el = e.target.closest('[data-eject], [data-ejectyes], [data-ejectno]');
     if (!el || !IS_HOST) return;
     if (el.getAttribute('data-ejectno')) { ejectArmed = ''; repaintBoard(); return; }
@@ -1656,7 +1874,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     });
     el.innerHTML =
       '<div class="vhead"><div class="vtitle">Admin</div><div class="vspace"></div>' +
-      '<a class="pillbtn" href="#" id="navBack3">back to tonight</a></div>' +
+      '<a class="pillbtn" href="#" id="navBack3">Back to The Lobby</a></div>' +
       '<div class="vwrap admgrid">' +
       '<div>' + (admError ? '<div class="err">' + esc(admError) + '</div>' : '') +
       '<div class="secthead" style="margin-top:0">Nights</div>' +
@@ -1820,8 +2038,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
       console.log('[view] ' + id + ' failed: ' + String(err));
       document.getElementById(id).innerHTML =
         '<div class="vwrap"><div class="bempty">Something went wrong drawing this view. ' +
-        'Go back to tonight and try again.</div>' +
-        '<a class="pillbtn back" href="#">back to tonight</a></div>';
+        'Go back to The Lobby and try again.</div>' +
+        '<a class="pillbtn back" href="#">Back to The Lobby</a></div>';
     }
   }
   function renderBoard(){ guard('board', drawBoard); }
@@ -1895,6 +2113,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
         ? '<div class="syn">' + esc(f.synopsis) + '</div>'
         : '<div class="syn" style="opacity:.55">No synopsis on file.</div>') +
       (castLine(f.cast_list, 3) ? '<div class="cast">' + castLine(f.cast_list, 3) + '</div>' : '') +
+      (streamLine(f.watch_providers)
+        ? '<div class="cstream">' + streamLine(f.watch_providers) + '</div>'
+        : '') +
       '<div class="facts">' + facts.join('') + '</div>' +
       '<button class="more" data-film="' + esc(f.film_id) + '">Full details</button>' +
       '</div></div></div>';
@@ -1990,7 +2211,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       '<div class="vtitle">The library<span class="vcount">' + all.length +
       (all.length === 1 ? ' film' : ' films') + '</span></div>' +
       '<div class="vspace"></div>' + filterBar(all) +
-      '<a class="pillbtn" href="#" id="navBack2">back to tonight</a></div>' +
+      '<a class="pillbtn" href="#" id="navBack2">Back to The Lobby</a></div>' +
       '<div class="vwrap">' +
       (shown.length || ghosts
         ? '<div class="filmwall">' + shown.map(filmCard).join('') + ghostSlots(ghosts) + '</div>'
@@ -2064,7 +2285,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       '<div class="vtitle">History &amp; stats<span class="vcount">' + films.length +
       (films.length === 1 ? ' film on the record' : ' films on the record') + '</span></div>' +
       '<div class="vspace"></div>' +
-      '<a class="pillbtn" href="#" id="navBack">back to tonight</a></div>' +
+      '<a class="pillbtn" href="#" id="navBack">Back to The Lobby</a></div>' +
       '<div class="vwrap">' +
       (tiles ? '<div class="strip">' + tiles + '</div>' : '') +
       '<div class="secthead">What we have watched</div>' +
@@ -2099,6 +2320,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   /* ------------------------------------------------ the details modal */
   function findFilm(id){
+    if (dossiers[id]) return dossiers[id];
     var pools = [(libData && libData.library) || [], (boardData && boardData.films) || []];
     for (var p = 0; p < pools.length; p++) {
       for (var i = 0; i < pools[p].length; i++) {
@@ -2106,6 +2328,44 @@ body.idlecursor, body.idlecursor *{cursor:none}
       }
     }
     return null;
+  }
+
+  /* TMDB serves the logos; this is the size their own docs recommend for a chip. */
+  var TMDB_IMG = 'https://image.tmdb.org/t/p/w92';
+
+  function watchRow(key, list){
+    if (!list || !list.length) return '';
+    return '<div class="wrow"><span class="wk">' + key + '</span><span class="wp">' +
+      list.map(function(p){
+        return '<span>' +
+          (p.logo ? '<img src="' + esc(TMDB_IMG + p.logo) + '" alt="">' : '') +
+          esc(p.name) + '</span>';
+      }).join('') + '</span></div>';
+  }
+
+  /**
+   * Where to watch it, drawn the same way everywhere it appears. Nothing at all when the
+   * film has never been looked up or has nothing on offer — an empty box says less than no
+   * box. The attribution line is required by TMDB's terms and is never optional.
+   */
+  function watchBlock(w){
+    if (!w) return '';
+    var rows = watchRow('Stream', w.flatrate) + watchRow('Rent', w.rent) + watchRow('Buy', w.buy);
+    if (!rows && !w.link) return '';
+    return '<div class="watch">' + rows +
+      (w.link ? '<a class="wlink" href="' + esc(w.link) + '" target="_blank" rel="noopener">' +
+        'more on TMDB &#8599;</a>' : '') +
+      '<div class="wattr">streaming data by JustWatch via TMDB</div></div>';
+  }
+
+  /* "streaming on Disney Plus &middot; Crave" — the passing version, for a hover panel. */
+  function streamLine(w){
+    var list = (w && w.flatrate) || [];
+    if (!list.length) return '';
+    /* Each name is escaped on its own — escaping the joined string would turn the
+       separator into literal text on the screen. */
+    var names = list.slice(0, 2).map(function(p){ return esc(p.name); });
+    return 'streaming on ' + names.join(' &middot; ') + (list.length > 2 ? '&hellip;' : '');
   }
 
   function renderModal(){
@@ -2152,7 +2412,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
             return '<span class="fact">' + esc(c) + '</span>';
           }).join('') + '</div>'
         : '') +
-      '<div class="den">' + den.join('') + '</div></div></div>';
+      '<div class="den">' + den.join('') + '</div>' +
+      watchBlock(f.watch_providers) + '</div></div>';
     el.className = 'on';
   }
 
@@ -2250,6 +2511,15 @@ body.idlecursor, body.idlecursor *{cursor:none}
           var sig = signature(runners);
           if (sig !== signature(drawn)) buildWheel(runners, state.majority);
         }
+
+        /* Between features, back in the lobby: the wheel shows the field a second roll
+           would really draw from. The winners come off it, and the lock that settled the
+           first feature is spent — round two is decided by weight alone. */
+        if (!spinning && revealEl.className !== 'on' && state.night &&
+            state.night.status === 'spun') {
+          var left = remainingRunners(state.entries || [], wonIds);
+          if (left.length && signature(left) !== signature(drawn)) buildWheel(left, {});
+        }
         syncPicksLink();
         firstState = false;
       })
@@ -2258,6 +2528,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   spinBtn.addEventListener('click', function(){
     if (spinning || spinBtn.disabled) return;
+    /* Same call, same animation, same dual reveal as the button on the reveal itself. */
+    if (lobbyRolls) { rollSecond(spinBtn, SECOND_LABEL); return; }
     spinning = true;
     spinBtn.disabled = true;
     fetch(spinUrl(), { method: 'POST' })
@@ -2281,6 +2553,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   routeView();
   poll();
+  loadDossiers();
   setInterval(poll, 2000);
 })();
 </script>

@@ -178,6 +178,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
   transition:opacity .2s cubic-bezier(.2,.9,.3,1), transform .2s cubic-bezier(.2,.9,.3,1);
 }
 .srow.up .dossier{top:auto;bottom:calc(100% + 6px);transform:translateY(8px)}
+/* An invisible footbridge across the gap, so the pointer can walk from the row down into
+   the panel without the panel vanishing underfoot. */
+.srow .dossier::before{content:'';position:absolute;left:-10px;right:-10px;top:-16px;height:16px}
+.srow.up .dossier::before{top:auto;bottom:-16px}
 .srow:hover{z-index:25}
 .srow:hover .dossier{opacity:1;transform:none;pointer-events:auto}
 .srow .dfacts{display:flex;flex-wrap:wrap;gap:8px}
@@ -998,7 +1002,13 @@ body.idlecursor, body.idlecursor *{cursor:none}
         (winner.year ? ' <span class="yr">(' + esc(winner.year) + ')</span>' : '') + '</h1>' +
       '<div class="by">' + avatar(winner) + 'suggested by ' + esc(winner.member) +
         '<span style="color:var(--muted);font-weight:600"> &middot; ' + line + '</span></div>' +
-      firstLine + tally + again + '</div>';
+      firstLine + tally +
+      /* Where to press play, right under the verdict. Filled late if the shelf is still
+         loading when the ceremony ends. */
+      '<div id="revwatch">' +
+      (dossiers[winner.film_id]
+        ? watchBlock(dossiers[winner.film_id].watch_providers, winner.title) : '') +
+      '</div>' + again + '</div>';
     revealEl.className = 'on';
     lastReveal = { res: res, voters: voters };
     var againBtn = document.getElementById('again');
@@ -1048,6 +1058,18 @@ body.idlecursor, body.idlecursor *{cursor:none}
         for (var i = 0; i < list.length; i++) dossiers[list[i].film_id] = list[i];
         /* Fill in the panels already on screen. The board itself is not touched. */
         repaintBoard();
+        /* A reveal that beat the shelf to the screen gets its watch links now. */
+        var rw = document.getElementById('revwatch');
+        if (rw && !rw.innerHTML && lastReveal) {
+          var res = lastReveal.res || {};
+          var cands = res.candidates || [];
+          for (var k = 0; k < cands.length; k++) {
+            if (cands[k].film_id === res.winner_film_id && dossiers[cands[k].film_id]) {
+              rw.innerHTML = watchBlock(dossiers[cands[k].film_id].watch_providers,
+                cands[k].title);
+            }
+          }
+        }
       })
       .catch(function(){ dossiersAsked = false; });
   }

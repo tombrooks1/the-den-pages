@@ -324,7 +324,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     box-shadow .2s ease, border-color .2s ease;
 }
 .slot:hover .card, .slot.up .card{
-  width:248px;height:566px;left:-20px;top:-14px;z-index:20;
+  width:248px;height:596px;left:-20px;top:-14px;z-index:20;
   border-color:rgba(245,185,66,.42);
   box-shadow:0 34px 74px rgba(0,0,0,.72), 0 0 0 1px rgba(245,185,66,.18);
 }
@@ -358,7 +358,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
   opacity:0;max-height:0;overflow:hidden;padding:0 15px;
   transition:opacity .16s ease, max-height .2s cubic-bezier(.2,.9,.3,1), padding .2s ease;
 }
-.slot:hover .card .detail, .slot.up .card .detail{opacity:1;max-height:230px;padding:12px 15px 16px}
+.slot:hover .card .detail, .slot.up .card .detail{opacity:1;max-height:260px;padding:12px 15px 16px}
+.card .cast{margin-top:8px;font-size:11.5px;line-height:1.35;color:var(--muted);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card .syn{font-size:12.5px;line-height:1.42;color:#c3bcd4;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
@@ -414,6 +416,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
 #modal .yr{color:var(--muted);font-weight:600}
 #modal .mfacts{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
 #modal .msyn{margin-top:22px;font-size:19px;line-height:1.55;color:#c9c2da}
+#modal .mcast{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:20px}
+#modal .mcast .ck{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted);margin-right:2px}
 #modal .den{margin-top:26px;padding-top:20px;border-top:1px solid var(--line);
   display:grid;grid-template-columns:repeat(2,1fr);gap:14px 26px}
 #modal .den div{font-size:15px;color:var(--muted)}
@@ -1237,7 +1242,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   }
 
   function startEdit(n){
-    var ideas = (admData && admData.theme_ideas) || [];
+    var ideas = (admData && Array.isArray(admData.theme_ideas)) ? admData.theme_ideas : [];
     var known = ideas.some(function(t){ return t.text === n.theme; });
     admEdit = n.id;
     admForm = {
@@ -1327,7 +1332,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   }
 
   function createForm(){
-    var ideas = (admData && admData.theme_ideas) || [];
+    var ideas = (admData && Array.isArray(admData.theme_ideas)) ? admData.theme_ideas : [];
     var editing = admEdit !== '';
     var opts = ['<option value="">Open night &mdash; anything can be entered</option>'];
     ideas.forEach(function(t){
@@ -1368,13 +1373,13 @@ body.idlecursor, body.idlecursor *{cursor:none}
       '</div></div>';
   }
 
-  function renderAdmin(){
+  function drawAdmin(){
     var el = document.getElementById('admin');
     if (!admData) {
       el.innerHTML = '<div class="vwrap"><div class="bempty">Loading the panel...</div></div>';
       return;
     }
-    var nights = admData.nights || [];
+    var nights = Array.isArray(admData.nights) ? admData.nights : [];
     var live = nights.filter(function(n){
       return n.status === 'planned' || n.status === 'locked' || n.status === 'spun';
     });
@@ -1539,6 +1544,22 @@ body.idlecursor, body.idlecursor *{cursor:none}
       el.getAttribute('data-film'));
   });
 
+  /* A view that throws must still say something. An eternal spinner is never acceptable. */
+  function guard(id, fn){
+    try {
+      fn();
+    } catch (err) {
+      console.log('[view] ' + id + ' failed: ' + String(err));
+      document.getElementById(id).innerHTML =
+        '<div class="vwrap"><div class="bempty">Something went wrong drawing this view. ' +
+        'Go back to tonight and try again.</div>' +
+        '<a class="pillbtn back" href="#">back to tonight</a></div>';
+    }
+  }
+  function renderBoard(){ guard('board', drawBoard); }
+  function renderLibBoard(){ guard('libboard', drawLibBoard); }
+  function renderAdmin(){ guard('admin', drawAdmin); }
+
   /* ------------------------------------------------ the shared film card
      One card language for both full-screen views. Hovering lifts a card out of the wall
      rather than reflowing its neighbours: at this size a grid that shuffles on mouse-move
@@ -1561,6 +1582,13 @@ body.idlecursor, body.idlecursor *{cursor:none}
       return new Date(iso).toLocaleDateString(undefined,
         { month: 'short', day: 'numeric', year: 'numeric' });
     } catch (e) { return ''; }
+  }
+
+  /* "with A, B, C" — top billing only, and nothing at all when the file is thin. */
+  function castLine(list, n){
+    var names = (list || []).slice(0, n);
+    if (!names.length) return '';
+    return 'with ' + names.map(esc).join(', ') + ((list || []).length > n ? '...' : '');
   }
 
   function filmCard(f, i){
@@ -1598,6 +1626,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       (f.synopsis
         ? '<div class="syn">' + esc(f.synopsis) + '</div>'
         : '<div class="syn" style="opacity:.55">No synopsis on file.</div>') +
+      (castLine(f.cast_list, 3) ? '<div class="cast">' + castLine(f.cast_list, 3) + '</div>' : '') +
       '<div class="facts">' + facts.join('') + '</div>' +
       '<button class="more" data-film="' + esc(f.film_id) + '">Full details</button>' +
       '</div></div></div>';
@@ -1680,10 +1709,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
   }
 
   /* ------------------------------------------------ the library screen */
-  function renderLibBoard(){
+  function drawLibBoard(){
     var el = document.getElementById('libboard');
     if (!libData) { el.innerHTML = '<div class="vwrap"><div class="bempty">Loading the shelf...</div></div>'; return; }
-    var all = libData.library || [];
+    var all = Array.isArray(libData.library) ? libData.library : [];
     var shown = sortFilms(filterFilms(all));
     /* Empty frames only when the shelf itself is young — a filter finding nothing is an
        answer, not a gap to paper over. */
@@ -1717,38 +1746,50 @@ body.idlecursor, body.idlecursor *{cursor:none}
   }
 
   /* ------------------------------------------------ the history and stats board */
+  /* Null-safe formatting: a missing number never becomes NaN, undefined, or a thrown
+     .toFixed on nothing. */
+  function num(v){ return (v == null || v === '') ? null : v; }
+  function one(v){ return v == null ? null : (Math.round(v * 10) / 10).toFixed(1); }
+
   function statTile(k, v, sub, amber){
-    if (v == null || v === '') return '';
+    /* Nothing to report is still worth a tile: the strip keeps its shape and the blank
+       reads as "not yet" rather than as a missing feature. */
+    var shown = (v == null || v === '') ? '&mdash;' : esc(String(v));
     return '<div class="tile' + (amber ? ' amber' : '') + '"><div class="k">' + esc(k) +
-      '</div><div class="v">' + esc(String(v)) + '</div>' +
+      '</div><div class="v">' + shown + '</div>' +
       (sub ? '<div class="s">' + esc(sub) + '</div>' : '') + '</div>';
   }
 
-  function renderBoard(){
+  function drawBoard(){
     var el = document.getElementById('board');
     if (!boardData) { el.innerHTML = '<div class="vwrap"><div class="bempty">Loading the history...</div></div>'; return; }
-    var films = boardData.films || [];
+    var films = Array.isArray(boardData.films) ? boardData.films : [];
     var st = (boardData.stats) || {};
     var n = st.numbers || {};
-    var cards = st.cards || [];
+    var cards = Array.isArray(st.cards) ? st.cards : [];
 
     var tiles = [
-      statTile('nights watched', n.nights_watched, n.nights_total ? n.nights_total + ' planned in all' : ''),
-      statTile('films watched', n.films_watched, n.films_in_library ? n.films_in_library + ' on the shelf' : ''),
-      statTile('house average', n.house_average == null ? null : (Math.round(n.house_average * 10) / 10).toFixed(1),
+      statTile('nights watched', num(n.nights_watched),
+        n.nights_total ? n.nights_total + ' planned in all' : ''),
+      statTile('films watched', num(n.films_watched),
+        n.films_in_library ? n.films_in_library + ' on the shelf' : ''),
+      statTile('house average', one(n.house_average),
         n.paws_cast ? n.paws_cast + ' paws cast' : '', true),
-      statTile('votes cast', n.votes_cast, n.entries_total ? n.entries_total + ' entries in all' : ''),
+      statTile('votes cast', num(n.votes_cast),
+        n.entries_total ? n.entries_total + ' entries in all' : ''),
       statTile('majority locks', n.majority_rate == null ? null : n.majority_rate + '%',
-        n.majority_locked + ' of ' + n.spins_total + ' spins'),
-      statTile('double features', n.double_features, n.spins_total ? n.spins_total + ' spins total' : ''),
-      statTile('jokers banked', n.jokers_banked, n.jokers_spent + ' burned so far', true),
-      statTile('jokers ever', n.jokers_ever, n.members ? 'across ' + n.members + ' members' : ''),
-      statTile('longest streak', n.longest_streak ? n.longest_streak + ' nights' : null, n.streak_holder || ''),
-      statTile('entries a night', n.entries_per_night, 'average'),
-      statTile('most divisive', n.most_divisive_spread,
-        n.most_divisive ? n.most_divisive : ''),
-      statTile('most agreed on', n.least_divisive_spread,
-        n.least_divisive ? n.least_divisive : '')
+        n.spins_total ? (n.majority_locked || 0) + ' of ' + n.spins_total + ' spins' : ''),
+      statTile('double features', num(n.double_features),
+        n.spins_total ? n.spins_total + ' spins total' : ''),
+      statTile('jokers banked', num(n.jokers_banked),
+        n.jokers_spent == null ? '' : n.jokers_spent + ' burned so far', true),
+      statTile('jokers ever', num(n.jokers_ever),
+        n.members ? 'across ' + n.members + ' members' : ''),
+      statTile('longest streak', n.longest_streak ? n.longest_streak + ' nights' : null,
+        n.streak_holder || ''),
+      statTile('entries a night', num(n.entries_per_night), 'average'),
+      statTile('most divisive', num(n.most_divisive_spread), n.most_divisive || ''),
+      statTile('most agreed on', num(n.least_divisive_spread), n.least_divisive || '')
     ].join('');
 
     el.innerHTML = '<div class="vhead">' +
@@ -1817,6 +1858,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     den.push('<div>Our paws<b>' +
       (f.avg_paws == null ? '&mdash;' : (Math.round(f.avg_paws * 10) / 10).toFixed(1) +
         ' from ' + f.rating_count) + '</b></div>');
+    if (f.director) den.push('<div>Directed by<b>' + esc(f.director) + '</b></div>');
     den.push('<div>Times entered<b>' + (f.times_entered || 0) + '</b></div>');
     den.push('<div>Brought in by<b>' +
       (f.brought_by ? esc(f.brought_by.emoji) + ' ' + esc(f.brought_by.name) : '&mdash;') +
@@ -1835,7 +1877,14 @@ body.idlecursor, body.idlecursor *{cursor:none}
       (f.year ? ' <span class="yr">(' + esc(f.year) + ')</span>' : '') + '</h3>' +
       (facts.length ? '<div class="mfacts">' + facts.join('') + '</div>' : '') +
       '<p class="msyn">' + (f.synopsis ? esc(f.synopsis) : 'No synopsis on file for this one.') +
-      '</p><div class="den">' + den.join('') + '</div></div></div>';
+      '</p>' +
+      ((f.cast_list || []).length
+        ? '<div class="mcast"><span class="ck">Starring</span>' +
+          f.cast_list.slice(0, 6).map(function(c){
+            return '<span class="fact">' + esc(c) + '</span>';
+          }).join('') + '</div>'
+        : '') +
+      '<div class="den">' + den.join('') + '</div></div></div>';
     el.className = 'on';
   }
 

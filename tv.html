@@ -169,6 +169,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   text-shadow:0 1px 0 rgba(255,255,255,.26);white-space:nowrap;overflow:hidden;
 }
 .lab .o{font-size:17px;font-weight:800;opacity:.6}
+.lab .o.j{opacity:.85}
 .hub{
   position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;
   background:radial-gradient(circle at 40% 34%, #241d3a, #120e1e);
@@ -299,7 +300,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       </section>
 
       <section class="panel" id="wall">
-        <div class="eyebrow">In the pool<span class="heads" id="wallHeads"></span></div>
+        <div class="eyebrow">Tonight&#39;s entries<span class="heads" id="wallHeads"></span></div>
         <div class="wall" id="wallList"></div>
         <div class="more" id="wallMore"></div>
       </section>
@@ -430,7 +431,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
   /* ------------------------------------------------ the wheel */
   function signature(list){
     return list.map(function(c){
-      return c.id + ':' + Math.round((c.odds || 0) * 1000) + ':' + (c.votes || 0);
+      return c.film_id + ':' + Math.round((c.odds || 0) * 1000) + ':' +
+        (c.votes || 0) + ':' + (c.jokers || 0);
     }).join('|');
   }
 
@@ -470,10 +472,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
       var flip = mid > 180;
       labels.push('<div class="lab" style="transform:rotate(' + mid.toFixed(3) +
         'deg) translateY(-218px) rotate(' + (flip ? '90' : '-90') + 'deg)">' +
-        ((c.u || c.weight || 0) > 1 ? '<span>&#128293;</span>' : '') +
         '<span>' + esc(c.emoji || '') + '</span>' +
         '<span>' + esc(title) + '</span>' +
-        (c.votes ? '<span class="o">&#128499;&#65039;&times;' + c.votes + '</span>' : '') +
+        (c.votes ? '<span class="o">' + c.votes + '&#128499;&#65039;</span>' : '') +
+        (c.jokers ? '<span class="o j">' + c.jokers + '&#127183;</span>' : '') +
         '<span class="o">' + (maj.locked && full ? 'LOCKED' : pct(c.odds)) + '</span></div>');
     }
     wheel.style.background = 'conic-gradient(from 0deg, ' + stops.join(', ') + ')';
@@ -491,7 +493,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var acc = 0, i;
     for (i = 0; i < list.length; i++) {
       var o = list[i].odds || 0;
-      if (list[i].id === winnerId) {
+      if (list[i].film_id === winnerId) {
         var span = o * 360;
         var centre = acc * 360 + span / 2;
         var jitter = ((roll == null ? 0.5 : roll) - 0.5) * span * 0.6;
@@ -510,7 +512,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     spinBtn.disabled = true;
 
     buildWheel(res.candidates, res.majority);
-    var land = landingAngle(res.candidates, res.winner_id, res.roll);
+    var land = landingAngle(res.candidates, res.winner_film_id, res.roll);
     if (land == null) { spinning = false; spinBtn.disabled = false; return; }
 
     var target = ((-land) % 360 + 360) % 360;
@@ -538,7 +540,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var maj = (res && res.majority) || {};
     var winner = null, i;
     for (i = 0; i < cands.length; i++) {
-      if (cands[i].id === res.winner_id) winner = cands[i];
+      if (cands[i].film_id === res.winner_film_id) winner = cands[i];
     }
     if (!winner) { spinning = false; return; }
 
@@ -568,7 +570,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       : pct(winner.odds) + ' odds';
 
     /* The bill so far. A second roll makes this a double feature. */
-    var bill = features.filter(function(f){ return f.id !== winner.id; });
+    var bill = features.filter(function(f){ return f.film_id !== winner.film_id; });
     var second = (res.round === 2) || bill.length > 0;
     var art = second && bill.length
       ? '<div class="art double">' + bill.map(function(f){
@@ -727,19 +729,18 @@ body.idlecursor, body.idlecursor *{cursor:none}
     paint();
   }
 
-  var VOTE_MARK = '&#128499;&#65039;&times;';
-
   /* Posters are created once per line-up. Everything that changes on a poll — odds, votes,
-     lock and sitting-out state — is written into the tiles that already exist. */
+     jokers, lock state — is written into the cards that already exist. */
   function buildWall(shown){
     var wallEl = document.getElementById('wallList');
     wallNodes = {};
     if (!shown.length) {
-      wallEl.innerHTML = '<div class="empty" style="grid-column:1/-1">The pool is empty. Fix that.</div>';
+      wallEl.innerHTML = '<div class="empty" style="grid-column:1/-1">' +
+        'Nothing entered yet. One film each.</div>';
       return;
     }
     wallEl.innerHTML = shown.map(function(c, i){
-      return '<div class="pw" data-id="' + esc(c.id) + '" style="animation-delay:' +
+      return '<div class="pw" data-id="' + esc(c.film_id) + '" style="animation-delay:' +
         (i * 55) + 'ms"><span class="odds"></span><span class="tally off"></span>' +
         poster(c.title, c.poster) +
         '<div class="who"><span class="dot" style="background:' + safeColor(c.color) + '"></span>' +
@@ -751,7 +752,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
         root: els[j],
         odds: els[j].querySelector('.odds'),
         tally: els[j].querySelector('.tally'),
-        cls: '', ocls: '', txt: '', v: -1
+        cls: '', txt: '', v: ''
       };
     }
   }
@@ -759,26 +760,27 @@ body.idlecursor, body.idlecursor *{cursor:none}
   function paintWall(shown, locked, maj){
     for (var i = 0; i < shown.length; i++) {
       var c = shown[i];
-      var node = wallNodes[c.id];
+      var node = wallNodes[c.film_id];
       if (!node) continue;
-      var sittingOut = c.entered === false;
-      var isLock = !!(locked && maj.leading && c.id === maj.leading);
-      var lockedOut = !!(locked && maj.leading && c.id !== maj.leading);
+      var isLock = !!(locked && maj.leading && c.film_id === maj.leading);
+      var lockedOut = !!(locked && maj.leading && c.film_id !== maj.leading);
 
-      var cls = 'pw' + (isLock ? ' lock' : '') + (lockedOut || sittingOut ? ' dim' : '');
+      var cls = 'pw' + (isLock ? ' lock' : '') + (lockedOut ? ' dim' : '');
       if (node.cls !== cls) { node.cls = cls; node.root.className = cls; }
 
-      var oddsCls = sittingOut ? 'odds sitting' : 'odds';
-      if (node.ocls !== oddsCls) { node.ocls = oddsCls; node.odds.className = oddsCls; }
-
-      var txt = sittingOut ? 'SITTING OUT' : isLock ? 'LOCKED' : pct(c.odds);
+      var txt = isLock ? 'LOCKED' : pct(c.odds);
       if (node.txt !== txt) { node.txt = txt; node.odds.textContent = txt; }
 
-      var votes = c.votes || 0;
-      if (node.v !== votes) {
-        node.v = votes;
-        node.tally.className = votes ? 'tally' : 'tally off';
-        if (votes) node.tally.innerHTML = VOTE_MARK + votes;
+      /* The weight, spelled out: what the room did to this film. */
+      var votes = c.votes || 0, jokers = c.jokers || 0;
+      var key = votes + '/' + jokers;
+      if (node.v !== key) {
+        node.v = key;
+        node.tally.className = (votes || jokers) ? 'tally' : 'tally off';
+        if (votes || jokers) {
+          node.tally.innerHTML = (votes ? votes + '&#128499;&#65039;' : '') +
+            (votes && jokers ? ' ' : '') + (jokers ? jokers + '&#127183;' : '');
+        }
       }
     }
   }
@@ -859,39 +861,41 @@ body.idlecursor, body.idlecursor *{cursor:none}
         : '';
     });
 
-    /* A themed night only runs what was nominated; the rest are shown sitting it out. */
-    var pool = state.pool || [];
-    var running = pool.filter(function(c){ return c.entered !== false; });
-    var sitting = pool.length - running.length;
-    var shown = pool.slice(0, 12);
+    /* Tonight's line-up: one film per person, everything that was entered. */
+    var entries = state.entries || [];
+    var shown = entries.slice(0, 12);
 
-    /* Which tiles exist, and with which artwork — the only thing that justifies new nodes. */
-    var wallSig = shown.map(function(c){ return c.id + ':' + (c.poster || ''); }).join('|');
+    /* Which cards exist, and with which artwork — the only thing that justifies new nodes. */
+    var wallSig = shown.map(function(c){ return c.film_id + ':' + (c.poster || ''); }).join('|');
     section('wall', wallSig, function(){ buildWall(shown); });
     paintWall(shown, locked, maj);
 
-    var moreTxt = pool.length > shown.length
-      ? '+ ' + (pool.length - shown.length) + ' more in the pool'
+    var moreTxt = entries.length > shown.length
+      ? '+ ' + (entries.length - shown.length) + ' more entered'
       : '';
-    var headsTxt = state.themed ? running.length + ' of ' + pool.length + ' fit the theme' : '';
+    var headsTxt = entries.length
+      ? entries.length + (entries.length === 1 ? ' film in' : ' films in')
+      : '';
     section('wallmeta', moreTxt + '|' + headsTxt, function(){
       document.getElementById('wallMore').textContent = moreTxt;
       document.getElementById('wallHeads').textContent = headsTxt;
     });
 
     var canSpin = !!n && (n.status === 'planned' || n.status === 'locked') &&
-      running.length > 0 && !spinning;
+      entries.length > 0 && !spinning;
     section('spinbtn', String(canSpin), function(){ spinBtn.disabled = !canSpin; });
 
+    var jokersOut = 0;
+    for (var k = 0; k < entries.length; k++) jokersOut += (entries[k].jokers || 0);
     var hint = n && n.status === 'spun'
       ? 'the wheel has spoken &middot; snapshot saved for the sceptics'
-      : state.themed && !running.length
-      ? 'nothing fits the theme yet &middot; the wheel is waiting'
+      : !entries.length
+      ? 'nothing entered yet &middot; one film each'
       : locked
       ? 'the room reached a majority &middot; the wheel is a formality now'
-      : sitting
-      ? 'only films that fit the theme are on the wheel &middot; nothing is rigged'
-      : 'odds are printed on every slice &middot; nothing is rigged';
+      : jokersOut
+      ? 'weight is 1 + votes + jokers &middot; every number is on the slice'
+      : 'weight is 1 + votes &middot; odds are printed on every slice';
     section('hint', hint, function(){
       document.getElementById('hint').innerHTML = hint;
     });
@@ -1006,7 +1010,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
             shownSpins[state.spin.id] = true;
             var res = state.spin.result || {};
             buildWheel(res.candidates || [], res.majority);
-            var land = landingAngle(res.candidates || [], res.winner_id, res.roll);
+            var land = landingAngle(res.candidates || [], res.winner_film_id, res.roll);
             if (land != null) {
               rotation = ((-land) % 360 + 360) % 360;
               wheel.style.transition = 'none';
@@ -1025,8 +1029,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
             showReveal(state.spin.result || {}, state.votes, true);
           }
         } else if (!spinning && revealEl.className !== 'on') {
-          /* Only what can actually win goes on the wheel. */
-          var runners = (state.pool || []).filter(function(c){ return c.entered !== false; });
+          /* The wheel is tonight's entries, nothing else. */
+          var runners = state.entries || [];
           var sig = signature(runners);
           if (sig !== signature(drawn)) buildWheel(runners, state.majority);
         }

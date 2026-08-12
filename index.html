@@ -356,6 +356,13 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 .jokerbtn.armed{background:linear-gradient(180deg,var(--amber),var(--amber-deep));color:#221806;border-color:transparent}
 .jokerbtn:disabled{opacity:.4}
 .chiprow{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.bar{display:flex;gap:2px;margin-top:7px;align-items:flex-end}
+.vs{flex:1;min-width:3px;height:7px;border-radius:2px;background:rgba(255,255,255,.08);
+  border:1px solid var(--line)}
+.vs.on{background:linear-gradient(180deg,var(--amber),var(--amber-deep));border-color:transparent}
+.vs.tick{position:relative}
+.vs.tick::after{content:"";position:absolute;right:-2px;top:-4px;bottom:-4px;width:1px;
+  background:rgba(245,185,66,.75)}
 .mini{font-size:10px;font-weight:800;padding:3px 7px;border-radius:999px;
   background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--muted)}
 .mini.v{color:var(--amber);border-color:rgba(245,185,66,.3)}
@@ -536,6 +543,18 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       '" data-status="maybe">&#129300; Maybe</button></div>';
   }
 
+  /* The lock rule, drawn: one slot per human vote with a tick at the landslide line.
+     Jokers never appear here — they cannot lock a night, so they cannot move this bar. */
+  function voteBar(votes, threshold){
+    var slots = Math.max(threshold + 1, votes + 1);
+    var out = [];
+    for (var i = 0; i < slots; i++) {
+      out.push('<span class="vs' + (i < votes ? ' on' : '') +
+        (i + 1 === threshold ? ' tick' : '') + '"></span>');
+    }
+    return out.join('');
+  }
+
   /* A candidate card: the film, who entered it, and what the room has put on it. */
   function entryTile(c, opts){
     opts = opts || {};
@@ -561,6 +580,9 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       '<div class="t-title">' + esc(c.title) + '</div>' +
       '<div class="t-by"><span class="dot" style="background:' + safeColor(c.color) + '"></span>' +
         esc(c.emoji) + ' ' + esc(c.member) + '</div>' +
+      (opts.threshold
+        ? '<div class="bar">' + voteBar(c.votes || 0, opts.threshold) + '</div>'
+        : '') +
       (chips.length ? '<div class="chiprow">' + chips.join('') + '</div>' : '') +
       (opts.picked ? '<div class="picked-tag">your vote</div>' : '') +
       '</div>';
@@ -771,7 +793,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       var own = c.member_id === myId();
       /* Your own film still answers a tap — with the reason, and the joker route. */
       var act = jokerArmed ? 'joker' : (voting && canAct ? (own ? 'ownfilm' : 'vote') : null);
-      return entryTile(c, { act: act, picked: c.film_id === picked, majority: maj });
+      return entryTile(c, { act: act, picked: c.film_id === picked, majority: maj,
+        threshold: voting ? (maj.threshold || 4) : 0 });
     });
     /* A few empty frames so a thin line-up reads as room to fill, not as a fault. */
     var openSlots = Math.max(0, Math.min(4, cap - entries.length));

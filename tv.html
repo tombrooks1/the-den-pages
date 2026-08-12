@@ -213,8 +213,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
   padding:11px 22px;
 }
 #revClose:hover{color:var(--text);border-color:rgba(244,239,232,.28)}
-.navlink.right{position:absolute;right:64px;bottom:30px;z-index:12}
-.navlink.hidden{display:none}
 #again{
   margin-top:38px;font:inherit;font-size:19px;font-weight:800;letter-spacing:.16em;
   text-transform:uppercase;color:var(--amber);background:rgba(245,185,66,.1);
@@ -237,13 +235,25 @@ body.idlecursor, body.idlecursor *{cursor:none}
 .navrow{position:absolute;left:64px;bottom:30px;z-index:12;display:flex;gap:12px}
 .spinnote{margin-top:30px;font-size:19px;font-weight:700;color:var(--muted);letter-spacing:.02em}
 .spinnote:empty{display:none}
-.navlink{
-  font-size:14px;font-weight:800;
-  letter-spacing:.22em;text-transform:uppercase;color:var(--muted);text-decoration:none;
-  padding:9px 16px;border-radius:999px;border:1px solid var(--line);
-  background:rgba(255,255,255,.04);
+/* Every navigation pill is the SPIN button with the volume down: same family — pill radius,
+   uppercase, wide letterspacing, heavy weight — smaller and quieter. inline-flex with
+   line-height:1 and no vertical padding is what actually centres the label, whether the pill
+   renders as a link or a button. */
+.pillbtn{
+  display:inline-flex;align-items:center;justify-content:center;
+  box-sizing:border-box;min-height:46px;padding:0 26px;
+  font:inherit;font-size:14px;font-weight:800;line-height:1;letter-spacing:.2em;
+  text-transform:uppercase;text-decoration:none;white-space:nowrap;cursor:pointer;
+  color:var(--amber);background:rgba(245,185,66,.08);
+  border:1px solid rgba(245,185,66,.32);border-radius:999px;
+  transition:background .16s ease, border-color .16s ease, transform .12s ease;
 }
-.navlink:hover{color:var(--amber);border-color:rgba(245,185,66,.4)}
+.pillbtn:hover{background:rgba(245,185,66,.16);border-color:rgba(245,185,66,.55)}
+.pillbtn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(245,185,66,.35)}
+.pillbtn:active{transform:translateY(1px)}
+.pillbtn.corner{position:absolute;right:64px;bottom:30px;z-index:12}
+.pillbtn.back{margin-top:30px}
+.pillbtn.hidden{display:none}
 #board, #libboard, #admin{position:absolute;inset:0;z-index:11;display:none;
   padding:56px 64px 90px;overflow:hidden;background:var(--bg)}
 #admin.on{display:grid;grid-template-columns:1fr 560px;gap:48px;overflow-y:auto}
@@ -386,7 +396,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   <div id="libboard"></div>
   <div id="admin"></div>
   <div class="navrow" id="navrow"></div>
-  <button class="navlink right hidden" id="navPicks">tonight&#39;s picks</button>
+  <button class="pillbtn corner hidden" id="navPicks">tonight&#39;s picks</button>
 
   <div id="reveal"></div>
   <canvas id="confetti" width="1920" height="1080"></canvas>
@@ -706,7 +716,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   function syncPicksLink(){
     var want = Boolean(lastReveal) && revealEl.className !== 'on' && !fullScreen() && !spinning;
     var el = document.getElementById('navPicks');
-    var cls = 'navlink right' + (want ? '' : ' hidden');
+    var cls = 'pillbtn corner' + (want ? '' : ' hidden');
     if (el.className !== cls) el.className = cls;
   }
 
@@ -811,7 +821,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     wallNodes = {};
     if (!shown.length) {
       wallEl.innerHTML = '<div class="empty" style="grid-column:1/-1">' +
-        'No films yet. Everyone brings one.</div>';
+        'No films yet.</div>';
       return;
     }
     wallEl.innerHTML = shown.map(function(c, i){
@@ -969,7 +979,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var hint = n && n.status === 'spun'
       ? 'the wheel has chosen &middot; every number is on the record'
       : !entries.length
-      ? 'waiting on films &middot; everyone brings one'
+      ? 'waiting on films'
       : locked
       ? 'the room reached a majority &middot; the wheel makes it official'
       : jokersOut
@@ -1036,7 +1046,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
           '<div class="hd">' + esc(c.headline) + '</div>' +
           '<div class="ln">' + esc(c.line) + '</div></div></div>';
       }).join('') + '</div></div>' +
-      '<a class="navlink" href="#" id="navBack">back to tonight</a>';
+      '<a class="pillbtn back" href="#" id="navBack">back to tonight</a>';
   }
 
   function loadBoard(){
@@ -1063,12 +1073,12 @@ body.idlecursor, body.idlecursor *{cursor:none}
   var admBusy = '';        /* the one action currently in flight */
   var admError = '';       /* plain inline message, never an alert */
   var admOpen = '';        /* night whose line-up is expanded */
-  var admForm = { title: '', theme: '', own: '', date: '', notes: '', starts: '' };
+  var admForm = { title: '', theme: '', own: '', notes: '', starts: '' };
   var admEdit = '';        /* night being edited, '' while creating */
   var admBase = null;      /* the form as it was loaded, so we can send only what moved */
 
   function blankForm(){
-    return { title: '', theme: '', own: '', date: '', notes: '', starts: '' };
+    return { title: '', theme: '', own: '', notes: '', starts: '' };
   }
 
   /* datetime-local speaks the viewer's local clock; the API speaks ISO. */
@@ -1098,11 +1108,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
       title: n.title || '',
       theme: n.theme ? (known ? n.theme : '__own') : '',
       own: (n.theme && !known) ? n.theme : '',
-      date: n.date_label || '',
       notes: n.notes || '',
       starts: toLocalInput(n.starts_at)
     };
-    admBase = { title: admForm.title, theme: effectiveTheme(admForm), date: admForm.date,
+    admBase = { title: admForm.title, theme: effectiveTheme(admForm),
       notes: admForm.notes, starts: admForm.starts };
     admError = '';
   }
@@ -1205,9 +1214,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
         ? '<input id="admOwn" type="text" placeholder="Films with terrible dads" ' +
           'style="margin-top:12px">'
         : '') +
-      '<label for="admDate">Date and start time, as people should read it</label>' +
-      '<input id="admDate" type="text" placeholder="Saturday the 22nd, 8pm">' +
-      '<label for="admStarts">Exact date &amp; time &mdash; voting opens automatically ' +
+      '<label for="admStarts">Date &amp; start time &mdash; voting opens automatically ' +
       '7 days before</label>' +
       '<input id="admStarts" type="datetime-local">' +
       '<label for="admNotes">Anything else (optional)</label>' +
@@ -1248,7 +1255,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
         ? '<h2 style="margin-top:32px">Recently</h2>' + past.map(nightBlock).join('')
         : '') +
       '</div><div>' + createForm() +
-      '<a class="navlink" href="#" id="navBack3">back to tonight</a></div>';
+      '<a class="pillbtn back" href="#" id="navBack3">back to tonight</a></div>';
 
     /* Put typed values back after the repaint and keep them as they change. */
     var bind = function(id, key){
@@ -1258,7 +1265,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
       node.addEventListener('input', function(e){ admForm[key] = e.target.value; });
     };
     bind('admTitle', 'title');
-    bind('admDate', 'date');
     bind('admStarts', 'starts');
     bind('admNotes', 'notes');
     bind('admOwn', 'own');
@@ -1326,7 +1332,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
       var theme = effectiveTheme(admForm);
       payload.title = admForm.title.trim();
       payload.theme = theme ? theme : null;
-      payload.date_label = admForm.date.trim();
       payload.notes = admForm.notes.trim() ? admForm.notes.trim() : null;
       payload.starts_at = fromLocalInput(admForm.starts);
     }
@@ -1336,7 +1341,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
       if (admForm.title.trim() !== base.title) payload.title = admForm.title.trim();
       var nowTheme = effectiveTheme(admForm);
       if (nowTheme !== base.theme) payload.theme = nowTheme ? nowTheme : null;
-      if (admForm.date.trim() !== base.date) payload.date_label = admForm.date.trim();
       var nowNotes = admForm.notes.trim();
       if (nowNotes !== base.notes) payload.notes = nowNotes ? nowNotes : null;
       if (admForm.starts !== base.starts) payload.starts_at = fromLocalInput(admForm.starts);
@@ -1384,7 +1388,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
     }
     if (what === 'create' || what === 'save') {
       if (!admForm.title.trim()) { admError = 'Give the night a name first.'; renderAdmin(); return; }
-      if (!admForm.date.trim()) { admError = 'Add a date and start time.'; renderAdmin(); return; }
+      if (what === 'create' && !admForm.starts) {
+        admError = 'Pick a date and start time.';
+        renderAdmin();
+        return;
+      }
       if (what === 'save') adminAct('save', 'update_night', admEdit, '');
       else adminAct('create', 'create_night', '', '');
       return;
@@ -1412,7 +1420,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       (wall
         ? '<div class="libwall">' + wall + '</div>'
         : '<div class="bempty">No films yet. Anything entered lands here.</div>') +
-      '<a class="navlink" href="#" id="navBack2">back to tonight</a>';
+      '<a class="pillbtn back" href="#" id="navBack2">back to tonight</a>';
   }
 
   function loadLibBoard(){
@@ -1521,9 +1529,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
   });
 
   document.getElementById('navrow').innerHTML =
-    (IS_HOST ? '<a class="navlink" id="navAdmin" href="#admin">admin</a>' : '') +
-    '<a class="navlink" id="navLib" href="#library">library</a>' +
-    '<a class="navlink" id="navBoard" href="#stats">history &amp; stats</a>';
+    (IS_HOST ? '<a class="pillbtn" id="navAdmin" href="#admin">admin</a>' : '') +
+    '<a class="pillbtn" id="navLib" href="#library">library</a>' +
+    '<a class="pillbtn" id="navBoard" href="#stats">history &amp; stats</a>';
 
   routeView();
   poll();

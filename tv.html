@@ -213,7 +213,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   padding:11px 22px;
 }
 #revClose:hover{color:var(--text);border-color:rgba(244,239,232,.28)}
-.navlink.right{left:auto;right:64px}
+.navlink.right{position:absolute;right:64px;bottom:30px;z-index:12}
 .navlink.hidden{display:none}
 #again{
   margin-top:38px;font:inherit;font-size:19px;font-weight:800;letter-spacing:.16em;
@@ -234,15 +234,36 @@ body.idlecursor, body.idlecursor *{cursor:none}
 #confetti{position:absolute;inset:0;z-index:9;pointer-events:none}
 
 /* ---------------- history & stats board ---------------- */
+.navrow{position:absolute;left:64px;bottom:30px;z-index:12;display:flex;gap:12px}
+.spinnote{margin-top:30px;font-size:19px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+.spinnote:empty{display:none}
 .navlink{
-  position:absolute;left:64px;bottom:30px;z-index:12;font-size:14px;font-weight:800;
+  font-size:14px;font-weight:800;
   letter-spacing:.22em;text-transform:uppercase;color:var(--muted);text-decoration:none;
   padding:9px 16px;border-radius:999px;border:1px solid var(--line);
   background:rgba(255,255,255,.04);
 }
 .navlink:hover{color:var(--amber);border-color:rgba(245,185,66,.4)}
-#board{position:absolute;inset:0;z-index:11;display:none;padding:56px 64px 90px;overflow:hidden;
-  background:var(--bg)}
+#board, #libboard{position:absolute;inset:0;z-index:11;display:none;padding:56px 64px 90px;
+  overflow:hidden;background:var(--bg)}
+#libboard.on{display:block}
+.libwall{display:grid;grid-template-columns:repeat(auto-fill,132px);gap:26px 22px;margin-top:22px}
+.lf{position:relative;width:132px}
+.lf .poster{width:132px;height:198px;aspect-ratio:auto;border-radius:11px;
+  box-shadow:0 12px 26px rgba(0,0,0,.5)}
+.lf .ph{padding:9px}
+.lf .ph-t{font-size:13px;line-height:1.1;padding-right:20px;
+  display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+.lf .ph-f{font-size:15px}
+.lf .lt{margin-top:9px;font-size:14px;font-weight:700;line-height:1.2;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lf .lb{margin-top:4px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.lf .seen{position:absolute;top:7px;left:7px;font-size:11px;font-weight:800;padding:4px 8px;
+  border-radius:999px;background:rgba(13,11,20,.84);border:1px solid rgba(245,185,66,.34);
+  color:var(--amber)}
+.lf .pawavg{position:absolute;top:7px;right:7px;font-size:11px;font-weight:800;padding:4px 8px;
+  border-radius:999px;background:rgba(13,11,20,.84);border:1px solid var(--line)}
 #board.on{display:grid;grid-template-columns:1fr 620px;gap:54px}
 #board h2{font-size:15px;font-weight:800;letter-spacing:.28em;text-transform:uppercase;
   color:var(--muted);margin-bottom:20px}
@@ -313,12 +334,17 @@ body.idlecursor, body.idlecursor *{cursor:none}
         <div class="hub"><span class="paw">&#128062;</span><span class="t">THE DEN</span></div>
       </div>
       <button id="spin">Spin the wheel</button>
+      <div class="spinnote" id="spinnote"></div>
       <div class="hint" id="hint">odds are printed on every slice &middot; nothing is rigged</div>
     </div>
   </div>
 
   <div id="board"></div>
-  <a class="navlink" id="navBoard" href="#stats">history &amp; stats</a>
+  <div id="libboard"></div>
+  <div class="navrow" id="navrow">
+    <a class="navlink" id="navLib" href="#library">library</a>
+    <a class="navlink" id="navBoard" href="#stats">history &amp; stats</a>
+  </div>
   <button class="navlink right hidden" id="navPicks">tonight&#39;s picks</button>
 
   <div id="reveal"></div>
@@ -329,7 +355,15 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
 <script>
 (function(){
-  var KEY = new URLSearchParams(location.search).get('key') || '';
+  var PARAMS = new URLSearchParams(location.search);
+  var KEY = PARAMS.get('key') || '';
+  /* The group link carries ?key= and shows everything. The hosts' bookmark adds &host=,
+     and only that can turn the wheel. */
+  var HOSTKEY = PARAMS.get('host') || '';
+  var IS_HOST = HOSTKEY.length > 0;
+  function spinUrl(){
+    return API + 'spin?key=' + encodeURIComponent(KEY) + '&host=' + encodeURIComponent(HOSTKEY);
+  }
   /* This page is hosted on GitHub Pages, so the API is a different origin entirely. */
   var API = 'https://psomtujaikgcvblklzgv.supabase.co/functions/v1/app/api/';
   var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -416,7 +450,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     } catch (e) { return ''; }
   }
   function statusText(s){
-    var map = { planned:'RSVPs open', locked:'Voting is open', spun:'The wheel has spoken', watched:'Watched' };
+    var map = { planned:'Entries open', locked:'Voting is open', spun:'The wheel has chosen', watched:'Watched' };
     return map[s] || 'standby';
   }
 
@@ -556,7 +590,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
           ? backers.map(function(p){
               return '<span class="chip">' + avatar(p) + esc(p.name) + '</span>';
             }).join('')
-          : '<span class="chip" style="opacity:.6">Nobody voted for this one</span>') +
+          : '<span class="chip" style="opacity:.6">No votes for this one</span>') +
         '</div>' +
         (backers.length && others
           ? '<div class="hint" style="margin-top:14px">' + others + ' voted elsewhere.</div>'
@@ -586,7 +620,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     }
 
     var again = '';
-    if (KEY && canRollAgain && !second) {
+    if (IS_HOST && canRollAgain && !second) {
       again = '<button id="again">Roll a second movie</button>';
     }
 
@@ -629,7 +663,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   /* The way back in, only offered when there is something to go back to. */
   function syncPicksLink(){
-    var want = Boolean(lastReveal) && revealEl.className !== 'on' && !boardOn() && !spinning;
+    var want = Boolean(lastReveal) && revealEl.className !== 'on' && !fullScreen() && !spinning;
     var el = document.getElementById('navPicks');
     var cls = 'navlink right' + (want ? '' : ' hidden');
     if (el.className !== cls) el.className = cls;
@@ -641,7 +675,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var btn = document.getElementById('again');
     if (btn) { btn.disabled = true; btn.textContent = 'Rolling...'; }
     spinning = true;
-    fetch(API + 'spin?key=' + encodeURIComponent(KEY), {
+    fetch(spinUrl(), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ again: true })
@@ -736,7 +770,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     wallNodes = {};
     if (!shown.length) {
       wallEl.innerHTML = '<div class="empty" style="grid-column:1/-1">' +
-        'Nothing entered yet. One film each.</div>';
+        'No films yet. Everyone brings one.</div>';
       return;
     }
     wallEl.innerHTML = shown.map(function(c, i){
@@ -802,7 +836,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     });
 
     var statusHtml = !n
-      ? 'waiting on a host'
+      ? 'waiting for a host to plan the next one'
       : locked
       ? 'Locked by majority &middot; ' + (maj.leading_votes || 0) + ' of ' + (maj.attendee_basis || 0)
       : statusText(n.status);
@@ -844,7 +878,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
         }).join(' &middot; ') + '</div>';
       }
       document.getElementById('rollList').innerHTML = html ||
-        '<div class="empty">Nobody has RSVP&#39;d yet.</div>';
+        '<div class="empty">Waiting to hear who is coming.</div>';
       document.getElementById('rollHeads').textContent = state.headcount
         ? state.headcount + ' coming'
         : '';
@@ -881,21 +915,25 @@ body.idlecursor, body.idlecursor *{cursor:none}
       document.getElementById('wallHeads').textContent = headsTxt;
     });
 
-    var canSpin = !!n && (n.status === 'planned' || n.status === 'locked') &&
+    var canSpin = IS_HOST && !!n && (n.status === 'planned' || n.status === 'locked') &&
       entries.length > 0 && !spinning;
+    section('spinauth', String(IS_HOST), function(){
+      spinBtn.style.display = IS_HOST ? '' : 'none';
+      document.getElementById('spinnote').textContent = IS_HOST ? '' : 'a host spins the wheel';
+    });
     section('spinbtn', String(canSpin), function(){ spinBtn.disabled = !canSpin; });
 
     var jokersOut = 0;
     for (var k = 0; k < entries.length; k++) jokersOut += (entries[k].jokers || 0);
     var hint = n && n.status === 'spun'
-      ? 'the wheel has spoken &middot; snapshot saved for the sceptics'
+      ? 'the wheel has chosen &middot; every number is on the record'
       : !entries.length
-      ? 'nothing entered yet &middot; one film each'
+      ? 'waiting on films &middot; everyone brings one'
       : locked
-      ? 'the room reached a majority &middot; the wheel is a formality now'
+      ? 'the room reached a majority &middot; the wheel makes it official'
       : jokersOut
       ? 'weight is 1 + votes + jokers &middot; every number is on the slice'
-      : 'weight is 1 + votes &middot; odds are printed on every slice';
+      : 'weight is 1 + votes &middot; every slice shows its odds';
     section('hint', hint, function(){
       document.getElementById('hint').innerHTML = hint;
     });
@@ -905,7 +943,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   var spots = ['hdr', 'roll', 'wall'];
   var spotAt = 0;
   setInterval(function(){
-    if (spinning || revealEl.className === 'on' || boardOn()) return;
+    if (spinning || revealEl.className === 'on' || fullScreen()) return;
     spotAt = (spotAt + 1) % spots.length;
     spots.forEach(function(id, i){
       var want = 'panel' + (i === spotAt ? ' spot' : '');
@@ -916,6 +954,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   /* ------------------------------------------------ history & stats board */
   function boardOn(){ return location.hash === '#stats'; }
+  function libOn(){ return location.hash === '#library'; }
+  function fullScreen(){ return boardOn() || libOn(); }
 
   function pawLine(avg, count){
     if (avg == null) return '<div class="bp">&mdash;<span>no paws</span></div>';
@@ -945,7 +985,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
     document.getElementById('board').innerHTML =
       '<div><h2>What we have watched</h2>' +
-      (rows || '<div class="bempty">Nothing on the record yet.</div>') + '</div>' +
+      (rows || '<div class="bempty">Nothing watched yet. The first night starts the record.</div>') + '</div>' +
       '<div><h2>The folklore</h2><div class="cards">' +
       cards.slice(0, 6).map(function(c){
         return '<div class="scard" style="--accent:' +
@@ -960,13 +1000,13 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   function loadBoard(){
     document.getElementById('board').innerHTML =
-      '<div class="bempty">Digging out the receipts...</div>';
+      '<div class="bempty">Loading the history...</div>';
     fetch(API + 'tv-stats?key=' + encodeURIComponent(KEY))
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (!d || !d.ok) {
           document.getElementById('board').innerHTML =
-            '<div class="bempty">That did not load. The wheel does not mind.</div>';
+            '<div class="bempty">That did not load. Try again in a moment.</div>';
           return;
         }
         renderBoard(d);
@@ -977,15 +1017,56 @@ body.idlecursor, body.idlecursor *{cursor:none}
       });
   }
 
+  function renderLibBoard(data){
+    var films = (data && data.library) || [];
+    var wall = films.map(function(f){
+      var avg = f.avg_paws == null ? null : Math.round(f.avg_paws * 10) / 10;
+      return '<div class="lf">' +
+        (f.watched ? '<span class="seen">seen</span>' : '') +
+        (avg != null ? '<span class="pawavg">&#128062; ' + avg.toFixed(1) + '</span>' : '') +
+        poster(f.title, f.poster) +
+        '<div class="lt">' + esc(f.title) + '</div>' +
+        '<div class="lb">' +
+        (f.brought_by ? esc(f.brought_by.emoji) + ' ' + esc(f.brought_by.name) : '&nbsp;') +
+        '</div></div>';
+    }).join('');
+    document.getElementById('libboard').innerHTML =
+      '<h2>The library<span class="heads">' + films.length +
+      (films.length === 1 ? ' film' : ' films') + '</span></h2>' +
+      (wall
+        ? '<div class="libwall">' + wall + '</div>'
+        : '<div class="bempty">No films yet. Anything entered lands here.</div>') +
+      '<a class="navlink" href="#" id="navBack2">back to tonight</a>';
+  }
+
+  function loadLibBoard(){
+    document.getElementById('libboard').innerHTML = '<div class="bempty">Loading the shelf...</div>';
+    fetch(API + 'tv-library?key=' + encodeURIComponent(KEY))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d || !d.ok) {
+          document.getElementById('libboard').innerHTML =
+            '<div class="bempty">That did not load. Try again in a moment.</div>';
+          return;
+        }
+        renderLibBoard(d);
+      })
+      .catch(function(){
+        document.getElementById('libboard').innerHTML =
+          '<div class="bempty">No signal from the Den.</div>';
+      });
+  }
+
   function routeView(){
-    var on = boardOn();
-    var boardEl = document.getElementById('board');
-    boardEl.className = on ? 'on' : '';
-    document.getElementById('navBoard').style.display = on ? 'none' : '';
-    document.getElementById('lobby').style.display = on ? 'none' : '';
-    revealEl.style.display = on ? 'none' : '';
+    var stats = boardOn(), lib = libOn(), any = stats || lib;
+    document.getElementById('board').className = stats ? 'on' : '';
+    document.getElementById('libboard').className = lib ? 'on' : '';
+    document.getElementById('navrow').style.display = any ? 'none' : '';
+    document.getElementById('lobby').style.display = any ? 'none' : '';
+    revealEl.style.display = any ? 'none' : '';
     syncPicksLink();
-    if (on) loadBoard();
+    if (stats) loadBoard();
+    if (lib) loadLibBoard();
   }
   window.addEventListener('hashchange', routeView);
 
@@ -1046,7 +1127,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     if (spinning || spinBtn.disabled) return;
     spinning = true;
     spinBtn.disabled = true;
-    fetch(API + 'spin?key=' + encodeURIComponent(KEY), { method: 'POST' })
+    fetch(spinUrl(), { method: 'POST' })
       .then(function(r){ return r.json(); })
       .then(function(j){
         spinning = false;

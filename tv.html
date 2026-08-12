@@ -1108,16 +1108,24 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var when = (n && n.date_label) ? n.date_label : '';
     var theme = n && n.theme ? n.theme : '';
     var notes = (n && n.notes) ? n.notes : '';
-    section('head', label + '|' + when + '|' + theme + '|' + notes, function(){
-      document.getElementById('label').textContent = label;
-      document.getElementById('whenline').textContent = when;
-      document.getElementById('theme').textContent = theme;
-      document.getElementById('notes').textContent = notes;
-    });
 
-    /* The ticker owns the countdown element; the poll only tells it what it is counting to. */
     var starts = (n && n.starts_at) ? Date.parse(n.starts_at) : NaN;
     var nextStarts = isNaN(starts) ? null : starts;
+
+    /* Say each thing once. With no exact time the countdown already carries the date label,
+       and a night named after its theme does not need the theme repeated underneath. */
+    var same = function(a, b){
+      return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+    };
+    var whenShown = nextStarts === null ? '' : when;
+    var themeShown = (theme && same(theme, label)) ? '' : theme;
+
+    section('head', label + '|' + whenShown + '|' + themeShown + '|' + notes, function(){
+      document.getElementById('label').textContent = label;
+      document.getElementById('whenline').textContent = whenShown;
+      document.getElementById('theme').textContent = themeShown;
+      document.getElementById('notes').textContent = notes;
+    });
     if (nextStarts !== startsAt || when !== dateLabel) {
       startsAt = nextStarts;
       dateLabel = when;

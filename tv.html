@@ -1063,7 +1063,49 @@ body.idlecursor, body.idlecursor *{cursor:none}
   var admBusy = '';        /* the one action currently in flight */
   var admError = '';       /* plain inline message, never an alert */
   var admOpen = '';        /* night whose line-up is expanded */
-  var admForm = { title: '', theme: '', own: '', date: '', notes: '' };
+  var admForm = { title: '', theme: '', own: '', date: '', notes: '', starts: '' };
+  var admEdit = '';        /* night being edited, '' while creating */
+  var admBase = null;      /* the form as it was loaded, so we can send only what moved */
+
+  function blankForm(){
+    return { title: '', theme: '', own: '', date: '', notes: '', starts: '' };
+  }
+
+  /* datetime-local speaks the viewer's local clock; the API speaks ISO. */
+  function toLocalInput(iso){
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    var pad = function(n){ return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+      'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function fromLocalInput(v){
+    if (!v) return null;
+    var d = new Date(v);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  /* '__own' is the free-text option; anything else in the select is the theme itself. */
+  function effectiveTheme(f){
+    return f.theme === '__own' ? f.own.trim() : f.theme;
+  }
+
+  function startEdit(n){
+    var ideas = (admData && admData.theme_ideas) || [];
+    var known = ideas.some(function(t){ return t.text === n.theme; });
+    admEdit = n.id;
+    admForm = {
+      title: n.title || '',
+      theme: n.theme ? (known ? n.theme : '__own') : '',
+      own: (n.theme && !known) ? n.theme : '',
+      date: n.date_label || '',
+      notes: n.notes || '',
+      starts: toLocalInput(n.starts_at)
+    };
+    admBase = { title: admForm.title, theme: effectiveTheme(admForm), date: admForm.date,
+      notes: admForm.notes, starts: admForm.starts };
+    admError = '';
+  }
 
   function adminOn(){ return location.hash === '#admin'; }
 
@@ -1096,6 +1138,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
     if (n.headcount) bits.push(n.headcount + ' coming');
 
     var acts = [];
+    if (n.status === 'planned' || n.status === 'locked') {
+      acts.push('<button class="abtn" data-adm="edit" data-night="' + esc(n.id) +
+        '" data-id="edit:' + esc(n.id) + '"' + (admBusy ? ' disabled' : '') + '>' +
+        (admEdit === n.id ? 'Editing...' : 'Edit') + '</button>');
+    }
     if (n.status === 'planned') {
       acts.push(actBtn('openvote:' + n.id, 'Open voting', n.id, 'openvote', 'go'));
       acts.push(actBtn('cancel:' + n.id, 'Cancel night', n.id, 'cancel', 'warn'));
@@ -1136,6 +1183,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   function createForm(){
     var ideas = (admData && admData.theme_ideas) || [];
+    var editing = admEdit !== '';
     var opts = ['<option value="">Open night &mdash; anything can be entered</option>'];
     ideas.forEach(function(t){
       opts.push('<option value="' + esc(t.text) + '"' +
@@ -1145,7 +1193,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
     opts.push('<option value="__own"' + (admForm.theme === '__own' ? ' selected' : '') +
       '>Type my own theme</option>');
     return '<div class="nrow form">' +
-      '<div class="ntitle">Create a night</div>' +
+      '<div class="ntitle">' + (editing ? 'Edit this night' : 'Create a night') + '</div>' +
+      (editing
+        ? '<div class="nmeta">Changes go straight to the announcement.</div>'
+        : '') +
       '<label for="admTitle">Name</label>' +
       '<input id="admTitle" type="text" placeholder="The one with the robots">' +
       '<label for="admTheme">Theme</label>' +
@@ -1154,15 +1205,24 @@ body.idlecursor, body.idlecursor *{cursor:none}
         ? '<input id="admOwn" type="text" placeholder="Films with terrible dads" ' +
           'style="margin-top:12px">'
         : '') +
-      '<label for="admDate">Date and start time</label>' +
+      '<label for="admDate">Date and start time, as people should read it</label>' +
       '<input id="admDate" type="text" placeholder="Saturday the 22nd, 8pm">' +
+      '<label for="admStarts">Exact date &amp; time &mdash; voting opens automatically ' +
+      '7 days before</label>' +
+      '<input id="admStarts" type="datetime-local">' +
       '<label for="admNotes">Anything else (optional)</label>' +
       '<textarea id="admNotes" placeholder="Parking is awful, get the bus."></textarea>' +
       '<div class="acts">' +
-      '<button class="abtn go" data-adm="create" data-id="create"' +
-      (admBusy ? ' disabled' : '') + '>' +
-      (admBusy === 'create' ? 'announcing...' : 'Create and announce') + '</button></div>' +
-      '</div>';
+      '<button class="abtn go" data-adm="' + (editing ? 'save' : 'create') +
+      '" data-id="' + (editing ? 'save' : 'create') + '"' + (admBusy ? ' disabled' : '') + '>' +
+      (admBusy === 'save' ? 'saving...'
+        : admBusy === 'create' ? 'announcing...'
+        : editing ? 'Save changes' : 'Create and announce') + '</button>' +
+      (editing
+        ? '<button class="abtn" data-adm="canceledit" data-id="canceledit"' +
+          (admBusy ? ' disabled' : '') + '>Stop editing</button>'
+        : '') +
+      '</div></div>';
   }
 
   function renderAdmin(){
@@ -1199,6 +1259,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     };
     bind('admTitle', 'title');
     bind('admDate', 'date');
+    bind('admStarts', 'starts');
     bind('admNotes', 'notes');
     bind('admOwn', 'own');
     var sel = document.getElementById('admTheme');
@@ -1262,19 +1323,33 @@ body.idlecursor, body.idlecursor *{cursor:none}
     if (night) payload.night_id = night;
     if (film) payload.film_id = film;
     if (action === 'create_night') {
-      var theme = admForm.theme === '__own' ? admForm.own.trim() : admForm.theme;
+      var theme = effectiveTheme(admForm);
       payload.title = admForm.title.trim();
       payload.theme = theme ? theme : null;
       payload.date_label = admForm.date.trim();
       payload.notes = admForm.notes.trim() ? admForm.notes.trim() : null;
+      payload.starts_at = fromLocalInput(admForm.starts);
+    }
+    if (action === 'update_night') {
+      /* Only what the host actually changed travels; an emptied field clears it. */
+      var base = admBase || {};
+      if (admForm.title.trim() !== base.title) payload.title = admForm.title.trim();
+      var nowTheme = effectiveTheme(admForm);
+      if (nowTheme !== base.theme) payload.theme = nowTheme ? nowTheme : null;
+      if (admForm.date.trim() !== base.date) payload.date_label = admForm.date.trim();
+      var nowNotes = admForm.notes.trim();
+      if (nowNotes !== base.notes) payload.notes = nowNotes ? nowNotes : null;
+      if (admForm.starts !== base.starts) payload.starts_at = fromLocalInput(admForm.starts);
     }
     fetch(API + 'admin/act', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload)
     }).then(function(r){ return r.json(); }).then(function(j){
-      if (j && j.ok && action === 'create_night') {
-        admForm = { title: '', theme: '', own: '', date: '', notes: '' };
+      if (j && j.ok && (action === 'create_night' || action === 'update_night')) {
+        admForm = blankForm();
+        admEdit = '';
+        admBase = null;
       }
       done(j);
     }).catch(failed);
@@ -1290,10 +1365,28 @@ body.idlecursor, body.idlecursor *{cursor:none}
       renderAdmin();
       return;
     }
-    if (what === 'create') {
+    if (what === 'edit') {
+      var target = null;
+      ((admData && admData.nights) || []).forEach(function(n){
+        if (n.id === el.getAttribute('data-night')) target = n;
+      });
+      if (target) startEdit(target);
+      renderAdmin();
+      return;
+    }
+    if (what === 'canceledit') {
+      admEdit = '';
+      admBase = null;
+      admForm = blankForm();
+      admError = '';
+      renderAdmin();
+      return;
+    }
+    if (what === 'create' || what === 'save') {
       if (!admForm.title.trim()) { admError = 'Give the night a name first.'; renderAdmin(); return; }
       if (!admForm.date.trim()) { admError = 'Add a date and start time.'; renderAdmin(); return; }
-      adminAct('create', 'create_night', '', '');
+      if (what === 'save') adminAct('save', 'update_night', admEdit, '');
+      else adminAct('create', 'create_night', '', '');
       return;
     }
     adminAct(el.getAttribute('data-id'), what, el.getAttribute('data-night'),

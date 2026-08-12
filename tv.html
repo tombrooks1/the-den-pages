@@ -134,42 +134,53 @@ body.idlecursor, body.idlecursor *{cursor:none}
    jokers beside it, the odds. Empty slots draw the same skeleton so the format teaches
    itself before anyone acts. Two columns of seven — one column of fourteen cannot be
    legible at this size alongside the header and the seats (the budget test proves it). */
-.scoreboard{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;margin-top:10px;
-  position:relative}
-.srow{position:relative;display:grid;grid-template-columns:24px 126px 1fr 84px 40px;gap:8px;
-  align-items:center;height:38px;animation:cardin .4s cubic-bezier(.2,.9,.3,1) both}
-.srow .th{width:24px;height:36px;border-radius:5px;overflow:hidden}
-.srow .th .poster{width:24px;height:36px;aspect-ratio:auto;border-radius:5px;box-shadow:none;
+/* Six at a time, ranked: two columns of three, filled DOWN each column so the running
+   order reads top to bottom. The board cycles through the pages on its own timer. */
+.scoreboard{display:grid;grid-auto-flow:column;grid-template-columns:1fr 1fr;
+  grid-template-rows:repeat(3,auto);gap:12px 20px;margin-top:10px;position:relative;
+  opacity:1;transition:opacity .17s ease}
+.scoreboard.turning{opacity:0}
+.srow{position:relative;display:grid;grid-template-columns:36px 132px 1fr 76px 44px;gap:9px;
+  align-items:center;height:64px;animation:cardin .4s cubic-bezier(.2,.9,.3,1) both}
+.srow .th{width:36px;height:54px;border-radius:6px;overflow:hidden}
+.srow .th .poster{width:36px;height:54px;aspect-ratio:auto;border-radius:6px;box-shadow:none;
   border:none}
-.srow .th .ph{padding:2px}
-.srow .th .ph-t{font-size:6px;line-height:1.02;padding-right:0;
+.srow .th .ph{padding:3px}
+.srow .th .ph-t{font-size:8px;line-height:1.04;padding-right:0;
   display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .srow .th .ph-f{display:none}
-.srow .frame{width:24px;height:36px;border-radius:5px;border:1px dashed rgba(244,239,232,.13);
+.srow .frame{width:36px;height:54px;border-radius:6px;border:1px dashed rgba(244,239,232,.13);
   background:rgba(255,255,255,.014)}
 .srow .st{min-width:0}
-.srow .st b{display:block;font-size:14px;font-weight:800;letter-spacing:-.01em;line-height:1.15;
+.srow .st b{display:block;font-size:17px;font-weight:800;letter-spacing:-.01em;line-height:1.15;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.srow .st i{display:block;font-style:normal;font-size:11px;color:var(--muted);
+.srow .st i{display:block;font-style:normal;font-size:13px;color:var(--muted);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .srow .tb{display:flex;gap:3px;align-items:center}
 .srow .jk{display:flex;gap:3px;flex-wrap:nowrap;overflow:hidden}
 .srow .jk span{font-size:9px;font-weight:700;line-height:1;padding:3px 5px;border-radius:999px;
   background:rgba(200,150,255,.14);border:1px solid rgba(200,150,255,.34);color:#e2c6ff;
   white-space:nowrap}
-.srow .sp{font-size:14px;font-weight:800;text-align:right;color:var(--muted);
+.srow .sp{font-size:16px;font-weight:800;text-align:right;color:var(--muted);
   font-variant-numeric:tabular-nums}
+/* Which page of the running order is showing. Dots only, so they never compete with the
+   board itself; the lit one is the page on screen. */
+.pagedots{display:flex;gap:7px;justify-content:center;align-items:center;margin-top:12px;
+  height:8px}
+.pagedots span{width:7px;height:7px;border-radius:50%;background:rgba(244,239,232,.16);
+  transition:background .2s ease, transform .2s ease}
+.pagedots span.on{background:var(--amber);transform:scale(1.25)}
 .srow.lead .sp{color:var(--amber)}
 .srow.lock .st b{color:var(--amber)}
 .srow.free .st b{color:var(--muted);font-weight:600}
-.seg{height:18px;border-radius:4px;background:rgba(255,255,255,.05);
+.seg{height:22px;border-radius:4px;background:rgba(255,255,255,.05);
   border:1px solid var(--line);transition:background .18s ease, border-color .18s ease}
 .seg.on{background:linear-gradient(180deg,var(--amber),var(--amber-deep));border-color:transparent}
 .seg.over{background:rgba(245,185,66,.32);border-color:rgba(245,185,66,.5)}
 .srow.free .seg{border-style:dashed;border-color:rgba(244,239,232,.1);background:transparent}
 /* The host's quiet way to cancel a no-show's film, on the row itself. */
 .srow .ejx{
-  position:absolute;top:9px;right:-6px;z-index:3;width:20px;height:20px;padding:0;
+  position:absolute;top:22px;right:-6px;z-index:3;width:20px;height:20px;padding:0;
   font:inherit;font-size:12px;font-weight:800;line-height:1;cursor:pointer;
   color:var(--muted);background:rgba(13,11,20,.86);border:1px solid var(--line);
   border-radius:50%;display:grid;place-items:center;
@@ -508,6 +519,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
 @media (prefers-reduced-motion: reduce){
   .grain,.bulbs,.chip,.pw,.slot{animation:none}
+  .scoreboard{transition:none}
+  .pagedots span{transition:none}
   .panel{transition:none}
   .card,.card .art,.card .detail{transition:none}
   #modal .box,#modal .scrim{animation:none}
@@ -539,6 +552,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       <section class="panel" id="wall">
         <div class="eyebrow">Tonight&#39;s entries<span class="heads" id="wallHeads"></span></div>
         <div class="scoreboard" id="scoreboard"></div>
+        <div class="pagedots" id="pageDots"></div>
         <div class="more" id="wallMore"></div>
       </section>
     </div>
@@ -992,12 +1006,38 @@ body.idlecursor, body.idlecursor *{cursor:none}
   /* The scoreboard: fourteen rows, always. Posters and row skeletons are built once per
      line-up; votes, jokers, odds and lock state are written into the rows that already
      exist, so a poll that brings nothing new touches nothing. */
-  var SEG_GAP = 3, BAR_CELL = 138, ROW_LEFT = 24 + 126 + 16, COL_W = 460, COL_GAP = 20;
+  var SEG_GAP = 3, BAR_CELL = 136, ROW_LEFT = 36 + 9 + 132 + 9, COL_W = 460, COL_GAP = 20;
+  var PAGE_SIZE = 6;        /* two columns of three */
+  var PAGE_MS = 8000;       /* how long a page holds before the board turns */
   var scoreNodes = {};
+  var boardPage = 0;        /* which page of the running order is showing */
+  var boardPages = 1;
+  var pageTimer = null;
+
+  /* The running order: best chance first, so page one is always the contenders. Level odds
+     are settled by votes, and a dead heat by title, so the order never jitters. */
+  function rankEntries(entries){
+    return entries.slice().sort(function(a, b){
+      var d = (b.odds || 0) - (a.odds || 0);
+      if (d) return d > 0 ? 1 : -1;
+      d = (b.votes || 0) - (a.votes || 0);
+      if (d) return d > 0 ? 1 : -1;
+      return String(a.title || '').localeCompare(String(b.title || ''));
+    });
+  }
+  function pageCountOf(n){ return Math.max(1, Math.ceil(n / PAGE_SIZE)); }
+  /* Always six slots: a short last page keeps its shape with empty rows. */
+  function pageSlice(sorted, page){
+    var out = [];
+    for (var i = 0; i < PAGE_SIZE; i++) out.push(sorted[page * PAGE_SIZE + i] || null);
+    return out;
+  }
 
   function slotCount(threshold, entries){
     var most = 0;
-    for (var i = 0; i < entries.length; i++) most = Math.max(most, entries[i].votes || 0);
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i]) most = Math.max(most, entries[i].votes || 0);
+    }
     /* Room to see the finish line, plus whatever runs past it. */
     return Math.max(threshold + 2, most + 1);
   }
@@ -1005,13 +1045,12 @@ body.idlecursor, body.idlecursor *{cursor:none}
     return Math.max(6, Math.floor((BAR_CELL - (slots - 1) * SEG_GAP) / slots));
   }
 
-  function buildScoreboard(entries, threshold){
+  function buildScoreboard(entries, threshold, slots){
     var el = document.getElementById('scoreboard');
     scoreNodes = {};
-    var slots = slotCount(threshold, entries);
     var segW = segWidth(slots);
     var rows = [];
-    for (var i = 0; i < SEAT_CAP; i++) {
+    for (var i = 0; i < PAGE_SIZE; i++) {
       var c = entries[i];
       var segs = '';
       for (var k = 0; k < slots; k++) {
@@ -1019,7 +1058,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       }
       rows.push('<div class="srow' + (c ? '' : ' free') + '"' +
         (c ? ' data-id="' + esc(c.film_id) + '"' : '') +
-        ' style="animation-delay:' + Math.min(i, 14) * 22 + 'ms">' +
+        ' style="animation-delay:' + i * 26 + 'ms">' +
         '<div class="th">' + (c ? poster(c.title, c.poster) : '<div class="frame"></div>') + '</div>' +
         '<div class="st"><b>' + (c ? esc(c.title) : 'open slot') + '</b>' +
         '<i>' + (c ? esc(c.emoji) + ' ' + esc(c.member) : 'waiting for a film') + '</i></div>' +
@@ -1056,16 +1095,60 @@ body.idlecursor, body.idlecursor *{cursor:none}
     }
   }
 
+  /* Redraw the board and nothing else. Called by the page timer, by a host arming or
+     cancelling an eject, and by the poll when the line-up itself has changed. */
   function repaintBoard(){
-    if (lastBoard) {
-      paintScoreboard(lastBoard.entries, lastBoard.threshold, lastBoard.maj, lastBoard.voting);
+    var b = lastBoard;
+    if (!b) return;
+    var rows = pageSlice(b.sorted, boardPage);
+    var sig = b.threshold + '#' + b.slots + '#' + boardPage + '#' + rows.map(function(c){
+      return c ? c.film_id + ':' + (c.poster || '') : '-';
+    }).join('|');
+    section('scoreboard', sig, function(){ buildScoreboard(rows, b.threshold, b.slots); });
+    paintScoreboard(rows, b.threshold, b.maj, b.voting);
+    paintDots();
+  }
+
+  function paintDots(){
+    var el = document.getElementById('pageDots');
+    var want = '';
+    if (boardPages > 1) {
+      for (var i = 0; i < boardPages; i++) {
+        want += '<span class="' + (i === boardPage ? 'on' : '') + '"></span>';
+      }
     }
+    section('pagedots', want, function(){ el.innerHTML = want; });
+  }
+
+  /* Turn to a page with a short fade. Reduced motion gets the swap with no fade at all. */
+  function turnTo(page){
+    if (page === boardPage) return;
+    boardPage = page;
+    var el = document.getElementById('scoreboard');
+    if (REDUCED) { repaintBoard(); return; }
+    el.className = 'scoreboard turning';
+    setTimeout(function(){
+      repaintBoard();
+      el.className = 'scoreboard';
+    }, 180);
+  }
+
+  /* One page at a time, on the board's own clock — never on the poll's. A host reading an
+     eject confirm holds the page still until they answer it. */
+  function startPageCycle(){
+    if (pageTimer) return;
+    pageTimer = setInterval(function(){
+      if (boardPages < 2 || ejectArmed || spinning) return;
+      /* Nobody is looking at the board during the ceremony or on another screen. */
+      if (document.getElementById('lobby').style.display === 'none') return;
+      turnTo((boardPage + 1) % boardPages);
+    }, PAGE_MS);
   }
 
   function paintScoreboard(entries, threshold, maj, voting){
-    lastBoard = { entries: entries, threshold: threshold, maj: maj, voting: voting };
     for (var i = 0; i < entries.length; i++) {
       var c = entries[i];
+      if (!c) continue;
       var node = scoreNodes[c.film_id];
       if (!node) continue;
 
@@ -1219,10 +1302,17 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var voting = !!n && n.status === 'locked';
     var threshold = maj.threshold || 4;
 
-    var boardSig = threshold + '#' + slotCount(threshold, entries) + '#' +
-      shown.map(function(c){ return c.film_id + ':' + (c.poster || ''); }).join('|');
-    section('scoreboard', boardSig, function(){ buildScoreboard(shown, threshold); });
-    paintScoreboard(shown, threshold, maj, voting);
+    /* Ranked once, here, and paged from there. Everything the board needs to redraw itself
+       between polls is kept, so the page timer never has to ask the server. */
+    var sorted = rankEntries(shown);
+    boardPages = pageCountOf(sorted.length);
+    if (boardPage >= boardPages) boardPage = 0;
+    lastBoard = {
+      sorted: sorted, threshold: threshold, maj: maj, voting: voting,
+      slots: slotCount(threshold, entries)
+    };
+    repaintBoard();
+    startPageCycle();
 
     var moreTxt = entries.length > shown.length
       ? '+ ' + (entries.length - shown.length) + ' more entered'

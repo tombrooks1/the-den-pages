@@ -355,8 +355,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
 /* ---------------- history & stats board ---------------- */
 .navrow{position:absolute;right:64px;bottom:30px;z-index:12;display:flex;gap:12px;
   align-items:center}
-.spinnote{margin-top:30px;font-size:19px;font-weight:700;color:var(--muted);letter-spacing:.02em}
-.spinnote:empty{display:none}
 /* Every navigation pill is the SPIN button with the volume down: same family — pill radius,
    uppercase, wide letterspacing, heavy weight — smaller and quieter. inline-flex with
    line-height:1 and no vertical padding is what actually centres the label, whether the pill
@@ -672,8 +670,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
         <div class="hub"><span class="paw">&#128062;</span><span class="t">THE DEN</span></div>
       </div>
       <button id="spin">Spin the wheel</button>
-      <div class="spinnote" id="spinnote"></div>
-      <div class="hint" id="hint">odds are printed on every slice &middot; nothing is rigged</div>
+      <div class="hint" id="hint"></div>
     </div>
   </div>
 
@@ -1092,6 +1089,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   function rollSecond(btn, label){
     if (spinning) return;
+    /* The hint line only ever carries a server refusal; a fresh attempt starts clean. */
+    document.getElementById('hint').textContent = '';
     if (btn) { btn.disabled = true; btn.textContent = 'Rolling...'; }
     spinning = true;
     fetch(spinUrl(), {
@@ -1464,7 +1463,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var locked = !!(maj.locked && n && n.status === 'locked');
     lastNightId = n ? n.id : '';
 
-    var label = n ? n.label : 'No night on the books';
+    var label = n ? n.label : 'No night scheduled';
     var when = (n && n.date_label) ? n.date_label : '';
     var theme = n && n.theme ? n.theme : '';
     var notes = (n && n.notes) ? n.notes : '';
@@ -1615,30 +1614,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var offered = IS_HOST && (rollable || (openForSpin && entries.length > 0));
     var label = rollable ? SECOND_LABEL : FIRST_LABEL;
     var live = !spinning && (rollable || (openForSpin && entries.length > 0));
-    var note = IS_HOST
-      ? ''
-      : rollable
-      ? 'a host can roll a second film'
-      : openForSpin
-      ? 'a host spins the wheel'
-      : '';
-
-    section('spinbtn', String(offered) + '|' + label + '|' + String(live) + '|' + note, function(){
+    section('spinbtn', String(offered) + '|' + label + '|' + String(live), function(){
       spinBtn.style.display = offered ? '' : 'none';
       spinBtn.textContent = label;
       spinBtn.disabled = !live;
-      document.getElementById('spinnote').textContent = note;
-    });
-
-    var hint = n && n.status === 'spun'
-      ? 'the wheel has chosen &middot; every number is on the record'
-      : !entries.length
-      ? 'waiting on films'
-      : locked
-      ? 'the room reached a majority &middot; the wheel makes it official'
-      : '';
-    section('hint', hint, function(){
-      document.getElementById('hint').innerHTML = hint;
     });
   }
 
@@ -2330,7 +2309,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
     el.innerHTML = '<div class="vhead">' +
       '<div class="vtitle">History &amp; stats<span class="vcount">' + films.length +
-      (films.length === 1 ? ' film on the record' : ' films on the record') + '</span></div>' +
+      (films.length === 1 ? ' film watched' : ' films watched') + '</span></div>' +
       '<div class="vspace"></div>' +
       '<a class="pillbtn" href="#" id="navBack">Back to The Lobby</a></div>' +
       '<div class="vwrap">' +

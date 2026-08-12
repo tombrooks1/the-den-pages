@@ -394,6 +394,17 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 .sheet .playbtn span{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
   padding-left:3px;font-size:15px;color:var(--amber);background:rgba(13,11,20,.72);
   border:1px solid var(--line)}
+/* The cinema: the trailer plays here, inside the app. */
+#cinema{position:fixed;inset:0;z-index:60;display:none}
+#cinema.on{display:block}
+#cinema .cscrim{position:absolute;inset:0;background:rgba(8,6,14,.92)}
+#cinema .cframe{position:absolute;inset:0;margin:auto;width:100%;aspect-ratio:16/9;
+  max-height:70vh}
+#cinema iframe{width:100%;height:100%;border:0;background:#000}
+#cinema .cx{position:absolute;top:-44px;right:14px;font:inherit;font-size:11px;
+  font-weight:800;color:var(--text);background:rgba(255,255,255,.08);
+  border:1px solid var(--line);border-radius:999px;padding:7px 14px;
+  letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
 .sheet h2{font-size:21px;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin:0}
 .gen{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
 .syn{margin-top:15px;font-size:13px;line-height:1.55;color:#c3bcd4}
@@ -439,6 +450,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 
 <div class="toast" id="toast"></div>
 <div id="sheet"></div>
+<div id="cinema"></div>
 
 <script>
 (function(){
@@ -1095,16 +1107,35 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       '<div class="wattr">streaming data by JustWatch via TMDB</div></div>';
   }
 
-  /* The trailer, one tap away: TMDB's own YouTube key when we have it, an exact-title
-     YouTube search when we don't. */
+  /* The trailer, one tap away. A known key plays right here in the cinema overlay; with
+     no key the badge falls back to an exact-title YouTube search. */
   function trailerBtn(f){
     var w = f.watch_providers;
-    var href = w && w.trailer
-      ? 'https://www.youtube.com/watch?v=' + encodeURIComponent(w.trailer)
+    var key = w && w.trailer ? String(w.trailer) : '';
+    var href = key
+      ? 'https://www.youtube.com/watch?v=' + encodeURIComponent(key)
       : 'https://www.youtube.com/results?search_query=' +
         encodeURIComponent(f.title + ' ' + (f.year || '') + ' trailer');
     return '<a class="playbtn" href="' + esc(href) + '" target="_blank" rel="noopener"' +
-      ' aria-label="Watch the trailer on YouTube"><span>&#9654;</span></a>';
+      (key ? ' data-trailer="' + esc(key) + '"' : '') +
+      ' aria-label="Watch the trailer"><span>&#9654;</span></a>';
+  }
+
+  /* ---------------- the cinema overlay ---------------- */
+  function openCinema(key){
+    var el = document.getElementById('cinema');
+    el.innerHTML = '<div class="cscrim" data-cclose="1"></div>' +
+      '<div class="cframe"><button class="cx" data-cclose="1">close</button>' +
+      '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(key) +
+      '?autoplay=1&rel=0&playsinline=1" title="Trailer"' +
+      ' allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe></div>';
+    el.className = 'on';
+  }
+  /* Emptying the overlay is what stops the sound. */
+  function closeCinema(){
+    var el = document.getElementById('cinema');
+    el.className = '';
+    el.innerHTML = '';
   }
 
   /* ------------------------------------------------ the dossier sheet */
@@ -1464,10 +1495,16 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
   });
 
   sheetEl.addEventListener('click', function(e){
+    /* A play badge with a known key stays in the app: the cinema, not the browser. */
+    var tr = e.target.closest('[data-trailer]');
+    if (tr) { e.preventDefault(); openCinema(tr.getAttribute('data-trailer')); return; }
     /* A link is a departure, not a dismissal — leave the sheet as they left it. */
     if (e.target.closest('a')) return;
     var el = e.target.closest('[data-act]');
     if (el && el.getAttribute('data-act') === 'closesheet') { dossier = null; renderSheet(); }
+  });
+  document.getElementById('cinema').addEventListener('click', function(e){
+    if (e.target.closest('[data-cclose]')) closeCinema();
   });
 
   view.addEventListener('click', function(e){

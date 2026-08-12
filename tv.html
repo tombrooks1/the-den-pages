@@ -244,8 +244,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
   background:rgba(255,255,255,.04);
 }
 .navlink:hover{color:var(--amber);border-color:rgba(245,185,66,.4)}
-#board, #libboard{position:absolute;inset:0;z-index:11;display:none;padding:56px 64px 90px;
-  overflow:hidden;background:var(--bg)}
+#board, #libboard, #admin{position:absolute;inset:0;z-index:11;display:none;
+  padding:56px 64px 90px;overflow:hidden;background:var(--bg)}
+#admin.on{display:grid;grid-template-columns:1fr 560px;gap:48px;overflow-y:auto}
 #libboard.on{display:block}
 .libwall{display:grid;grid-template-columns:repeat(auto-fill,132px);gap:26px 22px;margin-top:22px}
 .lf{position:relative;width:132px}
@@ -294,6 +295,48 @@ body.idlecursor, body.idlecursor *{cursor:none}
 .scard .ln{margin-top:7px;font-size:13px;color:#c3bcd4;line-height:1.4}
 .bempty{color:var(--muted);font-size:20px}
 
+/* ---------------- admin panel: a control room, not a document ---------------- */
+.err{margin-bottom:18px;padding:14px 18px;border-radius:14px;font-size:17px;font-weight:600;
+  color:#ffd9df;background:rgba(219,87,109,.16);border:1px solid rgba(219,87,109,.45)}
+.nrow{padding:18px 20px;border-radius:18px;background:linear-gradient(158deg,var(--s2),var(--s1));
+  border:1px solid var(--line)}
+.nrow + .nrow{margin-top:14px}
+.nrow.open{border-color:rgba(245,185,66,.4)}
+.nhead{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;cursor:pointer}
+.ntitle{font-size:25px;font-weight:800;letter-spacing:-.025em;line-height:1.15}
+.nmeta{margin-top:6px;font-size:15px;color:var(--muted)}
+.chip2{flex:none;font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;
+  padding:8px 14px;border-radius:999px;color:var(--amber);background:rgba(245,185,66,.1);
+  border:1px solid rgba(245,185,66,.32)}
+.chip2.spun{color:#9fe0c0;background:rgba(99,192,138,.12);border-color:rgba(99,192,138,.35)}
+.chip2.done{color:var(--muted);background:rgba(255,255,255,.05);border-color:var(--line)}
+.acts{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px}
+.abtn{
+  font:inherit;font-size:16px;font-weight:800;cursor:pointer;color:var(--text);
+  background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:14px;
+  padding:14px 22px;min-height:52px;
+}
+.abtn:hover{border-color:rgba(244,239,232,.3)}
+.abtn.go{background:linear-gradient(180deg,var(--amber),var(--amber-deep));color:#231806;
+  border-color:transparent}
+.abtn.warn{color:#ffc2cc;border-color:rgba(219,87,109,.4)}
+.abtn:disabled{opacity:.45;cursor:default}
+.elist{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.erow{display:flex;align-items:center;gap:16px;padding:10px 0;font-size:17px}
+.erow + .erow{border-top:1px dashed rgba(244,239,232,.08)}
+.erow .et{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.erow .ew{flex:none;color:var(--muted);font-size:15px}
+.form label{display:block;margin-top:18px;font-size:13px;font-weight:800;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--muted)}
+.form input, .form select, .form textarea{
+  width:100%;margin-top:8px;font:inherit;font-size:18px;color:var(--text);
+  background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:14px;
+  padding:14px 16px;outline:none;
+}
+.form textarea{min-height:88px;resize:vertical}
+.form input:focus, .form select:focus, .form textarea:focus{border-color:rgba(245,185,66,.45)}
+.form option{background:#171225}
+
 @media (prefers-reduced-motion: reduce){
   .grain,.bulbs,.chip,.pw{animation:none}
   .panel{transition:none}
@@ -341,10 +384,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   <div id="board"></div>
   <div id="libboard"></div>
-  <div class="navrow" id="navrow">
-    <a class="navlink" id="navLib" href="#library">library</a>
-    <a class="navlink" id="navBoard" href="#stats">history &amp; stats</a>
-  </div>
+  <div id="admin"></div>
+  <div class="navrow" id="navrow"></div>
   <button class="navlink right hidden" id="navPicks">tonight&#39;s picks</button>
 
   <div id="reveal"></div>
@@ -955,7 +996,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   /* ------------------------------------------------ history & stats board */
   function boardOn(){ return location.hash === '#stats'; }
   function libOn(){ return location.hash === '#library'; }
-  function fullScreen(){ return boardOn() || libOn(); }
+  function fullScreen(){ return boardOn() || libOn() || adminOn(); }
 
   function pawLine(avg, count){
     if (avg == null) return '<div class="bp">&mdash;<span>no paws</span></div>';
@@ -1017,6 +1058,248 @@ body.idlecursor, body.idlecursor *{cursor:none}
       });
   }
 
+  /* ------------------------------------------------ the host admin panel */
+  var admData = null;      /* last /api/admin/state payload */
+  var admBusy = '';        /* the one action currently in flight */
+  var admError = '';       /* plain inline message, never an alert */
+  var admOpen = '';        /* night whose line-up is expanded */
+  var admForm = { title: '', theme: '', own: '', date: '', notes: '' };
+
+  function adminOn(){ return location.hash === '#admin'; }
+
+  function admQs(){
+    return '?key=' + encodeURIComponent(KEY) + '&host=' + encodeURIComponent(HOSTKEY);
+  }
+
+  function statusChip(status){
+    var cls = status === 'spun' ? ' spun'
+      : (status === 'watched' || status === 'cancelled') ? ' done' : '';
+    var map = { planned:'entries open', locked:'voting open', spun:'picked',
+      watched:'watched', cancelled:'called off' };
+    return '<span class="chip2' + cls + '">' + esc(map[status] || status) + '</span>';
+  }
+
+  function actBtn(id, label, night, action, cls){
+    var busy = admBusy === id;
+    return '<button class="abtn' + (cls ? ' ' + cls : '') + '" data-adm="' + esc(action) +
+      '" data-night="' + esc(night) + '" data-id="' + esc(id) + '"' +
+      (admBusy ? ' disabled' : '') + '>' + (busy ? 'working...' : esc(label)) + '</button>';
+  }
+
+  function nightBlock(n){
+    var open = admOpen === n.id;
+    var bits = [];
+    if (n.date_label) bits.push(esc(n.date_label));
+    if (n.theme) bits.push(esc(n.theme));
+    else bits.push('open night');
+    bits.push(n.entries.length + (n.entries.length === 1 ? ' entry' : ' entries'));
+    if (n.headcount) bits.push(n.headcount + ' coming');
+
+    var acts = [];
+    if (n.status === 'planned') {
+      acts.push(actBtn('openvote:' + n.id, 'Open voting', n.id, 'openvote', 'go'));
+      acts.push(actBtn('cancel:' + n.id, 'Cancel night', n.id, 'cancel', 'warn'));
+    } else if (n.status === 'locked') {
+      acts.push(actBtn('cancel:' + n.id, 'Cancel night', n.id, 'cancel', 'warn'));
+    } else if (n.status === 'spun') {
+      acts.push(actBtn('again:' + n.id, 'Roll second feature', n.id, 'again', 'go'));
+      acts.push(actBtn('done:' + n.id, 'Done, roll credits', n.id, 'done'));
+    }
+
+    var entries = '';
+    if (open) {
+      entries = '<div class="elist">' + (n.entries.length
+        ? n.entries.map(function(e){
+            var w = [];
+            if (e.votes) w.push(e.votes + ' &#128499;&#65039;');
+            if (e.jokers) w.push(e.jokers + ' &#127183;');
+            return '<div class="erow"><span class="et">' + esc(e.title) +
+              ' <span style="color:var(--muted)">&middot; ' + esc(e.emoji) + ' ' +
+              esc(e.member) + '</span></span>' +
+              '<span class="ew">' + (w.length ? w.join(' ') : '&mdash;') + '</span>' +
+              '<button class="abtn warn" data-adm="eject" data-night="' + esc(n.id) +
+              '" data-film="' + esc(e.film_id) + '" data-id="eject:' + esc(e.film_id) + '"' +
+              (admBusy ? ' disabled' : '') + '>' +
+              (admBusy === 'eject:' + e.film_id ? 'working...' : 'Remove') + '</button></div>';
+          }).join('')
+        : '<div class="bempty" style="font-size:17px">No films entered yet.</div>') + '</div>';
+    }
+
+    return '<div class="nrow' + (open ? ' open' : '') + '">' +
+      '<div class="nhead" data-adm="expand" data-night="' + esc(n.id) + '">' +
+      '<div><div class="ntitle">' + esc(n.title) + '</div>' +
+      '<div class="nmeta">' + bits.join(' &middot; ') + '</div></div>' +
+      statusChip(n.status) + '</div>' +
+      (acts.length ? '<div class="acts">' + acts.join('') + '</div>' : '') +
+      entries + '</div>';
+  }
+
+  function createForm(){
+    var ideas = (admData && admData.theme_ideas) || [];
+    var opts = ['<option value="">Open night &mdash; anything can be entered</option>'];
+    ideas.forEach(function(t){
+      opts.push('<option value="' + esc(t.text) + '"' +
+        (admForm.theme === t.text ? ' selected' : '') + '>' + esc(t.text) +
+        ' &mdash; ' + esc(t.name) + '</option>');
+    });
+    opts.push('<option value="__own"' + (admForm.theme === '__own' ? ' selected' : '') +
+      '>Type my own theme</option>');
+    return '<div class="nrow form">' +
+      '<div class="ntitle">Create a night</div>' +
+      '<label for="admTitle">Name</label>' +
+      '<input id="admTitle" type="text" placeholder="The one with the robots">' +
+      '<label for="admTheme">Theme</label>' +
+      '<select id="admTheme">' + opts.join('') + '</select>' +
+      (admForm.theme === '__own'
+        ? '<input id="admOwn" type="text" placeholder="Films with terrible dads" ' +
+          'style="margin-top:12px">'
+        : '') +
+      '<label for="admDate">Date and start time</label>' +
+      '<input id="admDate" type="text" placeholder="Saturday the 22nd, 8pm">' +
+      '<label for="admNotes">Anything else (optional)</label>' +
+      '<textarea id="admNotes" placeholder="Parking is awful, get the bus."></textarea>' +
+      '<div class="acts">' +
+      '<button class="abtn go" data-adm="create" data-id="create"' +
+      (admBusy ? ' disabled' : '') + '>' +
+      (admBusy === 'create' ? 'announcing...' : 'Create and announce') + '</button></div>' +
+      '</div>';
+  }
+
+  function renderAdmin(){
+    var el = document.getElementById('admin');
+    if (!admData) {
+      el.innerHTML = '<div class="bempty">Loading the panel...</div>';
+      return;
+    }
+    var nights = admData.nights || [];
+    var live = nights.filter(function(n){
+      return n.status === 'planned' || n.status === 'locked' || n.status === 'spun';
+    });
+    var past = nights.filter(function(n){
+      return n.status === 'watched' || n.status === 'cancelled';
+    });
+    el.innerHTML =
+      '<div>' + (admError ? '<div class="err">' + esc(admError) + '</div>' : '') +
+      '<h2>Nights</h2>' +
+      (live.length
+        ? live.map(nightBlock).join('')
+        : '<div class="bempty">Nothing planned. Create one on the right.</div>') +
+      (past.length
+        ? '<h2 style="margin-top:32px">Recently</h2>' + past.map(nightBlock).join('')
+        : '') +
+      '</div><div>' + createForm() +
+      '<a class="navlink" href="#" id="navBack3">back to tonight</a></div>';
+
+    /* Put typed values back after the repaint and keep them as they change. */
+    var bind = function(id, key){
+      var node = document.getElementById(id);
+      if (!node) return;
+      node.value = admForm[key];
+      node.addEventListener('input', function(e){ admForm[key] = e.target.value; });
+    };
+    bind('admTitle', 'title');
+    bind('admDate', 'date');
+    bind('admNotes', 'notes');
+    bind('admOwn', 'own');
+    var sel = document.getElementById('admTheme');
+    if (sel) {
+      sel.value = admForm.theme;
+      sel.addEventListener('change', function(e){
+        admForm.theme = e.target.value;
+        renderAdmin();
+      });
+    }
+  }
+
+  function loadAdmin(){
+    fetch(API + 'admin/state' + admQs())
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d || !d.ok) {
+          admData = { nights: [], theme_ideas: [] };
+          admError = (d && d.message) || 'That did not load.';
+        } else {
+          admData = d;
+        }
+        renderAdmin();
+      })
+      .catch(function(){
+        admData = { nights: [], theme_ideas: [] };
+        admError = 'No signal from the Den.';
+        renderAdmin();
+      });
+  }
+
+  /* One tap, one action, then the panel refetches so the result is the DB's word, not ours. */
+  function adminAct(id, action, night, film){
+    if (admBusy) return;
+    admBusy = id;
+    admError = '';
+    renderAdmin();
+
+    var done = function(j){
+      admBusy = '';
+      if (!j || !j.ok) admError = (j && j.message) || 'That did not go through.';
+      loadAdmin();
+    };
+    var failed = function(){
+      admBusy = '';
+      admError = 'Could not reach the Den. Try again in a moment.';
+      renderAdmin();
+    };
+
+    /* The second feature is the wheel's own endpoint, the rest are host commands. */
+    if (action === 'again') {
+      fetch(spinUrl(), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ again: true })
+      }).then(function(r){ return r.json(); }).then(done).catch(failed);
+      return;
+    }
+
+    var payload = { key: KEY, host: HOSTKEY, action: action };
+    if (night) payload.night_id = night;
+    if (film) payload.film_id = film;
+    if (action === 'create_night') {
+      var theme = admForm.theme === '__own' ? admForm.own.trim() : admForm.theme;
+      payload.title = admForm.title.trim();
+      payload.theme = theme ? theme : null;
+      payload.date_label = admForm.date.trim();
+      payload.notes = admForm.notes.trim() ? admForm.notes.trim() : null;
+    }
+    fetch(API + 'admin/act', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function(r){ return r.json(); }).then(function(j){
+      if (j && j.ok && action === 'create_night') {
+        admForm = { title: '', theme: '', own: '', date: '', notes: '' };
+      }
+      done(j);
+    }).catch(failed);
+  }
+
+  document.getElementById('admin').addEventListener('click', function(e){
+    var el = e.target.closest('[data-adm]');
+    if (!el) return;
+    var what = el.getAttribute('data-adm');
+    if (what === 'expand') {
+      var nid = el.getAttribute('data-night');
+      admOpen = admOpen === nid ? '' : nid;
+      renderAdmin();
+      return;
+    }
+    if (what === 'create') {
+      if (!admForm.title.trim()) { admError = 'Give the night a name first.'; renderAdmin(); return; }
+      if (!admForm.date.trim()) { admError = 'Add a date and start time.'; renderAdmin(); return; }
+      adminAct('create', 'create_night', '', '');
+      return;
+    }
+    adminAct(el.getAttribute('data-id'), what, el.getAttribute('data-night'),
+      el.getAttribute('data-film'));
+  });
+
   function renderLibBoard(data){
     var films = (data && data.library) || [];
     var wall = films.map(function(f){
@@ -1058,15 +1341,20 @@ body.idlecursor, body.idlecursor *{cursor:none}
   }
 
   function routeView(){
-    var stats = boardOn(), lib = libOn(), any = stats || lib;
+    var stats = boardOn(), lib = libOn();
+    /* A viewer who guesses the hash still gets nothing: the panel needs the host link. */
+    var adm = adminOn() && IS_HOST;
+    var any = stats || lib || adm;
     document.getElementById('board').className = stats ? 'on' : '';
     document.getElementById('libboard').className = lib ? 'on' : '';
+    document.getElementById('admin').className = adm ? 'on' : '';
     document.getElementById('navrow').style.display = any ? 'none' : '';
     document.getElementById('lobby').style.display = any ? 'none' : '';
     revealEl.style.display = any ? 'none' : '';
     syncPicksLink();
     if (stats) loadBoard();
     if (lib) loadLibBoard();
+    if (adm) { admError = ''; loadAdmin(); }
   }
   window.addEventListener('hashchange', routeView);
 
@@ -1138,6 +1426,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
       })
       .catch(function(){ spinning = false; spinBtn.disabled = false; });
   });
+
+  document.getElementById('navrow').innerHTML =
+    (IS_HOST ? '<a class="navlink" id="navAdmin" href="#admin">admin</a>' : '') +
+    '<a class="navlink" id="navLib" href="#library">library</a>' +
+    '<a class="navlink" id="navBoard" href="#stats">history &amp; stats</a>';
 
   routeView();
   poll();

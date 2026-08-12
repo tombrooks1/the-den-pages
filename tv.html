@@ -48,8 +48,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
 }
 
 /* ---------------- layout ---------------- */
-#lobby{position:absolute;inset:0;z-index:2;display:grid;grid-template-columns:900px 1fr;gap:60px;padding:64px}
-.left{display:flex;flex-direction:column;justify-content:space-between;gap:44px;min-height:0}
+#lobby{position:absolute;inset:0;z-index:2;display:grid;grid-template-columns:940px 1fr;gap:52px;padding:56px 64px}
+.left{display:flex;flex-direction:column;justify-content:flex-start;gap:26px;min-height:0}
 .right{display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
 .panel{transition:opacity .9s ease, transform .9s ease;opacity:.6}
 .panel.spot{opacity:1;transform:scale(1.012)}
@@ -65,11 +65,17 @@ body.idlecursor, body.idlecursor *{cursor:none}
 }
 @keyframes chase{to{background-position:22px 0}}
 .brand{font-size:19px;font-weight:800;letter-spacing:.52em;color:var(--amber);text-shadow:0 0 30px rgba(245,185,66,.55)}
-.label{margin-top:16px;font-size:88px;font-weight:800;letter-spacing:-.045em;line-height:.98}
-.theme{margin-top:16px;font-size:31px;font-weight:600;color:var(--amber);letter-spacing:-.01em;
+.label{margin-top:14px;font-size:58px;font-weight:800;letter-spacing:-.045em;line-height:.98}
+.countdown{margin-top:10px;font-size:30px;font-weight:800;letter-spacing:-.01em;color:var(--amber);
+  font-variant-numeric:tabular-nums;text-shadow:0 0 34px rgba(245,185,66,.3)}
+.countdown:empty{display:none}
+.countdown .u{font-size:19px;font-weight:700;color:var(--muted);letter-spacing:.06em;
+  margin:0 12px 0 3px}
+.countdown .u:last-child{margin-right:0}
+.theme{margin-top:8px;font-size:23px;font-weight:600;color:var(--amber);letter-spacing:-.01em;
   text-shadow:0 0 34px rgba(245,185,66,.35)}
 .status{
-  display:inline-block;margin-top:22px;font-size:14px;font-weight:800;letter-spacing:.24em;
+  display:inline-block;margin-top:16px;font-size:14px;font-weight:800;letter-spacing:.24em;
   text-transform:uppercase;color:var(--amber);padding:9px 16px;border-radius:999px;
   background:rgba(245,185,66,.1);border:1px solid rgba(245,185,66,.32);
 }
@@ -78,25 +84,40 @@ body.idlecursor, body.idlecursor *{cursor:none}
   background:linear-gradient(180deg,var(--amber),var(--amber-deep));
   box-shadow:0 0 48px rgba(245,185,66,.42);
 }
-.whenline{margin-top:14px;font-size:30px;font-weight:600;color:var(--muted);letter-spacing:-.01em}
+.whenline{margin-top:8px;font-size:21px;font-weight:600;color:var(--muted);letter-spacing:-.01em}
 .whenline:empty{display:none}
-.notes{margin-top:18px;max-width:820px;font-size:21px;line-height:1.4;color:#b3aac6}
+.notes{margin-top:12px;max-width:820px;font-size:17px;line-height:1.35;color:#b3aac6;
+  display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 .notes:empty{display:none}
 .eyebrow{font-size:14px;font-weight:800;letter-spacing:.28em;text-transform:uppercase;color:var(--muted)}
 .heads{margin-left:18px;color:var(--amber);text-shadow:0 0 26px rgba(245,185,66,.4)}
-.snacks{margin-top:18px;font-size:20px;color:var(--muted);line-height:1.5}
+.snacks{margin-top:12px;font-size:17px;color:var(--muted);line-height:1.5}
 .snacks:empty{display:none}
 .snacks b{color:var(--text);font-weight:700}
 .snacks .sep{opacity:.45;margin:0 10px}
 
 /* ---------------- rsvp roll ---------------- */
-.roll{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
+.roll{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
+.seats{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:16px}
+.seat{
+  height:48px;border-radius:14px;display:flex;align-items:center;gap:9px;padding:0 12px;
+  background:rgba(255,255,255,.045);border:1px solid var(--line);overflow:hidden;
+  animation:cardin .4s cubic-bezier(.2,.9,.3,1) both;
+}
+.seat .av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px;
+  flex:none}
+.seat .nm{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seat.guest{background:rgba(255,255,255,.03)}
+.seat.guest .nm{color:var(--muted);font-weight:600}
+.seat.free{background:rgba(255,255,255,.014);border-style:dashed;border-color:rgba(244,239,232,.13)}
+.seat.free .dot{width:30px;height:30px;border-radius:50%;border:1px dashed rgba(244,239,232,.14);
+  flex:none}
 .chip{
   display:inline-flex;align-items:center;gap:12px;padding:10px 22px 10px 10px;border-radius:999px;
-  background:rgba(255,255,255,.045);border:1px solid var(--line);font-size:23px;font-weight:700;
+  background:rgba(255,255,255,.045);border:1px solid var(--line);font-size:17px;font-weight:700;
   animation:arrive .55s cubic-bezier(.2,.9,.3,1) both;
 }
-.chip .av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:22px}
+.chip .av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px}
 /* A "maybe" must never read as an "in" from the couch: own row, own label, dashed and muted. */
 .roll + .roll{margin-top:12px}
 .rtag{align-self:center;font-size:15px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;
@@ -105,14 +126,18 @@ body.idlecursor, body.idlecursor *{cursor:none}
   color:var(--muted)}
 .chip.maybe .av{opacity:.65}
 .chip.maybe .q{margin-left:3px;font-weight:800;color:var(--amber);opacity:.85}
-.outline{margin-top:16px;font-size:17px;color:var(--muted);opacity:.7;letter-spacing:.02em}
+.outline{margin-top:12px;font-size:16px;color:var(--muted);opacity:.7;letter-spacing:.02em}
 @keyframes arrive{from{opacity:0;transform:translateY(14px) scale(.94)}to{opacity:1;transform:none}}
 
 /* ---------------- poster wall ----------------
    An index, not the show: posters cap at 120px tall so a dozen films still compose at 1080p. */
-.wall{display:grid;grid-template-columns:repeat(auto-fill,80px);gap:16px 16px;margin-top:18px;
-  align-items:start}
-.pw{position:relative;width:80px;animation:arrive .6s cubic-bezier(.2,.9,.3,1) both}
+.wall{display:grid;grid-template-columns:repeat(7,72px);gap:12px 16px;margin-top:14px;
+  justify-content:space-between;align-items:start}
+.pw.free .frame{width:72px;height:108px;border-radius:9px;border:1px dashed rgba(244,239,232,.13);
+  background:rgba(255,255,255,.014)}
+.pw.free .frame::after{content:"";position:absolute;left:50%;top:44%;width:22px;height:22px;
+  margin:-11px 0 0 -11px;border-radius:50%;border:1px dashed rgba(244,239,232,.14)}
+.pw{position:relative;width:72px;animation:arrive .6s cubic-bezier(.2,.9,.3,1) both}
 .poster{
   width:100%;aspect-ratio:2/3;border-radius:14px;object-fit:cover;display:block;
   background:#221b33;border:1px solid var(--line);box-shadow:0 16px 34px rgba(0,0,0,.5);
@@ -122,7 +147,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 .ph-t{font-size:17px;font-weight:800;line-height:1.1;letter-spacing:-.02em;padding-right:52px;
   text-shadow:0 2px 12px rgba(0,0,0,.55)}
 .ph-f{font-size:22px;opacity:.6;align-self:flex-end}
-.wall .poster{width:80px;height:120px;aspect-ratio:auto;border-radius:9px;
+.wall .poster{width:72px;height:108px;aspect-ratio:auto;border-radius:9px;
   box-shadow:0 10px 22px rgba(0,0,0,.5)}
 .wall .ph{padding:7px}
 .wall .ph-t{font-size:11px;line-height:1.08;padding-right:18px;
@@ -144,7 +169,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   border-color:rgba(245,185,66,.7);
   box-shadow:0 0 0 3px rgba(245,185,66,.42), 0 12px 30px rgba(245,185,66,.22);
 }
-.pw .who{margin-top:6px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;
+.pw .who{margin-top:5px;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .more{margin-top:14px;font-size:15px;color:var(--muted);letter-spacing:.04em}
 .pw .dot{width:6px;height:6px;border-radius:50%;flex:none}
@@ -254,55 +279,159 @@ body.idlecursor, body.idlecursor *{cursor:none}
 .pillbtn.corner{position:absolute;right:64px;bottom:30px;z-index:12}
 .pillbtn.back{margin-top:30px}
 .pillbtn.hidden{display:none}
+/* ---------------- the full-screen views: one chrome, one card language ----------------
+   These three screens are fetched on entry and never poll, so unlike the lobby they are free
+   to animate. Everything below is built for a 1920x1080 projector viewed from a couch. */
 #board, #libboard, #admin{position:absolute;inset:0;z-index:11;display:none;
-  padding:56px 64px 90px;overflow:hidden;background:var(--bg)}
-#admin.on{display:grid;grid-template-columns:1fr 560px;gap:48px;overflow-y:auto}
-#libboard.on{display:block}
-.libwall{display:grid;grid-template-columns:repeat(auto-fill,132px);gap:26px 22px;margin-top:22px}
-.lf{position:relative;width:132px}
-.lf .poster{width:132px;height:198px;aspect-ratio:auto;border-radius:11px;
-  box-shadow:0 12px 26px rgba(0,0,0,.5)}
-.lf .ph{padding:9px}
-.lf .ph-t{font-size:13px;line-height:1.1;padding-right:20px;
+  padding:0;overflow:hidden;background:var(--bg)}
+#libboard.on, #board.on{display:block;overflow-y:auto;overflow-x:hidden}
+#admin.on{display:block;overflow-y:auto}
+.admgrid{display:grid;grid-template-columns:1fr 560px;gap:48px;align-items:start}
+.vwrap{padding:0 64px 90px;min-height:100%}
+.vhead{
+  position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:26px;
+  padding:38px 64px 20px;margin:0 -64px 26px;
+  background:linear-gradient(180deg,var(--bg) 62%,rgba(13,11,20,.86) 88%,transparent);
+}
+.vtitle{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1;flex:none}
+.vcount{margin-left:14px;font-size:16px;font-weight:700;color:var(--muted);letter-spacing:.06em}
+.vspace{flex:1}
+.vbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.vsep{width:1px;height:26px;background:var(--line);margin:0 6px}
+.vlabel{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted);margin-right:2px}
+.fchip{
+  display:inline-flex;align-items:center;gap:7px;box-sizing:border-box;min-height:38px;
+  padding:0 16px;font:inherit;font-size:13px;font-weight:700;line-height:1;cursor:pointer;
+  color:var(--muted);background:rgba(255,255,255,.045);border:1px solid var(--line);
+  border-radius:999px;transition:color .16s ease, background .16s ease, border-color .16s ease;
+}
+.fchip:hover{color:var(--text);border-color:rgba(244,239,232,.26)}
+.fchip.on{color:#231806;background:linear-gradient(180deg,var(--amber),var(--amber-deep));
+  border-color:transparent}
+.fchip .av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px}
+
+/* ---------------- the film card ---------------- */
+.filmwall{display:grid;grid-template-columns:repeat(8,208px);gap:34px 18px;
+  justify-content:space-between;align-items:start}
+.slot{position:relative;height:376px;animation:cardin .44s cubic-bezier(.2,.9,.3,1) both}
+.card{
+  position:absolute;left:0;top:0;width:208px;height:376px;border-radius:18px;overflow:hidden;
+  background:linear-gradient(158deg,var(--s2),var(--s1));border:1px solid var(--line);
+  box-shadow:0 12px 28px rgba(0,0,0,.42);
+  transition:height .2s cubic-bezier(.2,.9,.3,1), width .2s cubic-bezier(.2,.9,.3,1),
+    left .2s cubic-bezier(.2,.9,.3,1), top .2s cubic-bezier(.2,.9,.3,1),
+    box-shadow .2s ease, border-color .2s ease;
+}
+.slot:hover .card, .slot.up .card{
+  width:248px;height:566px;left:-20px;top:-14px;z-index:20;
+  border-color:rgba(245,185,66,.42);
+  box-shadow:0 34px 74px rgba(0,0,0,.72), 0 0 0 1px rgba(245,185,66,.18);
+}
+.slot:hover, .slot.up{z-index:20}
+.card .art{position:relative;width:100%;height:264px;overflow:hidden;
+  transition:height .2s cubic-bezier(.2,.9,.3,1)}
+.slot:hover .card .art, .slot.up .card .art{height:300px}
+.card .art .poster{width:100%;height:100%;aspect-ratio:auto;border-radius:0;border:none;
+  box-shadow:none;object-fit:cover}
+.card .art .ph{padding:14px}
+.card .art .ph-t{font-size:15px;line-height:1.12;padding-right:0;
   display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
-.lf .ph-f{font-size:15px}
-.lf .lt{margin-top:9px;font-size:14px;font-weight:700;line-height:1.2;
+.card .art .ph-f{font-size:18px}
+.card .imdb{
+  position:absolute;top:9px;right:9px;font-size:12px;font-weight:800;letter-spacing:.02em;
+  padding:5px 9px;border-radius:999px;background:rgba(13,11,20,.82);
+  border:1px solid rgba(245,185,66,.34);color:var(--amber);
+}
+.card .seenflag{
+  position:absolute;top:9px;left:9px;font-size:10px;font-weight:800;letter-spacing:.14em;
+  text-transform:uppercase;padding:5px 9px;border-radius:999px;background:rgba(13,11,20,.82);
+  border:1px solid var(--line);color:var(--muted);
+}
+.card .seenflag.yes{color:#9fe0c0;border-color:rgba(99,192,138,.42)}
+.card .body{padding:13px 15px 0}
+.card .ct{font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.2;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.lf .lb{margin-top:4px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;
+.card .cby{margin-top:6px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis}
-.lf .seen{position:absolute;top:7px;left:7px;font-size:11px;font-weight:800;padding:4px 8px;
-  border-radius:999px;background:rgba(13,11,20,.84);border:1px solid rgba(245,185,66,.34);
-  color:var(--amber)}
-.lf .pawavg{position:absolute;top:7px;right:7px;font-size:11px;font-weight:800;padding:4px 8px;
-  border-radius:999px;background:rgba(13,11,20,.84);border:1px solid var(--line)}
-#board.on{display:grid;grid-template-columns:1fr 620px;gap:54px}
-#board h2{font-size:15px;font-weight:800;letter-spacing:.28em;text-transform:uppercase;
-  color:var(--muted);margin-bottom:20px}
-.brow{display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:center;
-  padding:13px 0;border-top:1px solid var(--line)}
-.brow:first-of-type{border-top:none}
-.bposters{display:flex;gap:7px}
-.bposters .poster{width:56px;height:84px;aspect-ratio:auto;border-radius:7px;
-  box-shadow:0 8px 18px rgba(0,0,0,.5)}
-.bposters .ph{padding:5px}
-.bposters .ph-t{font-size:9px;line-height:1.05;padding-right:0;
-  display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
-.bposters .ph-f{font-size:10px}
-.bt{font-size:23px;font-weight:800;letter-spacing:-.025em;line-height:1.15}
-.bm{margin-top:5px;font-size:14px;color:var(--muted)}
-.bp{font-size:22px;font-weight:800;white-space:nowrap;color:var(--amber)}
-.bp span{display:block;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-content:start}
-.scard{position:relative;overflow:hidden;padding:18px;border-radius:20px;
-  background:linear-gradient(152deg,var(--s2),var(--s1));border:1px solid var(--line)}
-.scard::after{content:"";position:absolute;top:-60px;right:-50px;width:170px;height:170px;
-  border-radius:50%;background:var(--accent,#f5b942);opacity:.16;filter:blur(30px)}
-.scard .in{position:relative;z-index:1}
-.scard .bdg{font-size:20px;line-height:1}
-.scard .st{margin-top:8px;font-size:10px;font-weight:800;letter-spacing:.2em;
+.card .detail{
+  opacity:0;max-height:0;overflow:hidden;padding:0 15px;
+  transition:opacity .16s ease, max-height .2s cubic-bezier(.2,.9,.3,1), padding .2s ease;
+}
+.slot:hover .card .detail, .slot.up .card .detail{opacity:1;max-height:230px;padding:12px 15px 16px}
+.card .syn{font-size:12.5px;line-height:1.42;color:#c3bcd4;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.fact{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;
+  background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--muted)}
+.fact.paw{color:var(--amber);border-color:rgba(245,185,66,.3)}
+.fact.on{color:#9fe0c0;border-color:rgba(99,192,138,.35)}
+.card .more{
+  display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;
+  margin-top:12px;min-height:38px;padding:0 18px;width:100%;
+  font:inherit;font-size:12px;font-weight:800;line-height:1;letter-spacing:.16em;
+  text-transform:uppercase;cursor:pointer;color:#231806;
+  background:linear-gradient(180deg,var(--amber),var(--amber-deep));
+  border:none;border-radius:999px;
+}
+.card .more:hover{filter:brightness(1.06)}
+
+/* empty frames so a young library looks intentional rather than broken */
+.slot.ghost .frame{
+  position:absolute;inset:0;border-radius:18px;border:1px dashed rgba(244,239,232,.13);
+  background:rgba(255,255,255,.016);
+}
+.slot.ghost .frame::after{
+  content:"";position:absolute;left:50%;top:44%;width:34px;height:34px;margin:-17px 0 0 -17px;
+  border-radius:50%;border:1px dashed rgba(244,239,232,.14);
+}
+
+/* staggered entrance — the wall assembles itself rather than appearing (see .slot above) */
+@keyframes cardin{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+/* ---------------- the details modal ---------------- */
+#modal{position:absolute;inset:0;z-index:40;display:none}
+#modal.on{display:block}
+#modal .scrim{position:absolute;inset:0;background:rgba(8,6,14,.78);backdrop-filter:blur(10px);
+  animation:fadein .2s ease both}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes popin{from{opacity:0;transform:scale(.965) translateY(12px)}to{opacity:1;transform:none}}
+#modal .box{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:1360px;max-height:840px;display:flex;gap:46px;padding:46px;
+  border-radius:28px;background:linear-gradient(158deg,var(--s2),var(--s1));
+  border:1px solid var(--line);box-shadow:0 60px 140px rgba(0,0,0,.8);
+  animation:popin .26s cubic-bezier(.2,.9,.3,1) both;
+}
+#modal .cover{width:380px;flex:none}
+#modal .cover .poster{width:380px;height:570px;aspect-ratio:auto;border-radius:18px;
+  box-shadow:0 30px 70px rgba(0,0,0,.6)}
+#modal .side{flex:1;min-width:0;overflow-y:auto}
+#modal h3{font-size:46px;font-weight:800;letter-spacing:-.04em;line-height:1.04;margin:0}
+#modal .yr{color:var(--muted);font-weight:600}
+#modal .mfacts{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+#modal .msyn{margin-top:22px;font-size:19px;line-height:1.55;color:#c9c2da}
+#modal .den{margin-top:26px;padding-top:20px;border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(2,1fr);gap:14px 26px}
+#modal .den div{font-size:15px;color:var(--muted)}
+#modal .den b{display:block;margin-top:3px;font-size:22px;font-weight:800;color:var(--text);
+  font-variant-numeric:tabular-nums}
+#modal .x{position:absolute;top:22px;right:26px}
+
+/* ---------------- the stat strip ---------------- */
+.strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:14px;
+  margin-bottom:34px}
+.tile{padding:16px 18px;border-radius:16px;background:linear-gradient(158deg,var(--s2),var(--s1));
+  border:1px solid var(--line)}
+.tile .k{font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted)}
+.tile .v{margin-top:7px;font-size:30px;font-weight:800;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;line-height:1}
+.tile .s{margin-top:5px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.tile.amber .v{color:var(--amber)}
+.secthead{margin:36px 0 18px;font-size:15px;font-weight:800;letter-spacing:.28em;
   text-transform:uppercase;color:var(--muted)}
-.scard .hd{margin-top:4px;font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
-.scard .ln{margin-top:7px;font-size:13px;color:#c3bcd4;line-height:1.4}
 .bempty{color:var(--muted);font-size:20px}
 
 /* ---------------- admin panel: a control room, not a document ---------------- */
@@ -348,8 +477,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
 .form option{background:#171225}
 
 @media (prefers-reduced-motion: reduce){
-  .grain,.bulbs,.chip,.pw{animation:none}
+  .grain,.bulbs,.chip,.pw,.slot{animation:none}
   .panel{transition:none}
+  .card,.card .art,.card .detail{transition:none}
+  #modal .box,#modal .scrim{animation:none}
 }
 </style>
 </head>
@@ -361,6 +492,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
         <span class="bulbs"></span>
         <div class="brand">THE DEN</div>
         <div class="label" id="label">Loading the projector</div>
+        <div class="countdown" id="countdown"></div>
         <div class="whenline" id="whenline"></div>
         <div class="theme" id="theme"></div>
         <div><span class="status" id="status">standby</span></div>
@@ -369,6 +501,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
       <section class="panel" id="roll">
         <div class="eyebrow">Who is coming<span class="heads" id="rollHeads"></span></div>
+        <div class="seats" id="seatGrid"></div>
         <div id="rollList"></div>
         <div class="snacks" id="snackList"></div>
       </section>
@@ -395,6 +528,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   <div id="board"></div>
   <div id="libboard"></div>
   <div id="admin"></div>
+  <div id="modal"></div>
   <div class="navrow" id="navrow"></div>
   <button class="pillbtn corner hidden" id="navPicks">tonight&#39;s picks</button>
 
@@ -434,6 +568,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   var features = [];        /* every film that has won tonight, in running order */
   var canRollAgain = false; /* is there anything left for a second feature? */
   var lastReveal = null;    /* the reveal we can put back on screen */
+  var SEAT_CAP = 14;        /* the living room's capacity, mirrored from the API */
   var sigs = {};            /* last-painted signature per section — the anti-flicker record */
   var wallNodes = {};       /* film id -> the live nodes of its wall tile */
 
@@ -819,10 +954,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
   function buildWall(shown){
     var wallEl = document.getElementById('wallList');
     wallNodes = {};
-    if (!shown.length) {
-      wallEl.innerHTML = '<div class="empty" style="grid-column:1/-1">' +
-        'No films yet.</div>';
-      return;
+    /* The wall is always fourteen slots: entries fill them, frames hold the rest open. */
+    var frames = '';
+    for (var g = shown.length; g < SEAT_CAP; g++) {
+      frames += '<div class="pw free" style="animation-delay:' + (g * 26) +
+        'ms"><div class="frame"></div></div>';
     }
     wallEl.innerHTML = shown.map(function(c, i){
       return '<div class="pw" data-id="' + esc(c.film_id) + '" style="animation-delay:' +
@@ -830,7 +966,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
         poster(c.title, c.poster) +
         '<div class="who"><span class="dot" style="background:' + safeColor(c.color) + '"></span>' +
         esc(c.emoji) + ' ' + esc(c.member) + '</div></div>';
-    }).join('');
+    }).join('') + frames;
     var els = wallEl.querySelectorAll('.pw');
     for (var j = 0; j < els.length; j++) {
       wallNodes[els[j].getAttribute('data-id')] = {
@@ -886,6 +1022,16 @@ body.idlecursor, body.idlecursor *{cursor:none}
       document.getElementById('notes').textContent = notes;
     });
 
+    /* The ticker owns the countdown element; the poll only tells it what it is counting to. */
+    var starts = (n && n.starts_at) ? Date.parse(n.starts_at) : NaN;
+    var nextStarts = isNaN(starts) ? null : starts;
+    if (nextStarts !== startsAt || when !== dateLabel) {
+      startsAt = nextStarts;
+      dateLabel = when;
+      lastCount = null;
+      tickCountdown();
+    }
+
     var statusHtml = !n
       ? 'waiting for a host to plan the next one'
       : locked
@@ -908,31 +1054,48 @@ body.idlecursor, body.idlecursor *{cursor:none}
       var ins = sorted.filter(function(r){ return r.status === 'in'; });
       var maybes = sorted.filter(function(r){ return r.status === 'maybe'; });
       var outs = sorted.filter(function(r){ return r.status === 'out'; });
-      function chip(r, i, extra){
-        return '<span class="chip' + (extra || '') + '" style="animation-delay:' +
-          (i * 60) + 'ms">' + avatar(r) + esc(r.name) +
-          (r.plus_ones === 1 ? ' +1' : '') +
-          (extra ? '<span class="q">?</span>' : '') + '</span>';
+
+      /* Fourteen seats, always drawn. Every 'in' takes one and their guest takes the next,
+         so the grid is a picture of the room rather than a list of names. */
+      var taken = [];
+      ins.forEach(function(r){
+        taken.push({ who: r, guest: false });
+        if (r.plus_ones === 1) taken.push({ who: r, guest: true });
+      });
+      var seats = [];
+      for (var i = 0; i < SEAT_CAP; i++) {
+        var t = taken[i];
+        if (!t) {
+          seats.push('<div class="seat free" style="animation-delay:' + (i * 18) +
+            'ms"><span class="dot"></span></div>');
+        } else if (t.guest) {
+          seats.push('<div class="seat guest" style="animation-delay:' + (i * 18) + 'ms">' +
+            avatar(t.who) + '<span class="nm">+1 of ' + esc(t.who.name) + '</span></div>');
+        } else {
+          seats.push('<div class="seat" style="animation-delay:' + (i * 18) + 'ms">' +
+            avatar(t.who) + '<span class="nm">' + esc(t.who.name) + '</span></div>');
+        }
       }
+      document.getElementById('seatGrid').innerHTML = seats.join('');
+
+      /* Maybes and outs take no seat, so they sit below the picture, clearly apart. */
       var html = '';
-      if (ins.length) {
-        html += '<div class="roll">' + ins.map(function(r, i){ return chip(r, i); }).join('') + '</div>';
-      }
       if (maybes.length) {
         html += '<div class="roll"><span class="rtag">maybe</span>' +
-          maybes.map(function(r, i){ return chip(r, i, ' maybe'); }).join('') + '</div>';
+          maybes.map(function(r, i){
+            return '<span class="chip maybe" style="animation-delay:' + (i * 60) + 'ms">' +
+              avatar(r) + esc(r.name) + (r.plus_ones === 1 ? ' +1' : '') +
+              '<span class="q">?</span></span>';
+          }).join('') + '</div>';
       }
-      /* Out gets one quiet line — never a chip that could pass for someone who is coming. */
       if (outs.length) {
         html += '<div class="outline">out &middot; ' + outs.map(function(r){
           return esc(r.emoji) + ' ' + esc(r.name);
         }).join(' &middot; ') + '</div>';
       }
-      document.getElementById('rollList').innerHTML = html ||
-        '<div class="empty">Waiting to hear who is coming.</div>';
-      document.getElementById('rollHeads').textContent = state.headcount
-        ? state.headcount + ' coming'
-        : '';
+      document.getElementById('rollList').innerHTML = html;
+      document.getElementById('rollHeads').textContent =
+        (state.headcount || 0) + ' of ' + SEAT_CAP + ' seats';
     });
 
     /* What people are bringing. Quiet when nobody has said. */
@@ -948,7 +1111,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
     /* Tonight's line-up: one film per person, everything that was entered. */
     var entries = state.entries || [];
-    var shown = entries.slice(0, 12);
+    var shown = entries.slice(0, SEAT_CAP);
 
     /* Which cards exist, and with which artwork — the only thing that justifies new nodes. */
     var wallSig = shown.map(function(c){ return c.film_id + ':' + (c.poster || ''); }).join('|');
@@ -958,9 +1121,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var moreTxt = entries.length > shown.length
       ? '+ ' + (entries.length - shown.length) + ' more entered'
       : '';
-    var headsTxt = entries.length
-      ? entries.length + (entries.length === 1 ? ' film in' : ' films in')
-      : '';
+    var headsTxt = entries.length + ' of ' + SEAT_CAP + ' entered';
     section('wallmeta', moreTxt + '|' + headsTxt, function(){
       document.getElementById('wallMore').textContent = moreTxt;
       document.getElementById('wallHeads').textContent = headsTxt;
@@ -990,6 +1151,38 @@ body.idlecursor, body.idlecursor *{cursor:none}
     });
   }
 
+  /* ------------------------------------------------ the countdown
+     The only thing on this page that moves without a poll. It writes one element, and only
+     when the rendered text actually changes, so the lobby's zero-repaint rule still holds. */
+  var startsAt;            /* the current night's exact time, if it has one */
+  var dateLabel;           /* what to show when it does not */
+  var lastCount = null;
+
+  function countdownText(){
+    if (!startsAt) return dateLabel ? esc(dateLabel) : '';
+    var ms = startsAt - Date.now();
+    if (ms <= 0) return 'tonight';
+    var mins = Math.floor(ms / 60000);
+    var days = Math.floor(mins / 1440);
+    var hours = Math.floor((mins % 1440) / 60);
+    var rem = mins % 60;
+    var unit = function(n, u){ return n + '<span class="u">' + u + '</span>'; };
+    if (days > 0) return unit(days, days === 1 ? 'day' : 'days') + unit(hours, 'hr');
+    if (hours > 0) return unit(hours, hours === 1 ? 'hour' : 'hours') + unit(rem, 'min');
+    if (mins >= 10) return unit(mins, 'minutes');
+    /* Under ten minutes the seconds are the point. */
+    var secs = Math.max(0, Math.floor(ms / 1000) % 60);
+    return mins + ':' + (secs < 10 ? '0' : '') + secs + '<span class="u">to go</span>';
+  }
+
+  function tickCountdown(){
+    var txt = countdownText();
+    if (txt === lastCount) return;
+    lastCount = txt;
+    document.getElementById('countdown').innerHTML = txt;
+  }
+  setInterval(tickCountdown, 1000);
+
   /* ------------------------------------------------ attention cycle */
   var spots = ['hdr', 'roll', 'wall'];
   var spotAt = 0;
@@ -1007,66 +1200,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
   function boardOn(){ return location.hash === '#stats'; }
   function libOn(){ return location.hash === '#library'; }
   function fullScreen(){ return boardOn() || libOn() || adminOn(); }
-
-  function pawLine(avg, count){
-    if (avg == null) return '<div class="bp">&mdash;<span>no paws</span></div>';
-    return '<div class="bp">&#128062; ' + (Math.round(avg * 10) / 10).toFixed(1) +
-      '<span>from ' + count + (count === 1 ? ' vote' : ' votes') + '</span></div>';
-  }
-
-  function renderBoard(data){
-    var hist = (data && data.history) || [];
-    var cards = (data && data.stats && data.stats.cards) || [];
-    var rows = hist.slice(0, 7).map(function(nt){
-      var films = (nt.films && nt.films.length)
-        ? nt.films
-        : [{ title: nt.title, poster: nt.poster }];
-      var bits = [];
-      if (nt.watched_at) bits.push(esc(fmtDate(nt.watched_at)));
-      if (nt.theme) bits.push(esc(nt.theme));
-      bits.push(esc(nt.label));
-      return '<div class="brow"><div class="bposters">' +
-        films.map(function(f){ return poster(f.title, f.poster); }).join('') + '</div>' +
-        '<div><div class="bt">' + films.map(function(f){
-          return esc(f.title);
-        }).join(' <span style="color:var(--muted)">+</span> ') + '</div>' +
-        '<div class="bm">' + bits.join(' &middot; ') + '</div></div>' +
-        pawLine(nt.avg_paws, nt.rating_count || 0) + '</div>';
-    }).join('');
-
-    document.getElementById('board').innerHTML =
-      '<div><h2>What we have watched</h2>' +
-      (rows || '<div class="bempty">Nothing watched yet. The first night starts the record.</div>') + '</div>' +
-      '<div><h2>The folklore</h2><div class="cards">' +
-      cards.slice(0, 6).map(function(c){
-        return '<div class="scard" style="--accent:' +
-          safeColor(c.member && c.member.color) + '"><div class="in">' +
-          '<div class="bdg">' + esc(c.badge) + '</div>' +
-          '<div class="st">' + esc(c.title) + '</div>' +
-          '<div class="hd">' + esc(c.headline) + '</div>' +
-          '<div class="ln">' + esc(c.line) + '</div></div></div>';
-      }).join('') + '</div></div>' +
-      '<a class="pillbtn back" href="#" id="navBack">back to tonight</a>';
-  }
-
-  function loadBoard(){
-    document.getElementById('board').innerHTML =
-      '<div class="bempty">Loading the history...</div>';
-    fetch(API + 'tv-stats?key=' + encodeURIComponent(KEY))
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        if (!d || !d.ok) {
-          document.getElementById('board').innerHTML =
-            '<div class="bempty">That did not load. Try again in a moment.</div>';
-          return;
-        }
-        renderBoard(d);
-      })
-      .catch(function(){
-        document.getElementById('board').innerHTML =
-          '<div class="bempty">No signal from the Den.</div>';
-      });
-  }
 
   /* ------------------------------------------------ the host admin panel */
   var admData = null;      /* last /api/admin/state payload */
@@ -1235,7 +1368,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   function renderAdmin(){
     var el = document.getElementById('admin');
     if (!admData) {
-      el.innerHTML = '<div class="bempty">Loading the panel...</div>';
+      el.innerHTML = '<div class="vwrap"><div class="bempty">Loading the panel...</div></div>';
       return;
     }
     var nights = admData.nights || [];
@@ -1246,16 +1379,18 @@ body.idlecursor, body.idlecursor *{cursor:none}
       return n.status === 'watched' || n.status === 'cancelled';
     });
     el.innerHTML =
+      '<div class="vhead"><div class="vtitle">Admin</div><div class="vspace"></div>' +
+      '<a class="pillbtn" href="#" id="navBack3">back to tonight</a></div>' +
+      '<div class="vwrap admgrid">' +
       '<div>' + (admError ? '<div class="err">' + esc(admError) + '</div>' : '') +
-      '<h2>Nights</h2>' +
+      '<div class="secthead" style="margin-top:0">Nights</div>' +
       (live.length
         ? live.map(nightBlock).join('')
         : '<div class="bempty">Nothing planned. Create one on the right.</div>') +
       (past.length
-        ? '<h2 style="margin-top:32px">Recently</h2>' + past.map(nightBlock).join('')
+        ? '<div class="secthead">Recently</div>' + past.map(nightBlock).join('')
         : '') +
-      '</div><div>' + createForm() +
-      '<a class="pillbtn back" href="#" id="navBack3">back to tonight</a></div>';
+      '</div><div>' + createForm() + '</div></div>';
 
     /* Put typed values back after the repaint and keep them as they change. */
     var bind = function(id, key){
@@ -1401,45 +1536,334 @@ body.idlecursor, body.idlecursor *{cursor:none}
       el.getAttribute('data-film'));
   });
 
-  function renderLibBoard(data){
-    var films = (data && data.library) || [];
-    var wall = films.map(function(f){
-      var avg = f.avg_paws == null ? null : Math.round(f.avg_paws * 10) / 10;
-      return '<div class="lf">' +
-        (f.watched ? '<span class="seen">seen</span>' : '') +
-        (avg != null ? '<span class="pawavg">&#128062; ' + avg.toFixed(1) + '</span>' : '') +
-        poster(f.title, f.poster) +
-        '<div class="lt">' + esc(f.title) + '</div>' +
-        '<div class="lb">' +
-        (f.brought_by ? esc(f.brought_by.emoji) + ' ' + esc(f.brought_by.name) : '&nbsp;') +
-        '</div></div>';
-    }).join('');
-    document.getElementById('libboard').innerHTML =
-      '<h2>The library<span class="heads">' + films.length +
-      (films.length === 1 ? ' film' : ' films') + '</span></h2>' +
-      (wall
-        ? '<div class="libwall">' + wall + '</div>'
-        : '<div class="bempty">No films yet. Anything entered lands here.</div>') +
-      '<a class="pillbtn back" href="#" id="navBack2">back to tonight</a>';
+  /* ------------------------------------------------ the shared film card
+     One card language for both full-screen views. Hovering lifts a card out of the wall
+     rather than reflowing its neighbours: at this size a grid that shuffles on mouse-move
+     reads as a glitch, an elevated card reads as attention. */
+
+  var libData = null;      /* the shelf, as fetched */
+  var boardData = null;    /* history + films + stats */
+  var libFilter = 'all';   /* all | watched | unwatched | by:<member_id> */
+  var libSort = 'new';     /* new | az | paws | imdb */
+  var modalFilm = null;    /* the film whose details are open */
+
+  function pawText(f){
+    if (f.avg_paws == null) return null;
+    return '&#128062; ' + (Math.round(f.avg_paws * 10) / 10).toFixed(1) +
+      ' from ' + f.rating_count;
+  }
+  function whenText(iso){
+    if (!iso) return '';
+    try {
+      return new Date(iso).toLocaleDateString(undefined,
+        { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch (e) { return ''; }
+  }
+
+  function filmCard(f, i){
+    var facts = [];
+    var paws = pawText(f);
+    if (paws) facts.push('<span class="fact paw">' + paws + '</span>');
+    if (f.watched) {
+      facts.push('<span class="fact on">seen ' + esc(whenText(f.watched_at)) + '</span>');
+    } else {
+      facts.push('<span class="fact">not watched yet</span>');
+    }
+    if (f.times_entered) {
+      facts.push('<span class="fact">entered &times;' + f.times_entered + '</span>');
+    }
+    if (f.night && f.night.by_majority) {
+      facts.push('<span class="fact">won by majority</span>');
+    }
+
+    var delay = Math.min(i, 26) * 26;
+    return '<div class="slot" data-film="' + esc(f.film_id) + '" style="animation-delay:' +
+      delay + 'ms"><div class="card">' +
+      '<div class="art">' +
+      (f.imdb_rating ? '<span class="imdb">&#11088; ' + esc(f.imdb_rating) + '</span>' : '') +
+      '<span class="seenflag' + (f.watched ? ' yes' : '') + '">' +
+      (f.watched ? 'seen' : 'unseen') + '</span>' +
+      poster(f.title, f.poster) +
+      '</div>' +
+      '<div class="body"><div class="ct">' + esc(f.title) +
+      (f.year ? ' <span style="color:var(--muted);font-weight:600">' + esc(f.year) + '</span>' : '') +
+      '</div><div class="cby">' +
+      (f.brought_by ? esc(f.brought_by.emoji) + ' ' + esc(f.brought_by.name) : '&nbsp;') +
+      (f.night ? ' &middot; ' + esc(f.night.night) : '') +
+      '</div></div>' +
+      '<div class="detail">' +
+      (f.synopsis
+        ? '<div class="syn">' + esc(f.synopsis) + '</div>'
+        : '<div class="syn" style="opacity:.55">No synopsis on file.</div>') +
+      '<div class="facts">' + facts.join('') + '</div>' +
+      '<button class="more" data-film="' + esc(f.film_id) + '">Full details</button>' +
+      '</div></div></div>';
+  }
+
+  function ghostSlots(n){
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      out.push('<div class="slot ghost" style="animation-delay:' +
+        (Math.min(i, 26) * 26) + 'ms"><div class="frame"></div></div>');
+    }
+    return out.join('');
+  }
+
+  /* ------------------------------------------------ filters and sorting */
+  function sortFilms(list){
+    var copy = list.slice();
+    if (libSort === 'az') {
+      copy.sort(function(a, b){ return String(a.title).localeCompare(String(b.title)); });
+    } else if (libSort === 'paws') {
+      copy.sort(function(a, b){
+        var x = a.avg_paws == null ? -1 : a.avg_paws;
+        var y = b.avg_paws == null ? -1 : b.avg_paws;
+        return y - x;
+      });
+    } else if (libSort === 'imdb') {
+      copy.sort(function(a, b){
+        var x = a.imdb_rating ? parseFloat(a.imdb_rating) : -1;
+        var y = b.imdb_rating ? parseFloat(b.imdb_rating) : -1;
+        return (isNaN(y) ? -1 : y) - (isNaN(x) ? -1 : x);
+      });
+    }
+    /* 'new' is the order the API already returns: newest into the library first. */
+    return copy;
+  }
+
+  function filterFilms(list){
+    if (libFilter === 'watched') {
+      return list.filter(function(f){ return f.watched; });
+    }
+    if (libFilter === 'unwatched') {
+      return list.filter(function(f){ return !f.watched; });
+    }
+    if (libFilter.indexOf('by:') === 0) {
+      var who = libFilter.slice(3);
+      return list.filter(function(f){
+        return f.brought_by && String(f.brought_by.member_id) === who;
+      });
+    }
+    return list;
+  }
+
+  function filterBar(list){
+    var owners = [];
+    var seen = {};
+    list.forEach(function(f){
+      if (!f.brought_by) return;
+      var id = String(f.brought_by.member_id);
+      if (seen[id]) return;
+      seen[id] = true;
+      owners.push(f.brought_by);
+    });
+    var chip = function(val, label, extra){
+      return '<button class="fchip' + (libFilter === val ? ' on' : '') +
+        '" data-filter="' + esc(val) + '">' + (extra || '') + esc(label) + '</button>';
+    };
+    var sortChip = function(val, label){
+      return '<button class="fchip' + (libSort === val ? ' on' : '') +
+        '" data-sort="' + esc(val) + '">' + esc(label) + '</button>';
+    };
+    return '<div class="vbar"><span class="vlabel">show</span>' +
+      chip('all', 'all') + chip('watched', 'watched') + chip('unwatched', 'unwatched') +
+      owners.map(function(o){
+        return chip('by:' + o.member_id, o.name, avatar(o));
+      }).join('') +
+      '<span class="vsep"></span><span class="vlabel">sort</span>' +
+      sortChip('new', 'newest') + sortChip('az', 'a to z') +
+      sortChip('paws', 'paws') + sortChip('imdb', 'imdb') +
+      '</div>';
+  }
+
+  /* ------------------------------------------------ the library screen */
+  function renderLibBoard(){
+    var el = document.getElementById('libboard');
+    if (!libData) { el.innerHTML = '<div class="vwrap"><div class="bempty">Loading the shelf...</div></div>'; return; }
+    var all = libData.library || [];
+    var shown = sortFilms(filterFilms(all));
+    /* Empty frames only when the shelf itself is young — a filter finding nothing is an
+       answer, not a gap to paper over. */
+    var ghosts = (libFilter === 'all' && all.length < 16) ? 16 - shown.length : 0;
+
+    el.innerHTML = '<div class="vhead">' +
+      '<div class="vtitle">The library<span class="vcount">' + all.length +
+      (all.length === 1 ? ' film' : ' films') + '</span></div>' +
+      '<div class="vspace"></div>' + filterBar(all) +
+      '<a class="pillbtn" href="#" id="navBack2">back to tonight</a></div>' +
+      '<div class="vwrap">' +
+      (shown.length || ghosts
+        ? '<div class="filmwall">' + shown.map(filmCard).join('') + ghostSlots(ghosts) + '</div>'
+        : '<div class="bempty">No films match that filter.</div>') +
+      '</div>';
   }
 
   function loadLibBoard(){
-    document.getElementById('libboard').innerHTML = '<div class="bempty">Loading the shelf...</div>';
+    libData = null;
+    renderLibBoard();
     fetch(API + 'tv-library?key=' + encodeURIComponent(KEY))
       .then(function(r){ return r.json(); })
       .then(function(d){
-        if (!d || !d.ok) {
-          document.getElementById('libboard').innerHTML =
-            '<div class="bempty">That did not load. Try again in a moment.</div>';
-          return;
-        }
-        renderLibBoard(d);
+        libData = (d && d.ok) ? d : { library: [] };
+        renderLibBoard();
       })
       .catch(function(){
-        document.getElementById('libboard').innerHTML =
-          '<div class="bempty">No signal from the Den.</div>';
+        libData = { library: [] };
+        renderLibBoard();
       });
   }
+
+  /* ------------------------------------------------ the history and stats board */
+  function statTile(k, v, sub, amber){
+    if (v == null || v === '') return '';
+    return '<div class="tile' + (amber ? ' amber' : '') + '"><div class="k">' + esc(k) +
+      '</div><div class="v">' + esc(String(v)) + '</div>' +
+      (sub ? '<div class="s">' + esc(sub) + '</div>' : '') + '</div>';
+  }
+
+  function renderBoard(){
+    var el = document.getElementById('board');
+    if (!boardData) { el.innerHTML = '<div class="vwrap"><div class="bempty">Loading the history...</div></div>'; return; }
+    var films = boardData.films || [];
+    var st = (boardData.stats) || {};
+    var n = st.numbers || {};
+    var cards = st.cards || [];
+
+    var tiles = [
+      statTile('nights watched', n.nights_watched, n.nights_total ? n.nights_total + ' planned in all' : ''),
+      statTile('films watched', n.films_watched, n.films_in_library ? n.films_in_library + ' on the shelf' : ''),
+      statTile('house average', n.house_average == null ? null : (Math.round(n.house_average * 10) / 10).toFixed(1),
+        n.paws_cast ? n.paws_cast + ' paws cast' : '', true),
+      statTile('votes cast', n.votes_cast, n.entries_total ? n.entries_total + ' entries in all' : ''),
+      statTile('majority locks', n.majority_rate == null ? null : n.majority_rate + '%',
+        n.majority_locked + ' of ' + n.spins_total + ' spins'),
+      statTile('double features', n.double_features, n.spins_total ? n.spins_total + ' spins total' : ''),
+      statTile('jokers banked', n.jokers_banked, n.jokers_spent + ' burned so far', true),
+      statTile('jokers ever', n.jokers_ever, n.members ? 'across ' + n.members + ' members' : ''),
+      statTile('longest streak', n.longest_streak ? n.longest_streak + ' nights' : null, n.streak_holder || ''),
+      statTile('entries a night', n.entries_per_night, 'average'),
+      statTile('most divisive', n.most_divisive_spread,
+        n.most_divisive ? n.most_divisive : ''),
+      statTile('most agreed on', n.least_divisive_spread,
+        n.least_divisive ? n.least_divisive : '')
+    ].join('');
+
+    el.innerHTML = '<div class="vhead">' +
+      '<div class="vtitle">History &amp; stats<span class="vcount">' + films.length +
+      (films.length === 1 ? ' film on the record' : ' films on the record') + '</span></div>' +
+      '<div class="vspace"></div>' +
+      '<a class="pillbtn" href="#" id="navBack">back to tonight</a></div>' +
+      '<div class="vwrap">' +
+      (tiles ? '<div class="strip">' + tiles + '</div>' : '') +
+      '<div class="secthead">What we have watched</div>' +
+      (films.length
+        ? '<div class="filmwall">' + films.map(filmCard).join('') + '</div>'
+        : '<div class="bempty">Nothing watched yet. The first night starts the record.</div>') +
+      (cards.length
+        ? '<div class="secthead">The folklore</div><div class="strip">' +
+          cards.map(function(c){
+            return '<div class="tile"><div class="k">' + esc(c.title) + '</div>' +
+              '<div class="v" style="font-size:22px">' + esc(c.headline) + '</div>' +
+              '<div class="s" style="white-space:normal">' + esc(c.line) + '</div></div>';
+          }).join('') + '</div>'
+        : '') +
+      '</div>';
+  }
+
+  function loadBoard(){
+    boardData = null;
+    renderBoard();
+    fetch(API + 'tv-stats?key=' + encodeURIComponent(KEY))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        boardData = (d && d.ok) ? d : { films: [], stats: {} };
+        renderBoard();
+      })
+      .catch(function(){
+        boardData = { films: [], stats: {} };
+        renderBoard();
+      });
+  }
+
+  /* ------------------------------------------------ the details modal */
+  function findFilm(id){
+    var pools = [(libData && libData.library) || [], (boardData && boardData.films) || []];
+    for (var p = 0; p < pools.length; p++) {
+      for (var i = 0; i < pools[p].length; i++) {
+        if (pools[p][i].film_id === id) return pools[p][i];
+      }
+    }
+    return null;
+  }
+
+  function renderModal(){
+    var el = document.getElementById('modal');
+    if (!modalFilm) { el.className = ''; el.innerHTML = ''; return; }
+    var f = modalFilm;
+    var facts = [];
+    if (f.year) facts.push('<span class="fact">' + esc(f.year) + '</span>');
+    if (f.runtime) facts.push('<span class="fact">' + esc(f.runtime) + '</span>');
+    if (f.imdb_rating) {
+      facts.push('<span class="fact paw">&#11088; ' + esc(f.imdb_rating) + ' imdb</span>');
+    }
+    (f.genres || []).forEach(function(g){
+      facts.push('<span class="fact">' + esc(g) + '</span>');
+    });
+
+    var den = [];
+    den.push('<div>Our paws<b>' +
+      (f.avg_paws == null ? '&mdash;' : (Math.round(f.avg_paws * 10) / 10).toFixed(1) +
+        ' from ' + f.rating_count) + '</b></div>');
+    den.push('<div>Times entered<b>' + (f.times_entered || 0) + '</b></div>');
+    den.push('<div>Brought in by<b>' +
+      (f.brought_by ? esc(f.brought_by.emoji) + ' ' + esc(f.brought_by.name) : '&mdash;') +
+      '</b></div>');
+    den.push('<div>' + (f.watched ? 'Watched' : 'On the shelf since') + '<b>' +
+      esc(whenText(f.watched ? f.watched_at : f.created_at) || 'not yet') + '</b></div>');
+    if (f.night) {
+      den.push('<div>That night<b>' + esc(f.night.night) +
+        (f.night.by_majority ? ' &middot; by majority' : '') + '</b></div>');
+    }
+
+    el.innerHTML = '<div class="scrim" data-close="1"></div><div class="box">' +
+      '<button class="pillbtn x" data-close="1">close</button>' +
+      '<div class="cover">' + poster(f.title, f.poster) + '</div>' +
+      '<div class="side"><h3>' + esc(f.title) +
+      (f.year ? ' <span class="yr">(' + esc(f.year) + ')</span>' : '') + '</h3>' +
+      (facts.length ? '<div class="mfacts">' + facts.join('') + '</div>' : '') +
+      '<p class="msyn">' + (f.synopsis ? esc(f.synopsis) : 'No synopsis on file for this one.') +
+      '</p><div class="den">' + den.join('') + '</div></div></div>';
+    el.className = 'on';
+  }
+
+  function openModal(id){
+    modalFilm = findFilm(id);
+    renderModal();
+  }
+  function closeModal(){
+    modalFilm = null;
+    renderModal();
+  }
+
+  /* ------------------------------------------------ screen wiring */
+  function screenClick(e){
+    var el = e.target.closest('[data-film], [data-filter], [data-sort], [data-close]');
+    if (!el) return;
+    if (el.getAttribute('data-close')) { closeModal(); return; }
+    var film = el.getAttribute('data-film');
+    /* Only the button opens the modal; hovering a card is not a commitment. */
+    if (film && el.className && el.className.indexOf('more') >= 0) { openModal(film); return; }
+    var flt = el.getAttribute('data-filter');
+    if (flt) { libFilter = flt; renderLibBoard(); return; }
+    var srt = el.getAttribute('data-sort');
+    if (srt) { libSort = srt; renderLibBoard(); return; }
+  }
+  document.getElementById('libboard').addEventListener('click', screenClick);
+  document.getElementById('board').addEventListener('click', screenClick);
+  document.getElementById('modal').addEventListener('click', screenClick);
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && modalFilm) closeModal();
+  });
 
   function routeView(){
     var stats = boardOn(), lib = libOn();

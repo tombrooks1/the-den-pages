@@ -527,7 +527,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     if (c.jokers) chips.push('<span class="mini j">' + c.jokers + ' &#127183;</span>');
     return '<div class="tile' + (opts.picked ? ' picked' : '') + '"' + act + '>' +
       '<span class="badge">' + (isLock ? 'LOCKED' : odds(c)) + '</span>' +
-      (mine ? '<div class="tags"><span class="tag out">yours</span></div>' : '') +
+      (mine ? '<div class="tags"><span class="tag out" title="Your own film. Play a joker on it instead.">yours</span></div>' : '') +
       poster(c.title, c.poster) +
       '<div class="t-title">' + esc(c.title) + '</div>' +
       '<div class="t-by"><span class="dot" style="background:' + safeColor(c.color) + '"></span>' +
@@ -550,7 +550,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     var n = S.night;
     if (!n) {
       return '<div class="card">' + empty('&#127871;',
-        'No night on the books. A host has to start one before anything interesting happens.') +
+        'No night planned yet. A host will set up the next one.') +
         '</div>' + comingUp(null);
     }
     var out = [];
@@ -574,7 +574,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     out.push('<div class="plusrow">' +
       '<button class="plus' + (minePlus ? ' on' : '') + '" data-act="plus">&#10133; +1</button>' +
       '<span class="tiny muted">' +
-      (minePlus ? 'One guest riding along. Tap to drop them.' : 'Bringing someone? Tap +1.') +
+      (minePlus ? 'Bringing one guest. Tap to remove them.' : 'Bringing someone? Tap +1.') +
       '</span></div>');
 
     if (n.status !== 'watched') {
@@ -603,7 +603,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
           }).join('') + '</div></div>');
       }
     } else {
-      out.push('<div class="tiny muted mt">Nobody has committed. Be the brave one.</div>');
+      out.push('<div class="tiny muted mt">Are you coming? Select one of the options above.</div>');
     }
     out.push('</div>');
 
@@ -631,8 +631,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
         poster(mineFilm.title, mineFilm.poster) +
         '<div><div class="t">' + esc(mineFilm.title) +
         (mineFilm.year ? ' <span class="muted" style="font-weight:600">(' + esc(mineFilm.year) + ')</span>' : '') +
-        '</div><div class="tiny muted" style="margin-top:5px">Yours for this night. ' +
-        'Nobody votes for their own.</div></div></div>' +
+        '</div><div class="tiny muted" style="margin-top:5px">Your film for this night. ' +
+        'Everyone votes for someone else&rsquo;s.</div></div></div>' +
         (canEnter
           ? '<div class="cta">' +
             '<button class="go" data-act="picker" data-night="' + esc(n.id) + '">Swap it</button>' +
@@ -645,9 +645,9 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
         '</div>');
     } else {
       out.push('<div class="mine slot">' +
-        '<div class="t">Nothing entered yet</div>' +
-        '<div class="tiny muted" style="margin-top:6px">One film each. Entering puts you in ' +
-        'the room and on the wheel.</div>' +
+        '<div class="t">No film entered yet</div>' +
+        '<div class="tiny muted" style="margin-top:6px">Choose one film for this night. ' +
+        'It goes straight on the wheel.</div>' +
         '<div class="cta"><button class="go" data-act="picker" data-night="' + esc(n.id) +
         '">Enter a film</button></div></div>');
     }
@@ -700,7 +700,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       return '<div class="sec"><div class="eyebrow">The line-up</div>' +
         '<h1 class="h">Nothing entered yet</h1>' +
         '<div class="card">' + empty('&#127916;',
-          'The wheel needs films. One each, and whoever enters is coming.') + '</div></div>';
+          'No films yet. Everyone brings one, and it goes on the wheel.') + '</div></div>';
     }
     var maj = n.majority || {};
     var voting = n.status === 'locked';
@@ -721,17 +721,17 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 
     if (jokerArmed) {
       out.push('<div class="tiny muted" style="margin-top:6px">' +
-        'Tap a film to burn your joker on it &mdash; your own counts too.</div>');
+        'Choose a film for your joker. Your own counts too.</div>');
     } else if (voting) {
       out.push('<div class="tiny muted" style="margin-top:6px">' +
         (canAct
-          ? 'One vote each, never your own. ' + (maj.threshold || 2) +
-            ' votes on the same film with a clear lead wins outright.'
-          : 'RSVP first &mdash; the wheel is for people in the room.') +
+          ? 'Choose one film &mdash; not your own. If ' + (maj.threshold || 2) +
+            ' of you choose the same one and it is clearly ahead, it wins outright.'
+          : 'Are you coming? Select one of the options above, then vote.') +
         '</div>');
     } else {
       out.push('<div class="tiny muted" style="margin-top:6px">' +
-        'Voting opens when the hosts call it. Weight is 1 + votes + jokers.</div>');
+        'Voting opens when a host calls it. Weight is 1 + votes + jokers.</div>');
     }
 
     var bal = (S.me && S.me.jokers) || 0;
@@ -742,14 +742,14 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       (canJoker ? '' : ' disabled') + '>&#127183; ' + (jokerArmed ? 'Pick a film' : bal + ' banked') +
       '</button><span class="tiny muted">' +
       (played
-        ? 'Joker spent tonight. No takebacks.'
+        ? 'Joker played for tonight.'
         : bal === 0
-        ? 'No jokers banked. Lose a night you entered and you earn one.'
+        ? 'No jokers banked. You earn one when a night you entered does not win.'
         : !voting
-        ? 'Playable once voting opens.'
+        ? 'You can play it once voting opens.'
         : !canAct
-        ? 'RSVP first.'
-        : '+1 weight on any film, yours included. Never counts toward the lock.') +
+        ? 'Mark yourself attending first.'
+        : '+1 weight on any film, yours included. It never counts toward the majority.') +
       '</span></div>');
     out.push('</div>');
     return out.join('');
@@ -813,8 +813,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     if (!shown.length) {
       out.push('<div class="card" style="margin-top:14px">' +
         empty('&#128218;', lib.length
-          ? 'Nothing here under that filter.'
-          : 'The shelf is empty. Enter a film and it lands here forever.') + '</div>');
+          ? 'No films match that filter.'
+          : 'No films yet. Anything entered lands here.') + '</div>');
       return out.join('');
     }
     out.push('<div class="lib">' + shown.map(function(f){
@@ -832,7 +832,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     var h = S.history || [];
     if (!h.length) {
       return '<div class="eyebrow">History</div><h1 class="h">Nothing yet</h1><div class="card">' +
-        empty('&#128220;', 'The folklore starts after the first set of credits rolls.') + '</div>';
+        empty('&#128220;', 'History starts after the first film.') + '</div>';
     }
     var out = ['<div class="eyebrow">History</div><h1 class="h">' + h.length +
       (h.length === 1 ? ' night on the record' : ' nights on the record') + '</h1>'];
@@ -907,8 +907,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     out.push('<div class="card"><div class="field">' +
       '<input id="th" type="text" autocomplete="off" maxlength="80" placeholder="Films with terrible dads">' +
       '<button id="addth" data-act="suggesttheme">Put up</button></div>' +
-      '<div class="tiny muted" style="margin-top:10px">Anyone can add one. 80 characters, ' +
-      'no promises.</div></div>');
+      '<div class="tiny muted" style="margin-top:10px">Anyone can add one, ' +
+      '80 characters or less.</div></div>');
     if (list.length) {
       out.push('<div class="card" style="margin-top:14px">' + list.map(function(t, i){
         return '<div class="throw' + (i ? ' sep' : '') + '">' + avatar(t) +
@@ -924,7 +924,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     if (!dossier) { sheetEl.innerHTML = ''; return; }
     if (dossier.loading) {
       sheetEl.innerHTML = '<div class="sheet"><div class="inner">' +
-        '<div class="tiny muted">Opening the file...</div></div></div>';
+        '<div class="tiny muted">Loading...</div></div></div>';
       return;
     }
     var f = dossier.film || {};
@@ -953,7 +953,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     if (f.synopsis) out.push('<p class="syn">' + esc(f.synopsis) + '</p>');
     out.push('<div class="tl"><div class="eyebrow">In the Den</div>');
     if (!tl.length) {
-      out.push('<div class="tiny muted" style="margin-top:10px">On the shelf, never entered. Yet.</div>');
+      out.push('<div class="tiny muted" style="margin-top:10px">On the shelf, not entered yet.</div>');
     } else {
       out.push(tl.map(function(t){
         var bits = [];
@@ -1014,7 +1014,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     document.body.innerHTML =
       '<div class="gate"><div class="box"><div class="big">&#127917;</div>' +
       '<h2>Open me from Telegram</h2>' +
-      '<p>The Den only unlocks from inside the chat. This link on its own cannot let you in. ' +
+      '<p>The Den opens from inside Telegram. Tap below, then open it from the bot. ' +
       '&#128062;</p>' +
       '<a class="gatebtn" href="https://t.me/kits_movienight_bot">Open @kits_movienight_bot</a>' +
       '<p class="after">then tap the menu button and pick <b>The Den</b></p>' +
@@ -1068,7 +1068,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       render();
       if (plusOnes === 1) toast('+1 riding along.');
       else if (plusOnes === 0) toast('+1 dropped.');
-      else toast(status === 'in' ? 'Seat reserved.' : status === 'maybe' ? 'Noncommittal. Noted.' : 'Out. The couch will cope.');
+      else toast(status === 'in' ? 'You are in.' : status === 'maybe' ? 'Marked as maybe.' : 'Marked as out.');
     }).catch(function(){ busy = false; S.my_rsvp = was; render(); toast('Could not save that.', true); });
   }
 
@@ -1151,7 +1151,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       applyNight(j);
       render();
       toast(j.majority && j.majority.locked && j.majority.leading === filmId
-        ? 'That is a majority. Locked in unless the room changes its mind.'
+        ? 'That is a majority. It is locked in unless the room changes its mind.'
         : 'Vote counted. +1 weight on that film.');
     }).catch(function(){ busy = false; S.my_vote = was; render(); toast('Vote did not stick.', true); });
   }
@@ -1168,7 +1168,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       if (typeof j.jokers_left === 'number') S.me.jokers = j.jokers_left;
       applyNight(j);
       render();
-      toast('Joker burned. +1, and the lock never sees it.');
+      toast('Joker played. +1 weight, and it does not count toward the majority.');
     }).catch(function(){ busy = false; jokerArmed = false; render(); toast('The joker stayed in the bank.', true); });
   }
 
@@ -1190,7 +1190,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
         });
       });
       render();
-      toast(paws >= 4 ? 'Generous. Logged.' : paws <= 2 ? 'Brutal. Logged.' : 'Logged.');
+      toast('Rating saved.');
     }).catch(function(){ busy = false; toast('Rating did not save.', true); });
   }
 
@@ -1215,10 +1215,10 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     dossier = { loading: true };
     renderSheet();
     api('film', { film_id: filmId }).then(function(j){
-      if (!j.ok) { dossier = null; renderSheet(); toast('No file on that one.', true); return; }
+      if (!j.ok) { dossier = null; renderSheet(); toast('Could not load that one.', true); return; }
       dossier = j;
       renderSheet();
-    }).catch(function(){ dossier = null; renderSheet(); toast('No file on that one.', true); });
+    }).catch(function(){ dossier = null; renderSheet(); toast('Could not load that one.', true); });
   }
 
   /* ------------------------------------------------ live lookup preview */

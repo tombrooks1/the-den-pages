@@ -391,22 +391,25 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
 /* ---------------- the details modal ---------------- */
 #modal{position:absolute;inset:0;z-index:40;display:none}
-#modal.on{display:block}
+/* Centred by the container, never by transform: the open animation ends on transform:none,
+   so anything that positioned the dialog with a transform would be dropped the moment it
+   settled. Flex does the centring; the keyframes only do the motion. */
+#modal.on{display:flex;align-items:center;justify-content:center;padding:40px}
 #modal .scrim{position:absolute;inset:0;background:rgba(8,6,14,.78);backdrop-filter:blur(10px);
   animation:fadein .2s ease both}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
-@keyframes popin{from{opacity:0;transform:scale(.965) translateY(12px)}to{opacity:1;transform:none}}
+@keyframes popin{from{opacity:0;transform:scale(.965)}to{opacity:1;transform:none}}
 #modal .box{
-  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  width:1360px;max-height:840px;display:flex;gap:46px;padding:46px;
+  position:relative;width:min(1400px,100%);max-height:100%;overflow-y:auto;
+  display:flex;gap:46px;padding:46px;
   border-radius:28px;background:linear-gradient(158deg,var(--s2),var(--s1));
   border:1px solid var(--line);box-shadow:0 60px 140px rgba(0,0,0,.8);
-  animation:popin .26s cubic-bezier(.2,.9,.3,1) both;
+  animation:popin .26s cubic-bezier(.2,.9,.3,1) both;transform-origin:center center;
 }
 #modal .cover{width:380px;flex:none}
 #modal .cover .poster{width:380px;height:570px;aspect-ratio:auto;border-radius:18px;
   box-shadow:0 30px 70px rgba(0,0,0,.6)}
-#modal .side{flex:1;min-width:0;overflow-y:auto}
+#modal .side{flex:1;min-width:0}
 #modal h3{font-size:46px;font-weight:800;letter-spacing:-.04em;line-height:1.04;margin:0}
 #modal .yr{color:var(--muted);font-weight:600}
 #modal .mfacts{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
@@ -1866,6 +1869,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
   });
 
   function routeView(){
+    /* A dialog belongs to the view that opened it. */
+    if (modalFilm) closeModal();
     var stats = boardOn(), lib = libOn();
     /* A viewer who guesses the hash still gets nothing: the panel needs the host link. */
     var adm = adminOn() && IS_HOST;

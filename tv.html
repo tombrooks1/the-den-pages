@@ -2267,7 +2267,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
         n.paws_cast ? n.paws_cast + ' paws cast' : '', true),
       statTile('votes cast', num(n.votes_cast),
         n.entries_total ? n.entries_total + ' entries in all' : ''),
-      statTile('majority locks', n.majority_rate == null ? null : n.majority_rate + '%',
+      statTile('landslides', n.majority_rate == null ? null : n.majority_rate + '%',
         n.spins_total ? (n.majority_locked || 0) + ' of ' + n.spins_total + ' spins' : ''),
       statTile('double features', num(n.double_features),
         n.spins_total ? n.spins_total + ' spins total' : ''),

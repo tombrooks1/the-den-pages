@@ -968,7 +968,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
         empty('&#128220;', 'History starts after the first film.') + '</div>';
     }
     var out = ['<div class="eyebrow">History</div><h1 class="h">' + h.length +
-      (h.length === 1 ? ' night on the record' : ' nights on the record') + '</h1>'];
+      (h.length === 1 ? ' night watched' : ' nights watched') + '</h1>'];
     out.push('<div class="card">');
     out.push(h.map(function(n){
       var films = n.films || [];

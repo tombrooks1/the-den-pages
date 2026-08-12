@@ -1064,6 +1064,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     }
     if (n.indexOf('youtube') >= 0) return 'https://www.youtube.com/results?search_query=' + q;
     if (n.indexOf('tubi') >= 0) return 'https://tubitv.com/search/' + q;
+    if (n.indexOf('plex') >= 0) return 'https://watch.plex.tv/search?q=' + q;
     return fallback || ('https://www.google.com/search?q=' + q + '+watch+' +
       encodeURIComponent(name || ''));
   }

@@ -520,6 +520,15 @@ body.idlecursor, body.idlecursor *{cursor:none}
   box-shadow:0 18px 50px rgba(0,0,0,.65)}
 .playbtn i{font-style:normal;font-size:13px;font-weight:800;letter-spacing:.24em;
   text-transform:uppercase;color:var(--text);padding:4px 12px;border-radius:999px}
+/* The cinema: the trailer plays here, on this screen, not on a tab somewhere else. */
+#cinema{position:fixed;inset:0;z-index:90;display:none}
+#cinema.on{display:block;animation:fadein .2s ease both}
+#cinema .cscrim{position:absolute;inset:0;background:rgba(8,6,14,.88);cursor:pointer}
+#cinema .cframe{position:absolute;inset:0;margin:auto;width:min(1620px,92vw);
+  aspect-ratio:16/9;max-height:86vh}
+#cinema iframe{width:100%;height:100%;border:0;border-radius:18px;background:#000;
+  box-shadow:0 60px 140px rgba(0,0,0,.85),0 0 0 1px rgba(245,185,66,.22)}
+#cinema .cx{position:absolute;top:-52px;right:0}
 #modal .side{flex:1;min-width:0}
 #modal h3{font-size:46px;font-weight:800;letter-spacing:-.04em;line-height:1.04;margin:0}
 #modal .yr{color:var(--muted);font-weight:600}
@@ -672,6 +681,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   <div id="libboard"></div>
   <div id="admin"></div>
   <div id="modal"></div>
+  <div id="cinema"></div>
   <div class="navrow" id="navrow"></div>
 
   <div id="reveal"></div>
@@ -2423,16 +2433,35 @@ body.idlecursor, body.idlecursor *{cursor:none}
       '<div class="wattr">streaming data by JustWatch via TMDB</div></div>';
   }
 
-  /* The trailer, one click away: TMDB's own YouTube key when we have it, an exact-title
-     YouTube search when we don't. */
+  /* The trailer, one click away. A known key plays right here in the cinema overlay; with
+     no key the button falls back to an exact-title YouTube search in a new tab. */
   function trailerBtn(f){
     var w = f.watch_providers;
-    var href = w && w.trailer
-      ? 'https://www.youtube.com/watch?v=' + encodeURIComponent(w.trailer)
+    var key = w && w.trailer ? String(w.trailer) : '';
+    var href = key
+      ? 'https://www.youtube.com/watch?v=' + encodeURIComponent(key)
       : 'https://www.youtube.com/results?search_query=' +
         encodeURIComponent(f.title + ' ' + (f.year || '') + ' trailer');
     return '<a class="playbtn" href="' + esc(href) + '" target="_blank" rel="noopener"' +
-      ' aria-label="Watch the trailer on YouTube"><span>&#9654;</span><i>trailer</i></a>';
+      (key ? ' data-trailer="' + esc(key) + '"' : '') +
+      ' aria-label="Watch the trailer"><span>&#9654;</span><i>trailer</i></a>';
+  }
+
+  /* ---------------- the cinema overlay ---------------- */
+  function openCinema(key){
+    var el = document.getElementById('cinema');
+    el.innerHTML = '<div class="cscrim" data-cclose="1"></div>' +
+      '<div class="cframe"><button class="pillbtn cx" data-cclose="1">close</button>' +
+      '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(key) +
+      '?autoplay=1&rel=0" title="Trailer"' +
+      ' allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe></div>';
+    el.className = 'on';
+  }
+  /* Emptying the overlay is what stops the sound. */
+  function closeCinema(){
+    var el = document.getElementById('cinema');
+    el.className = '';
+    el.innerHTML = '';
   }
 
   /* "streaming on Disney Plus &middot; Crave" — the passing version, for a hover panel. */
@@ -2505,6 +2534,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   /* ------------------------------------------------ screen wiring */
   function screenClick(e){
+    /* A play button with a known key stays in the room: the cinema, not a new tab. */
+    var tr = e.target.closest('[data-trailer]');
+    if (tr) { e.preventDefault(); openCinema(tr.getAttribute('data-trailer')); return; }
     var el = e.target.closest('[data-film], [data-filter], [data-sort], [data-close]');
     if (!el) return;
     if (el.getAttribute('data-close')) { closeModal(); return; }
@@ -2519,8 +2551,14 @@ body.idlecursor, body.idlecursor *{cursor:none}
   document.getElementById('libboard').addEventListener('click', screenClick);
   document.getElementById('board').addEventListener('click', screenClick);
   document.getElementById('modal').addEventListener('click', screenClick);
+  document.getElementById('cinema').addEventListener('click', function(e){
+    if (e.target.closest('[data-cclose]')) closeCinema();
+  });
   document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape' && modalFilm) closeModal();
+    if (e.key !== 'Escape') return;
+    /* The cinema sits on top of everything, so it leaves first. */
+    if (document.getElementById('cinema').className === 'on') { closeCinema(); return; }
+    if (modalFilm) closeModal();
   });
 
   function routeView(){

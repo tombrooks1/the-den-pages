@@ -162,6 +162,31 @@ body.idlecursor, body.idlecursor *{cursor:none}
   position:absolute;top:5px;left:5px;font-size:10px;font-weight:800;color:var(--text);
   padding:3px 5px;border-radius:999px;background:rgba(13,11,20,.82);border:1px solid var(--line);
 }
+.pw .jok{margin-top:4px;display:flex;flex-wrap:wrap;gap:3px}
+.pw .jok span{font-size:9px;font-weight:700;line-height:1;padding:3px 5px;border-radius:999px;
+  background:rgba(200,150,255,.12);border:1px solid rgba(200,150,255,.32);color:#e2c6ff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* 3. the host's quiet way to cancel a no-show's film */
+.pw .ejx{
+  position:absolute;top:5px;right:5px;z-index:3;width:22px;height:22px;padding:0;
+  font:inherit;font-size:13px;font-weight:800;line-height:1;cursor:pointer;
+  color:var(--muted);background:rgba(13,11,20,.86);border:1px solid var(--line);
+  border-radius:50%;display:grid;place-items:center;
+}
+.pw .ejx:hover{color:#ffc2cc;border-color:rgba(219,87,109,.5)}
+.pw .ejc{display:none}
+.pw.arm .ejc{
+  display:flex;flex-direction:column;gap:5px;position:absolute;inset:0;z-index:4;
+  align-items:center;justify-content:center;padding:8px;text-align:center;
+  background:rgba(8,6,14,.92);border-radius:9px;
+}
+.pw.arm .ejc .q{font-size:11px;font-weight:700;line-height:1.25;color:var(--text)}
+.pw.arm .ejc button{
+  font:inherit;font-size:10px;font-weight:800;line-height:1;padding:6px 10px;cursor:pointer;
+  border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);
+  color:var(--text);
+}
+.pw.arm .ejc .yes{color:#ffc2cc;border-color:rgba(219,87,109,.45)}
 .pw .tally.off{display:none}
 .pw.dim{filter:grayscale(1);opacity:.36}
 .pw .odds.sitting{color:var(--muted);border-color:var(--line);font-size:8px;letter-spacing:.04em}
@@ -290,7 +315,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 .vwrap{padding:0 64px 90px;min-height:100%}
 .vhead{
   position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:26px;
-  padding:38px 64px 20px;margin:0 -64px 26px;
+  padding:38px 64px 20px;margin:0 0 26px;
   background:linear-gradient(180deg,var(--bg) 62%,rgba(13,11,20,.86) 88%,transparent);
 }
 .vtitle{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1;flex:none}
@@ -577,6 +602,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   var canRollAgain = false; /* is there anything left for a second feature? */
   var lastReveal = null;    /* the reveal we can put back on screen */
   var SEAT_CAP = 14;        /* the living room's capacity, mirrored from the API */
+  var ejectArmed = '';      /* the film whose eject confirm is showing */
   var sigs = {};            /* last-painted signature per section — the anti-flicker record */
   var wallNodes = {};       /* film id -> the live nodes of its wall tile */
 
@@ -971,9 +997,16 @@ body.idlecursor, body.idlecursor *{cursor:none}
     wallEl.innerHTML = shown.map(function(c, i){
       return '<div class="pw" data-id="' + esc(c.film_id) + '" style="animation-delay:' +
         (i * 55) + 'ms"><span class="odds"></span><span class="tally off"></span>' +
+        (IS_HOST
+          ? '<button class="ejx" data-eject="' + esc(c.film_id) + '">&times;</button>' +
+            '<div class="ejc"><span class="q">Eject ' + esc(c.title) + '?</span>' +
+            '<button class="yes" data-ejectyes="' + esc(c.film_id) + '">eject</button>' +
+            '<button data-ejectno="1">keep</button></div>'
+          : '') +
         poster(c.title, c.poster) +
         '<div class="who"><span class="dot" style="background:' + safeColor(c.color) + '"></span>' +
-        esc(c.emoji) + ' ' + esc(c.member) + '</div></div>';
+        esc(c.emoji) + ' ' + esc(c.member) + '</div>' +
+        '<div class="jok"></div></div>';
     }).join('') + frames;
     var els = wallEl.querySelectorAll('.pw');
     for (var j = 0; j < els.length; j++) {
@@ -981,12 +1014,22 @@ body.idlecursor, body.idlecursor *{cursor:none}
         root: els[j],
         odds: els[j].querySelector('.odds'),
         tally: els[j].querySelector('.tally'),
-        cls: '', txt: '', v: ''
+        jok: els[j].querySelector('.jok'),
+        cls: '', txt: '', v: '', jk: ''
       };
     }
   }
 
+  var lastWallState = null;   /* what paintWall last drew, so a tap can redraw it */
+  var lastNightId = '';
+  function repaintWall(){
+    if (lastWallState) {
+      paintWall(lastWallState.shown, lastWallState.locked, lastWallState.maj);
+    }
+  }
+
   function paintWall(shown, locked, maj){
+    lastWallState = { shown: shown, locked: locked, maj: maj };
     for (var i = 0; i < shown.length; i++) {
       var c = shown[i];
       var node = wallNodes[c.film_id];
@@ -994,8 +1037,20 @@ body.idlecursor, body.idlecursor *{cursor:none}
       var isLock = !!(locked && maj.leading && c.film_id === maj.leading);
       var lockedOut = !!(locked && maj.leading && c.film_id !== maj.leading);
 
-      var cls = 'pw' + (isLock ? ' lock' : '') + (lockedOut ? ' dim' : '');
+      var cls = 'pw' + (isLock ? ' lock' : '') + (lockedOut ? ' dim' : '') +
+        (ejectArmed === c.film_id ? ' arm' : '');
       if (node.cls !== cls) { node.cls = cls; node.root.className = cls; }
+
+      /* Who spent a joker here — names, not just a count. */
+      var players = (c.joker_players || []).map(function(j){
+        return j.emoji + ' ' + j.name;
+      }).join('|');
+      if (node.jk !== players && node.jok) {
+        node.jk = players;
+        node.jok.innerHTML = (c.joker_players || []).map(function(j){
+          return '<span>&#127183; ' + esc(j.emoji) + ' ' + esc(j.name) + '</span>';
+        }).join('');
+      }
 
       var txt = isLock ? 'LOCKED' : pct(c.odds);
       if (node.txt !== txt) { node.txt = txt; node.odds.textContent = txt; }
@@ -1018,6 +1073,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var n = state.night;
     var maj = state.majority || {};
     var locked = !!(maj.locked && n && n.status === 'locked');
+    lastNightId = n ? n.id : '';
 
     var label = n ? n.label : 'No night on the books';
     var when = (n && n.date_label) ? n.date_label : '';
@@ -1158,6 +1214,32 @@ body.idlecursor, body.idlecursor *{cursor:none}
       document.getElementById('hint').innerHTML = hint;
     });
   }
+
+  /* A host can cancel a no-show's film without leaving the wheel screen. */
+  function ejectEntry(filmId){
+    var night = lastNightId;
+    if (!night) return;
+    ejectArmed = '';
+    fetch(API + 'admin/act', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ key: KEY, host: HOSTKEY, action: 'eject',
+        night_id: night, film_id: filmId })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(){ poll(); })
+      .catch(function(){ poll(); });
+  }
+
+  document.getElementById('wallList').addEventListener('click', function(e){
+    var el = e.target.closest('[data-eject], [data-ejectyes], [data-ejectno]');
+    if (!el || !IS_HOST) return;
+    if (el.getAttribute('data-ejectno')) { ejectArmed = ''; repaintWall(); return; }
+    var yes = el.getAttribute('data-ejectyes');
+    if (yes) { ejectEntry(yes); repaintWall(); return; }
+    ejectArmed = el.getAttribute('data-eject');
+    repaintWall();
+  });
 
   /* ------------------------------------------------ the countdown
      The only thing on this page that moves without a poll. It writes one element, and only

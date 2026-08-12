@@ -388,6 +388,12 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
   color:var(--muted);background:none;border:none;cursor:pointer;letter-spacing:.14em;text-transform:uppercase}
 .sheet .hd{display:flex;gap:14px;padding-right:56px}
 .sheet .hd .poster{width:84px;height:126px;aspect-ratio:auto;border-radius:12px;flex:none}
+.sheet .pw{position:relative;flex:none}
+/* A thumb has no hover: the trailer badge just lives on the poster. */
+.sheet .playbtn{position:absolute;inset:0;display:grid;place-items:center;text-decoration:none}
+.sheet .playbtn span{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
+  padding-left:3px;font-size:15px;color:var(--amber);background:rgba(13,11,20,.72);
+  border:1px solid var(--line)}
 .sheet h2{font-size:21px;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin:0}
 .gen{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
 .syn{margin-top:15px;font-size:13px;line-height:1.55;color:#c3bcd4}
@@ -399,9 +405,10 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 .watch .wk{flex:none;width:46px;padding-top:4px;font-size:10px;font-weight:800;
   letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 .watch .wp{display:flex;flex-wrap:wrap;gap:6px}
-.watch .wp span{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
+.watch .wp a{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
   padding:4px 9px 4px 4px;border-radius:999px;background:rgba(255,255,255,.06);
-  border:1px solid var(--line)}
+  border:1px solid var(--line);color:var(--text);text-decoration:none}
+.watch .wp a:active{border-color:var(--amber)}
 .watch .wp img{width:18px;height:18px;border-radius:5px;display:block}
 .watch .wlink{display:inline-block;margin-top:11px;font-size:12px;font-weight:800;
   color:var(--amber);text-decoration:none}
@@ -1036,13 +1043,39 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
   /* TMDB serves the logos; w92 is their own recommendation for a chip this size. */
   var TMDB_IMG = 'https://image.tmdb.org/t/p/w92';
 
-  function watchRow(key, list){
+  /**
+   * The closest thing each storefront has to a front door for one film: a search for the
+   * exact title on the big services, and the TMDB watch page (real deep links, kept by
+   * JustWatch) for anything we don't know a pattern for. Same map as the big screen.
+   */
+  function providerUrl(name, title, fallback){
+    var n = String(name || '').toLowerCase();
+    var q = encodeURIComponent(title || '');
+    if (n.indexOf('netflix') >= 0) return 'https://www.netflix.com/search?q=' + q;
+    if (n.indexOf('disney') >= 0) return 'https://www.disneyplus.com/search?q=' + q;
+    /* Amazon channels (Crave/Starz "…Amazon Channel") play inside Prime Video. */
+    if (n.indexOf('amazon') >= 0 || n.indexOf('prime') >= 0) {
+      return 'https://www.primevideo.com/search?phrase=' + q;
+    }
+    if (n.indexOf('apple tv') >= 0) return 'https://tv.apple.com/ca/search?term=' + q;
+    if (n.indexOf('crave') >= 0) return 'https://www.crave.ca/en/search?q=' + q;
+    if (n.indexOf('google play') >= 0) {
+      return 'https://play.google.com/store/search?c=movies&q=' + q;
+    }
+    if (n.indexOf('youtube') >= 0) return 'https://www.youtube.com/results?search_query=' + q;
+    if (n.indexOf('tubi') >= 0) return 'https://tubitv.com/search/' + q;
+    return fallback || ('https://www.google.com/search?q=' + q + '+watch+' +
+      encodeURIComponent(name || ''));
+  }
+
+  function watchRow(key, list, title, fallback){
     if (!list || !list.length) return '';
     return '<div class="wrow"><span class="wk">' + key + '</span><span class="wp">' +
       list.map(function(p){
-        return '<span>' +
+        return '<a href="' + esc(providerUrl(p.name, title, fallback)) +
+          '" target="_blank" rel="noopener">' +
           (p.logo ? '<img src="' + esc(TMDB_IMG + p.logo) + '" alt="">' : '') +
-          esc(p.name) + '</span>';
+          esc(p.name) + '</a>';
       }).join('') + '</span></div>';
   }
 
@@ -1050,14 +1083,27 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
    * Where to watch it. Nothing at all when the film has never been looked up or has nothing
    * on offer. The attribution line is required by TMDB's terms and is never optional.
    */
-  function watchBlock(w){
+  function watchBlock(w, title){
     if (!w) return '';
-    var rows = watchRow('Stream', w.flatrate) + watchRow('Rent', w.rent) + watchRow('Buy', w.buy);
+    var rows = watchRow('Stream', w.flatrate, title, w.link) +
+      watchRow('Rent', w.rent, title, w.link) + watchRow('Buy', w.buy, title, w.link);
     if (!rows && !w.link) return '';
     return '<div class="watch">' + rows +
       (w.link ? '<a class="wlink" href="' + esc(w.link) + '" target="_blank" rel="noopener">' +
         'more on TMDB &#8599;</a>' : '') +
       '<div class="wattr">streaming data by JustWatch via TMDB</div></div>';
+  }
+
+  /* The trailer, one tap away: TMDB's own YouTube key when we have it, an exact-title
+     YouTube search when we don't. */
+  function trailerBtn(f){
+    var w = f.watch_providers;
+    var href = w && w.trailer
+      ? 'https://www.youtube.com/watch?v=' + encodeURIComponent(w.trailer)
+      : 'https://www.youtube.com/results?search_query=' +
+        encodeURIComponent(f.title + ' ' + (f.year || '') + ' trailer');
+    return '<a class="playbtn" href="' + esc(href) + '" target="_blank" rel="noopener"' +
+      ' aria-label="Watch the trailer on YouTube"><span>&#9654;</span></a>';
   }
 
   /* ------------------------------------------------ the dossier sheet */
@@ -1078,8 +1124,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     if (avg != null) facts.push('&#128062; ' + avg.toFixed(1) + ' from ' + st.rating_count);
     var out = ['<div class="sheet" data-act="closesheet"><div class="inner">'];
     out.push('<button class="x" data-act="closesheet">close</button>');
-    out.push('<div class="hd">' + poster(f.title, f.poster) +
-      '<div><h2>' + esc(f.title) + '</h2>' +
+    out.push('<div class="hd"><div class="pw">' + poster(f.title, f.poster) + trailerBtn(f) +
+      '</div><div><h2>' + esc(f.title) + '</h2>' +
       (facts.length ? '<div class="tiny muted" style="margin-top:7px">' + facts.join(' &middot; ') + '</div>' : '') +
       (f.brought_by
         ? '<div class="tiny muted" style="margin-top:6px">brought in by ' + esc(f.brought_by.emoji) +
@@ -1122,7 +1168,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     if (st.total_votes) totals.push(st.total_votes + ' votes');
     if (st.total_jokers) totals.push(st.total_jokers + ' jokers burned');
     out.push('<div class="tiny muted" style="margin-top:14px">' + totals.join(' &middot; ') + '</div>');
-    out.push(watchBlock(f.watch_providers));
+    out.push(watchBlock(f.watch_providers, f.title));
     out.push('</div></div>');
     sheetEl.innerHTML = out.join('');
   }
@@ -1417,6 +1463,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
   });
 
   sheetEl.addEventListener('click', function(e){
+    /* A link is a departure, not a dismissal — leave the sheet as they left it. */
+    if (e.target.closest('a')) return;
     var el = e.target.closest('[data-act]');
     if (el && el.getAttribute('data-act') === 'closesheet') { dossier = null; renderSheet(); }
   });

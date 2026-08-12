@@ -185,6 +185,9 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 .throw.sep{margin-top:11px;padding-top:11px;border-top:1px solid var(--line)}
 .throw .av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;flex:none}
 .tag.vote.mine{background:linear-gradient(180deg,var(--amber),var(--amber-deep));color:#221806;border-color:transparent}
+.ownnote{margin-top:10px;padding:11px 13px;border-radius:13px;font-size:12px;
+  line-height:1.45;color:#e2c6ff;background:rgba(200,150,255,.1);
+  border:1px solid rgba(200,150,255,.3)}
 .lockbar{
   margin:14px 0 2px;padding:10px 14px;border-radius:14px;text-align:center;
   font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#221806;
@@ -428,6 +431,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
   var previewTimer = null;
   var pickerFor = null;       /* night id whose entry picker is open */
   var jokerArmed = false;     /* next tap on a film burns my joker */
+  var ownNoteFor = '';        /* night whose own-film explanation is showing */
+  var ownNoteFilm = '';       /* the film that was tapped */
   var libFilter = 'all';
   var dossier = null;         /* the open film sheet */
 
@@ -540,7 +545,15 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     var act = opts.act ? ' data-act="' + opts.act + '" data-id="' + esc(c.film_id) + '"' : '';
     var chips = [];
     if (c.votes) chips.push('<span class="mini v">' + c.votes + ' &#128499;&#65039;</span>');
-    if (c.jokers) chips.push('<span class="mini j">' + c.jokers + ' &#127183;</span>');
+    /* A joker is public: show whose it was, and fall back to a count if the name is missing. */
+    var players = c.joker_players || [];
+    if (players.length) {
+      players.forEach(function(j){
+        chips.push('<span class="mini j">&#127183; ' + esc(j.emoji) + ' ' + esc(j.name) + '</span>');
+      });
+    } else if (c.jokers) {
+      chips.push('<span class="mini j">' + c.jokers + ' &#127183;</span>');
+    }
     return '<div class="tile' + (opts.picked ? ' picked' : '') + '"' + act + '>' +
       '<span class="badge">' + (isLock ? 'LOCKED' : odds(c)) + '</span>' +
       (mine ? '<div class="tags"><span class="tag out" title="Your own film. Play a joker on it instead.">yours</span></div>' : '') +
@@ -743,6 +756,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     }
     var maj = n.majority || {};
     var voting = n.status === 'locked';
+    var ownNote = ownNoteFor === n.id ? ownNoteFilm : '';
     var mineStatus = (S.my_rsvp || {}).status || null;
     var canAct = mineStatus === 'in' || mineStatus === 'maybe';
     var picked = S.my_vote;
@@ -755,7 +769,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     var cap = n.seat_cap || 14;
     var slots = entries.map(function(c){
       var own = c.member_id === myId();
-      var act = jokerArmed ? 'joker' : (voting && canAct && !own ? 'vote' : null);
+      /* Your own film still answers a tap — with the reason, and the joker route. */
+      var act = jokerArmed ? 'joker' : (voting && canAct ? (own ? 'ownfilm' : 'vote') : null);
       return entryTile(c, { act: act, picked: c.film_id === picked, majority: maj });
     });
     /* A few empty frames so a thin line-up reads as room to fill, not as a fault. */
@@ -765,6 +780,21 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
         '<div class="slotcount">open</div></div>');
     }
     out.push('<div class="rail">' + slots.join('') + '</div>');
+    if (ownNote) {
+      var bal = (S.me && S.me.jokers) || 0;
+      out.push('<div class="ownnote">You cannot vote for your own submission. ' +
+        'A joker is the way to back it &mdash; ' +
+        (S.my_joker
+          ? 'and yours is already on the table tonight.'
+          : bal > 0
+          ? 'you have ' + bal + ' banked.'
+          : 'you have none banked yet.') +
+        '</div>' +
+        (canAct && bal > 0 && !S.my_joker
+          ? '<div class="cta"><button class="go" data-act="joker" data-id="' + esc(ownNote) +
+            '">&#127183; Play a joker on it</button></div>'
+          : ''));
+    }
 
     if (jokerArmed) {
       out.push('<div class="tiny muted" style="margin-top:6px">' +
@@ -1357,6 +1387,12 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     else if (act === 'enterfilm') {
       doEnter({ night_id: el.getAttribute('data-night'), film_id: el.getAttribute('data-id') },
         'Entered. Good luck.');
+    }
+    else if (act === 'ownfilm') {
+      ownNoteFor = (S.night && S.night.id) || '';
+      ownNoteFilm = el.getAttribute('data-id');
+      haptic('light');
+      render();
     }
     else if (act === 'vote') doVote(el.getAttribute('data-id'));
     else if (act === 'joker') doJoker(el.getAttribute('data-id'));

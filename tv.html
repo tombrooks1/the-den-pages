@@ -1530,7 +1530,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
     /* One section for the whole night: what is in, who brought it, and how the room is
        voting. The bars are skeletons until voting opens. */
-    var voting = !!n && n.status === 'locked';
+    /* Votes stay on the board after the wheel fires — the night is on the record. */
+    var voting = !!n && (n.status === 'locked' || n.status === 'spun');
     var threshold = maj.threshold || 4;
 
     /* Ranked once, here, and paged from there. Everything the board needs to redraw itself

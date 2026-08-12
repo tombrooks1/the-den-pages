@@ -381,6 +381,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 .sheet h2{font-size:21px;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin:0}
 .gen{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
 .syn{margin-top:15px;font-size:13px;line-height:1.55;color:#c3bcd4}
+.castline{margin-top:10px;font-size:12px;line-height:1.45;color:var(--muted)}
 .tl{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .tlrow{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:9px 0}
 .tlrow + .tlrow{border-top:1px dashed rgba(244,239,232,.08)}
@@ -997,6 +998,11 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
         : '') +
       '</div></div>');
     if (f.synopsis) out.push('<p class="syn">' + esc(f.synopsis) + '</p>');
+    var cast = (f.cast_list || []).slice(0, 3);
+    if (cast.length) {
+      out.push('<div class="castline">with ' + cast.map(esc).join(', ') +
+        ((f.cast_list || []).length > 3 ? '...' : '') + '</div>');
+    }
     out.push('<div class="tl"><div class="eyebrow">In the Den</div>');
     if (!tl.length) {
       out.push('<div class="tiny muted" style="margin-top:10px">On the shelf, not entered yet.</div>');
@@ -1014,6 +1020,10 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     }
     out.push('</div>');
     var totals = [];
+    if (f.director) {
+      out.push('<div class="castline"><b style="color:var(--text)">Directed by</b> ' +
+        esc(f.director) + '</div>');
+    }
     totals.push(st.times_entered + (st.times_entered === 1 ? ' entry' : ' entries'));
     if (st.total_votes) totals.push(st.total_votes + ' votes');
     if (st.total_jokers) totals.push(st.total_jokers + ' jokers burned');

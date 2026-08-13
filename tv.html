@@ -555,7 +555,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 #cinema .cx{position:absolute;top:-52px;right:0}
 .pillbtn.mute{position:fixed;left:26px;bottom:24px;z-index:40;opacity:.55}
 .pillbtn.mute:hover{opacity:1}
-.mcredit{position:fixed;left:26px;bottom:64px;z-index:40;font-size:11px;
+.mcredit{position:fixed;left:26px;top:16px;z-index:40;font-size:11px;
   color:var(--muted);opacity:.45;letter-spacing:.04em}
 /* House lights down while the announcer has the floor. */
 #lobby{transition:filter .8s ease}
@@ -1018,7 +1018,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
      The whole soundtrack is optional garnish: every play() failure is swallowed, so a
      browser that hasn't been touched yet (autoplay rules) just runs a silent ceremony. */
   var AUDIO_BASE = 'https://psomtujaikgcvblklzgv.supabase.co/storage/v1/object/public/audio/';
-  var CLIP_COUNTS = { spinup: 5, winner: 2, underdog: 3, coldopen: 3, landslide: 3 };
+  var CLIP_COUNTS = {
+    spinup: 5, winner: 2, underdog: 3, coldopen: 3, landslide: 3,
+    tminus10: 3, tminus2: 3
+  };
   var UNDERDOG_ODDS = 0.08;
   var MUTED = false;
   try { MUTED = localStorage.getItem('den-muted') === '1'; } catch (e) {}
@@ -1734,7 +1737,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
       var isLock = !!(maj.locked && maj.leading === c.film_id);
       /* A film that has already won keeps its row, so the picture of the night stays whole,
          but it wears a crown so nobody reads it as still in the running. */
-      var cls = 'srow' + (won[c.film_id] ? ' won' : '') + (isLock ? ' lock' : '') +
+      /* The positional 'up' must survive every repaint, or bottom dossiers clip again. */
+      var cls = 'srow' + (i % 3 !== 0 ? ' up' : '') +
+        (won[c.film_id] ? ' won' : '') + (isLock ? ' lock' : '') +
         (maj.leading === c.film_id ? ' lead' : '') + (ejectArmed === c.film_id ? ' arm' : '');
       if (node.cls !== cls) { node.cls = cls; node.root.className = cls; }
 
@@ -2025,20 +2030,59 @@ body.idlecursor, body.idlecursor *{cursor:none}
     if (!startsAt) return dateLabel ? esc(dateLabel) : '';
     var ms = startsAt - Date.now();
     if (ms <= 0) return 'tonight';
-    var mins = Math.floor(ms / 60000);
-    var days = Math.floor(mins / 1440);
-    var hours = Math.floor((mins % 1440) / 60);
-    var rem = mins % 60;
+    var total = Math.floor(ms / 1000);
+    var days = Math.floor(total / 86400);
+    var hours = Math.floor((total % 86400) / 3600);
+    var mins = Math.floor((total % 3600) / 60);
+    var secs = total % 60;
+    var two = function(n){ return (n < 10 ? '0' : '') + n; };
     var unit = function(n, u){ return n + '<span class="u">' + u + '</span>'; };
-    if (days > 0) return unit(days, days === 1 ? 'day' : 'days') + unit(hours, 'hr');
-    if (hours > 0) return unit(hours, hours === 1 ? 'hour' : 'hours') + unit(rem, 'min');
-    if (mins >= 10) return unit(mins, 'minutes');
-    /* Under ten minutes the seconds are the point. */
-    var secs = Math.max(0, Math.floor(ms / 1000) % 60);
-    return mins + ':' + (secs < 10 ? '0' : '') + secs + '<span class="u">to go</span>';
+    /* The clock always runs to the second — the wait should feel like a countdown. */
+    var clock = (days > 0 || hours > 0 ? two(hours) + ':' : '') + two(mins) + ':' + two(secs);
+    return (days > 0 ? unit(days, days === 1 ? 'day' : 'days') : '') + clock;
+  }
+
+  /* ---------------- the announcer's house calls ----------------
+     Crossing ten minutes out: refreshments. Crossing two: seats and silenced phones. Each
+     fires once per night (the crossing is the trigger, so a page opened late only gets the
+     calls still ahead of it), the jazz ducks under the voice and swells back after. */
+  var lastMsToGo = null;
+  var TMINUS = [
+    { at: 10 * 60000, group: 'tminus10' },
+    { at: 2 * 60000, group: 'tminus2' }
+  ];
+  function checkTminus(ms){
+    if (ms == null || MUTED ||
+        (lastNightStatus !== 'planned' && lastNightStatus !== 'locked')) {
+      lastMsToGo = ms;
+      return;
+    }
+    for (var i = 0; i < TMINUS.length; i++) {
+      var t = TMINUS[i];
+      if (lastMsToGo !== null && lastMsToGo > t.at && ms <= t.at && ms > 0) {
+        var guard = 'den-tminus-' + t.at + '-' + startsAt;
+        var seen = false;
+        try {
+          seen = !!localStorage.getItem(guard);
+          localStorage.setItem(guard, '1');
+        } catch (e) {}
+        if (!seen) duckThenPlay(randomClip(t.group));
+      }
+    }
+    lastMsToGo = ms;
+  }
+  function duckThenPlay(clip){
+    var restore = function(){
+      if (music && music.audio) fadeAudio(music.audio, MUSIC_VOL, 1400);
+    };
+    if (music && music.audio) fadeAudio(music.audio, 0.07, 600);
+    clip.addEventListener('ended', restore);
+    clip.addEventListener('error', restore);
+    playClip(clip);
   }
 
   function tickCountdown(){
+    checkTminus(startsAt ? startsAt - Date.now() : null);
     var txt = countdownText();
     if (txt === lastCount) return;
     lastCount = txt;

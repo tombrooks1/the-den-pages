@@ -554,6 +554,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
 #cinema .cx{position:absolute;top:-52px;right:0}
 .pillbtn.mute{position:fixed;left:26px;bottom:24px;z-index:40;opacity:.55}
 .pillbtn.mute:hover{opacity:1}
+/* House lights down while the announcer has the floor. */
+#lobby{transition:filter .8s ease}
+#lobby.preshow{filter:brightness(.62) saturate(.85)}
 #modal .side{flex:1;min-width:0}
 #modal h3{font-size:46px;font-weight:800;letter-spacing:-.04em;line-height:1.04;margin:0}
 #modal .yr{color:var(--muted);font-weight:600}
@@ -1010,7 +1013,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
      The whole soundtrack is optional garnish: every play() failure is swallowed, so a
      browser that hasn't been touched yet (autoplay rules) just runs a silent ceremony. */
   var AUDIO_BASE = 'https://psomtujaikgcvblklzgv.supabase.co/storage/v1/object/public/audio/';
-  var CLIP_COUNTS = { spinup: 5, winner: 2, underdog: 3 };
+  var CLIP_COUNTS = { spinup: 5, winner: 2, underdog: 3, coldopen: 3 };
   var UNDERDOG_ODDS = 0.08;
   var MUTED = false;
   try { MUTED = localStorage.getItem('den-muted') === '1'; } catch (e) {}
@@ -1092,6 +1095,57 @@ body.idlecursor, body.idlecursor *{cursor:none}
   }
 
   /**
+   * The pre-show: ten to thirty seconds of theatre before the first roll. A canned cold
+   * open plays instantly while the server writes and voices tonight's introduction from
+   * the real field — the favourite, the long shot, the joker. Any failure, or the mute
+   * switch, goes straight to the wheel: the show must go on, with or without the voice.
+   */
+  var preshowRan = false;
+  function runPreshow(next){
+    if (MUTED) { next(); return; }
+    audioCtx();
+    spinBtn.disabled = true;
+    spinBtn.textContent = '🎙 the announcer has the floor';
+    document.getElementById('lobby').classList.add('preshow');
+
+    var done = false;
+    var finish = function(){
+      if (done) return;
+      done = true;
+      document.getElementById('lobby').classList.remove('preshow');
+      spinBtn.textContent = FIRST_LABEL;
+      preshowRan = true;
+      next();
+    };
+    /* Whatever happens with the network, the wheel spins inside forty seconds. */
+    var cap = setTimeout(finish, 40000);
+
+    var cold = randomClip('coldopen');
+    var coldDone = false, introClip = null, introAsked = false;
+    var maybeIntro = function(){
+      if (done || !coldDone || !introAsked) return;
+      if (!introClip) { clearTimeout(cap); finish(); return; }
+      introClip.addEventListener('ended', function(){ clearTimeout(cap); finish(); });
+      introClip.addEventListener('error', function(){ clearTimeout(cap); finish(); });
+      playClip(introClip);
+    };
+    cold.addEventListener('ended', function(){ coldDone = true; maybeIntro(); });
+    cold.addEventListener('error', function(){ coldDone = true; maybeIntro(); });
+    playClip(cold);
+    /* A silent page (autoplay not yet unlocked) reports nothing — don't hang on it. */
+    setTimeout(function(){ coldDone = true; maybeIntro(); }, 6000);
+
+    fetch(API + 'preshow?key=' + encodeURIComponent(KEY), { method: 'POST' })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if (j && j.url) { introClip = new Audio(j.url); introClip.preload = 'auto'; }
+        introAsked = true;
+        maybeIntro();
+      })
+      .catch(function(){ introAsked = true; maybeIntro(); });
+  }
+
+  /**
    * The soundtrack of one spin: a random opener now, the drumroll line timed to end as
    * the wheel stops (an underdog gets an underdog line), the name call at the reveal —
    * generated server-side while the wheel is still turning.
@@ -1103,7 +1157,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
     for (i = 0; i < cands.length; i++) {
       if (cands[i].film_id === res.winner_film_id) winner = cands[i];
     }
-    playClip(randomClip('spinup'));
+    /* After a pre-show the room has heard plenty — the wheel gets straight to ticking. */
+    if (!preshowRan) playClip(randomClip('spinup'));
+    preshowRan = false;
     scheduleTicks(ms, totalDeg, cands.length);
 
     var group = winner && (winner.odds || 0) < UNDERDOG_ODDS ? 'underdog' : 'winner';
@@ -2938,18 +2994,21 @@ body.idlecursor, body.idlecursor *{cursor:none}
     if (spinning || spinBtn.disabled) return;
     /* Same call, same animation, same dual reveal as the button on the reveal itself. */
     if (lobbyRolls) { rollSecond(spinBtn, SECOND_LABEL); return; }
-    spinning = true;
-    spinBtn.disabled = true;
-    fetch(spinUrl(), { method: 'POST' })
-      .then(function(r){ return r.json(); })
-      .then(function(j){
-        spinning = false;
-        if (!j || !j.ok || !j.spin) { spinBtn.disabled = false; return; }
-        if (shownSpins[j.spin.id]) return;
-        shownSpins[j.spin.id] = true;
-        runSpinAnimation(j.spin, j.votes);
-      })
-      .catch(function(){ spinning = false; spinBtn.disabled = false; });
+    /* The first roll of the night earns the full ceremony; repeat rolls cut to the chase. */
+    runPreshow(function(){
+      spinning = true;
+      spinBtn.disabled = true;
+      fetch(spinUrl(), { method: 'POST' })
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          spinning = false;
+          if (!j || !j.ok || !j.spin) { spinBtn.disabled = false; return; }
+          if (shownSpins[j.spin.id]) return;
+          shownSpins[j.spin.id] = true;
+          runSpinAnimation(j.spin, j.votes);
+        })
+        .catch(function(){ spinning = false; spinBtn.disabled = false; });
+    });
   });
 
   document.getElementById('navrow').innerHTML =

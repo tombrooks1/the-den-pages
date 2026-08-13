@@ -1013,7 +1013,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
      The whole soundtrack is optional garnish: every play() failure is swallowed, so a
      browser that hasn't been touched yet (autoplay rules) just runs a silent ceremony. */
   var AUDIO_BASE = 'https://psomtujaikgcvblklzgv.supabase.co/storage/v1/object/public/audio/';
-  var CLIP_COUNTS = { spinup: 5, winner: 2, underdog: 3, coldopen: 3 };
+  var CLIP_COUNTS = { spinup: 5, winner: 2, underdog: 3, coldopen: 3, landslide: 3 };
   var UNDERDOG_ODDS = 0.08;
   var MUTED = false;
   try { MUTED = localStorage.getItem('den-muted') === '1'; } catch (e) {}
@@ -1162,7 +1162,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
     preshowRan = false;
     scheduleTicks(ms, totalDeg, cands.length);
 
-    var group = winner && (winner.odds || 0) < UNDERDOG_ODDS ? 'underdog' : 'winner';
+    /* A locked night gets sarcasm: everyone knows, the wheel is ceremonial. */
+    var maj = res.majority || {};
+    var group = maj.locked
+      ? 'landslide'
+      : winner && (winner.odds || 0) < UNDERDOG_ODDS ? 'underdog' : 'winner';
     var wclip = randomClip(group);
     wclip.addEventListener('loadedmetadata', function(){
       var lead = Math.min(wclip.duration * 1000 + 300, ms - 1200);

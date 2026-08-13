@@ -1074,29 +1074,14 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
   var TMDB_IMG = 'https://image.tmdb.org/t/p/w92';
 
   /**
-   * The closest thing each storefront has to a front door for one film: a search for the
-   * exact title on the big services, and the TMDB watch page (real deep links, kept by
-   * JustWatch) for anything we don't know a pattern for. Same map as the big screen.
+   * Every chip opens the film's own TMDB watch page — the JustWatch-maintained page for
+   * exactly this movie, with a real working button per service. True per-service deep
+   * links aren't public API (hand-built search URLs proved to 404 on half the services),
+   * so the one reliable door is the page that has them all. Same rule as the big screen.
    */
-  function providerUrl(name, title, fallback){
-    var n = String(name || '').toLowerCase();
-    var q = encodeURIComponent(title || '');
-    if (n.indexOf('netflix') >= 0) return 'https://www.netflix.com/search?q=' + q;
-    if (n.indexOf('disney') >= 0) return 'https://www.disneyplus.com/search?q=' + q;
-    /* Amazon channels (Crave/Starz "…Amazon Channel") play inside Prime Video. */
-    if (n.indexOf('amazon') >= 0 || n.indexOf('prime') >= 0) {
-      return 'https://www.primevideo.com/search?phrase=' + q;
-    }
-    if (n.indexOf('apple tv') >= 0) return 'https://tv.apple.com/ca/search?term=' + q;
-    if (n.indexOf('crave') >= 0) return 'https://www.crave.ca/en/search?q=' + q;
-    if (n.indexOf('google play') >= 0) {
-      return 'https://play.google.com/store/search?c=movies&q=' + q;
-    }
-    if (n.indexOf('youtube') >= 0) return 'https://www.youtube.com/results?search_query=' + q;
-    if (n.indexOf('tubi') >= 0) return 'https://tubitv.com/search/' + q;
-    if (n.indexOf('plex') >= 0) return 'https://watch.plex.tv/search?q=' + q;
-    return fallback || ('https://www.google.com/search?q=' + q + '+watch+' +
-      encodeURIComponent(name || ''));
+  function providerUrl(name, title, link){
+    return link || ('https://www.google.com/search?q=' +
+      encodeURIComponent((title || '') + ' watch ' + (name || '')));
   }
 
   function watchRow(key, list, title, fallback){
@@ -1118,10 +1103,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     if (!w) return '';
     var rows = watchRow('Stream', w.flatrate, title, w.link) +
       watchRow('Rent', w.rent, title, w.link) + watchRow('Buy', w.buy, title, w.link);
-    if (!rows && !w.link) return '';
+    if (!rows) return '';
     return '<div class="watch">' + rows +
-      (w.link ? '<a class="wlink" href="' + esc(w.link) + '" target="_blank" rel="noopener">' +
-        'more on TMDB &#8599;</a>' : '') +
       '<div class="wattr">streaming data by JustWatch via TMDB</div></div>';
   }
 

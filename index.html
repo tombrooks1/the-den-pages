@@ -390,6 +390,13 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 .sheet .hd{display:flex;gap:14px;padding-right:56px}
 .sheet .hd .poster{width:84px;height:126px;aspect-ratio:auto;border-radius:12px;flex:none}
 .sheet .pw{position:relative;flex:none}
+.av img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+.face[data-member]{cursor:pointer}
+.pface2{width:84px;height:84px;border-radius:50%;object-fit:cover;flex:none;display:block}
+.pface2.pemoji2{display:grid;place-items:center;font-size:38px}
+.hostpill{font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+  color:#0d0b14;background:var(--amber);border-radius:4px;padding:3px 7px;
+  vertical-align:4px;margin-left:7px}
 /* A thumb has no hover: the trailer badge just lives on the poster. */
 .sheet .playbtn{position:absolute;inset:0;display:grid;place-items:center;text-decoration:none}
 .sheet .playbtn span{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
@@ -530,8 +537,13 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       a + ' 42% 27%),hsl(' + b + ' 52% 13%))">' +
       '<span class="ph-t">' + esc(title) + '</span><span class="ph-f">&#127916;</span></div>';
   }
+  /* A real Telegram photo when we have one; the animal emoji when we don't. */
   function avatar(m, cls){
     var c = safeColor(m && m.color);
+    if (m && m.avatar) {
+      return '<span class="av' + (cls ? ' ' + cls : '') + '" style="box-shadow:inset 0 0 0 1px ' +
+        c + '88"><img src="' + esc(m.avatar) + '" alt=""></span>';
+    }
     return '<span class="av' + (cls ? ' ' + cls : '') + '" style="background:' + c + '33;box-shadow:inset 0 0 0 1px ' +
       c + '88">' + ((m && m.emoji) ? esc(m.emoji) : '&#128062;') + '</span>';
   }
@@ -675,7 +687,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       var order = { 'in':0, 'maybe':1, 'out':2 };
       var sorted = list.slice().sort(function(a, b){ return order[a.status] - order[b.status]; });
       out.push('<div class="faces">' + sorted.map(function(r){
-        return '<span class="face ' + esc(r.status) + '">' + avatar(r) + esc(r.name) +
+        return '<span class="face ' + esc(r.status) + '" data-act="profile" data-member="' +
+          r.member_id + '">' + avatar(r) + esc(r.name) +
           (r.plus_ones === 1 ? ' +1' : '') + '</span>';
       }).join('') + '</div>');
       out.push(seatRow(n));
@@ -1151,6 +1164,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
         '<div class="tiny muted">Loading...</div></div></div>';
       return;
     }
+    if (dossier.profile) { sheetEl.innerHTML = profileSheetHtml(dossier.profile); return; }
     var f = dossier.film || {};
     var st = dossier.stats || {};
     var tl = dossier.timeline || [];
@@ -1455,6 +1469,67 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     }).catch(function(){ dossier = null; renderSheet(); toast('Could not load that one.', true); });
   }
 
+  /* A member's whole record, opened by tapping their face anywhere. */
+  function openProfile(memberId){
+    dossier = { loading: true };
+    renderSheet();
+    api('profile', { member: Number(memberId) }).then(function(j){
+      if (!j.ok) { dossier = null; renderSheet(); toast('Could not load them.', true); return; }
+      dossier = { profile: j };
+      renderSheet();
+    }).catch(function(){ dossier = null; renderSheet(); toast('Could not load them.', true); });
+  }
+
+  function profileSheetHtml(p){
+    var m = p.member, c = p.counts;
+    var face = m.avatar
+      ? '<img class="pface2" src="' + esc(m.avatar) + '" alt="">'
+      : '<div class="pface2 pemoji2" style="background:' + safeColor(m.color) + '33">' +
+        esc(m.emoji) + '</div>';
+    var out = ['<div class="sheet" data-act="closesheet"><div class="inner">'];
+    out.push('<button class="x" data-act="closesheet">close</button>');
+    out.push('<div class="hd">' + face + '<div><h2>' + esc(m.name) +
+      (m.is_host ? ' <span class="hostpill">host</span>' : '') + '</h2>' +
+      '<div class="tiny muted" style="margin-top:7px">&#127183; ' + (m.jokers || 0) +
+      (m.jokers === 1 ? ' joker' : ' jokers') + ' &middot; ' + c.nights_in +
+      (c.nights_in === 1 ? ' night in' : ' nights in') + ' &middot; ' + c.wins +
+      (c.wins === 1 ? ' win' : ' wins') + '</div></div></div>');
+
+    function section(title, rows){
+      if (!rows.length) return;
+      out.push('<div class="tl"><div class="eyebrow">' + title + '</div>' + rows.join('') +
+        '</div>');
+    }
+    section('Their films', p.entries.slice(0, 6).map(function(e){
+      return '<div class="tlrow"><div>' + esc(e.title) +
+        ' <span class="muted">&middot; ' + esc(e.night) + '</span></div>' +
+        '<div class="w">' + (e.won ? 'won' : '') + '</div></div>';
+    }));
+    var voteRows = p.votes.slice(0, 6).map(function(v){
+      return '<div class="tlrow"><div>' + esc(v.title) +
+        ' <span class="muted">&middot; ' + esc(v.night) + '</span></div></div>';
+    });
+    if (p.sealed_votes > 0) {
+      voteRows.push('<div class="tlrow"><div class="muted">' + p.sealed_votes +
+        (p.sealed_votes === 1 ? ' ballot sealed' : ' ballots sealed') +
+        ' until the night ends</div></div>');
+    }
+    section('Votes on the record', voteRows);
+    section('Their paws', p.ratings.slice(0, 6).map(function(r){
+      var paws = '';
+      for (var i = 0; i < Math.max(1, Math.min(5, r.paws || 0)); i++) paws += '&#128062;';
+      return '<div class="tlrow"><div>' + esc(r.title) + '</div><div class="w">' + paws +
+        '</div></div>';
+    }));
+    section('Jokers played', p.jokers_played.slice(0, 6).map(function(j){
+      return '<div class="tlrow"><div>&#127183; ' + esc(j.title) +
+        ' <span class="muted">&middot; ' + esc(j.night) + '</span></div>' +
+        '<div class="w">' + (j.refunded ? 'refunded' : '') + '</div></div>';
+    }));
+    out.push('</div></div>');
+    return out.join('');
+  }
+
   /* ------------------------------------------------ live lookup preview */
   var lastPreview = null;
   function onQuery(e){
@@ -1555,6 +1630,7 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     else if (act === 'armjoker') { jokerArmed = !jokerArmed; haptic('light'); render(); }
     else if (act === 'filter') { libFilter = el.getAttribute('data-f'); render(); }
     else if (act === 'dossier') openDossier(el.getAttribute('data-id'));
+    else if (act === 'profile') openProfile(el.getAttribute('data-member'));
     else if (act === 'suggesttheme') doSuggestTheme();
     else if (act === 'rate') {
       doRate(el.getAttribute('data-night'), el.getAttribute('data-film'),

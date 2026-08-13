@@ -104,6 +104,31 @@ body.idlecursor, body.idlecursor *{cursor:none}
   background:rgba(255,255,255,.045);border:1px solid var(--line);overflow:hidden;
   animation:cardin .4s cubic-bezier(.2,.9,.3,1) both;
 }
+.av img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+/* ---------------- member profiles ---------------- */
+.seat[data-member],.chip[data-member]{cursor:pointer;transition:border-color .15s ease}
+.seat[data-member]:hover,.chip[data-member]:hover{border-color:rgba(245,185,66,.55)}
+#modal .pbox{width:min(1150px,100%)}
+#modal .pcol{width:260px;flex:none}
+.pface{width:240px;height:240px;border-radius:50%;object-fit:cover;display:block;
+  box-shadow:0 30px 70px rgba(0,0,0,.6),0 0 0 1px var(--line)}
+.pface.pemoji{display:grid;place-items:center;font-size:104px}
+.phost{font-size:13px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  color:#0d0b14;background:var(--amber);border-radius:6px;padding:4px 10px;
+  vertical-align:8px;margin-left:10px}
+.psec{margin:24px 0 10px;font-size:12px;font-weight:800;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--muted)}
+.prow{display:flex;align-items:center;gap:14px;padding:8px 0;
+  border-top:1px solid rgba(244,239,232,.06)}
+.prow .poster{width:44px;height:66px;aspect-ratio:auto;border-radius:8px;flex:none}
+.prow .pt{flex:1;min-width:0}
+.prow .pt b{display:block;font-size:17px;font-weight:700;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.prow .pt i{font-style:normal;font-size:13px;color:var(--muted)}
+.pwon{flex:none;font-size:13px;font-weight:800;color:var(--amber)}
+.pline{padding:6px 0;font-size:15.5px;border-top:1px solid rgba(244,239,232,.06)}
+.pline .paws{margin-left:8px}
+.dim{color:var(--muted)}
 .seat .av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px;
   flex:none}
 .seat .nm{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -794,8 +819,13 @@ body.idlecursor, body.idlecursor *{cursor:none}
       ' 42% 27%),hsl(' + b + ' 52% 13%))"><span class="ph-t">' + esc(title) +
       '</span><span class="ph-f">&#127916;</span></div>';
   }
+  /* A real Telegram photo when we have one; the animal emoji when we don't. */
   function avatar(m){
     var c = safeColor(m && m.color);
+    if (m && m.avatar) {
+      return '<span class="av" style="box-shadow:inset 0 0 0 2px ' + c + '99">' +
+        '<img src="' + esc(m.avatar) + '" alt=""></span>';
+    }
     return '<span class="av" style="background:' + c + '33;box-shadow:inset 0 0 0 2px ' + c + '99">' +
       ((m && m.emoji) ? esc(m.emoji) : '&#128062;') + '</span>';
   }
@@ -1518,7 +1548,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
       return order[a.status] - order[b.status];
     });
     var rollSig = sorted.map(function(r){
-      return r.member_id + ':' + r.status + ':' + (r.plus_ones || 0) + ':' + r.name;
+      return r.member_id + ':' + r.status + ':' + (r.plus_ones || 0) + ':' + r.name +
+        ':' + (r.avatar ? '1' : '0');
     }).join('|') + '#' + (state.headcount || 0);
     section('roll', rollSig, function(){
       var ins = sorted.filter(function(r){ return r.status === 'in'; });
@@ -1542,7 +1573,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
           seats.push('<div class="seat guest" style="animation-delay:' + (i * 18) + 'ms">' +
             avatar(t.who) + '<span class="nm">+1 of ' + esc(t.who.name) + '</span></div>');
         } else {
-          seats.push('<div class="seat" style="animation-delay:' + (i * 18) + 'ms">' +
+          seats.push('<div class="seat" data-member="' + t.who.member_id +
+            '" style="animation-delay:' + (i * 18) + 'ms">' +
             avatar(t.who) + '<span class="nm">' + esc(t.who.name) + '</span></div>');
         }
       }
@@ -1553,7 +1585,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
       if (maybes.length) {
         html += '<div class="roll"><span class="rtag">maybe</span>' +
           maybes.map(function(r, i){
-            return '<span class="chip maybe" style="animation-delay:' + (i * 60) + 'ms">' +
+            return '<span class="chip maybe" data-member="' + r.member_id +
+              '" style="animation-delay:' + (i * 60) + 'ms">' +
               avatar(r) + esc(r.name) + (r.plus_ones === 1 ? ' +1' : '') +
               '<span class="q">?</span></span>';
           }).join('') + '</div>';
@@ -2528,11 +2561,97 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   function openModal(id){
     modalFilm = findFilm(id);
+    modalProfile = null;
     renderModal();
   }
   function closeModal(){
     modalFilm = null;
+    modalProfile = null;
     renderModal();
+  }
+
+  /* ------------------------------------------------ member profiles */
+  var modalProfile = null;
+
+  function openProfile(id){
+    fetch(API + 'tv-profile?key=' + encodeURIComponent(KEY) + '&member=' + encodeURIComponent(id))
+      .then(function(r){ return r.json(); })
+      .then(function(p){
+        if (!p || !p.ok) return;
+        modalProfile = p;
+        modalFilm = null;
+        renderProfileModal();
+      })
+      .catch(function(){});
+  }
+
+  function profileRows(title, rows){
+    if (!rows.length) return '';
+    return '<div class="psec">' + title + '</div>' + rows.join('');
+  }
+
+  function renderProfileModal(){
+    var el = document.getElementById('modal');
+    var p = modalProfile;
+    if (!p) { el.className = ''; el.innerHTML = ''; return; }
+    var m = p.member, c = p.counts;
+
+    var face = m.avatar
+      ? '<img class="pface" src="' + esc(m.avatar) + '" alt="">'
+      : '<div class="pface pemoji" style="background:' + safeColor(m.color) + '33">' +
+        esc(m.emoji) + '</div>';
+
+    var facts = [
+      '<span class="fact">&#127183; ' + (m.jokers || 0) +
+        (m.jokers === 1 ? ' joker' : ' jokers') + ' in the bank</span>',
+      '<span class="fact">' + c.nights_in + (c.nights_in === 1 ? ' night in' : ' nights in') +
+        '</span>',
+      '<span class="fact">' + c.entries + (c.entries === 1 ? ' film entered' : ' films entered') +
+        '</span>',
+      '<span class="fact">' + c.wins + (c.wins === 1 ? ' win' : ' wins') + '</span>'
+    ].join('');
+
+    var entries = p.entries.slice(0, 6).map(function(e){
+      return '<div class="prow">' + poster(e.title, e.poster) +
+        '<div class="pt"><b>' + esc(e.title) +
+        (e.year ? ' <span class="dim">(' + esc(e.year) + ')</span>' : '') + '</b>' +
+        '<i>' + esc(e.night) + '</i></div>' +
+        (e.won ? '<span class="pwon">&#128081; won</span>' : '') + '</div>';
+    });
+
+    var votes = p.votes.slice(0, 6).map(function(v){
+      return '<div class="pline">' + esc(v.title) + ' <span class="dim">&middot; ' +
+        esc(v.night) + '</span></div>';
+    });
+    if (p.sealed_votes > 0) {
+      votes.push('<div class="pline dim">' + p.sealed_votes +
+        (p.sealed_votes === 1 ? ' ballot sealed' : ' ballots sealed') +
+        ' until the night ends</div>');
+    }
+
+    var ratings = p.ratings.slice(0, 6).map(function(r){
+      return '<div class="pline">' + esc(r.title) + ' <span class="paws">' +
+        '&#128062;'.repeat(Math.max(1, Math.min(5, r.paws || 0))) + '</span></div>';
+    });
+
+    var jokers = p.jokers_played.slice(0, 6).map(function(j){
+      return '<div class="pline">&#127183; on ' + esc(j.title) +
+        ' <span class="dim">&middot; ' + esc(j.night) +
+        (j.refunded ? ' &middot; refunded' : '') + '</span></div>';
+    });
+
+    el.innerHTML = '<div class="scrim" data-close="1"></div><div class="box pbox">' +
+      '<button class="pillbtn x" data-close="1">close</button>' +
+      '<div class="pcol">' + face + '</div>' +
+      '<div class="side"><h3>' + esc(m.emoji) + ' ' + esc(m.name) +
+      (m.is_host ? ' <span class="phost">host</span>' : '') + '</h3>' +
+      '<div class="mfacts">' + facts + '</div>' +
+      profileRows('Their films', entries) +
+      profileRows('Votes on the record', votes) +
+      profileRows('Their paws', ratings) +
+      profileRows('Jokers played', jokers) +
+      '</div></div>';
+    el.className = 'on';
   }
 
   /* ------------------------------------------------ screen wiring */
@@ -2561,12 +2680,20 @@ body.idlecursor, body.idlecursor *{cursor:none}
     if (e.key !== 'Escape') return;
     /* The cinema sits on top of everything, so it leaves first. */
     if (document.getElementById('cinema').className === 'on') { closeCinema(); return; }
-    if (modalFilm) closeModal();
+    if (modalFilm || modalProfile) closeModal();
   });
+
+  /* Any face in the lobby opens the person behind it. */
+  function memberClick(e){
+    var el = e.target.closest('[data-member]');
+    if (el) openProfile(el.getAttribute('data-member'));
+  }
+  document.getElementById('seatGrid').addEventListener('click', memberClick);
+  document.getElementById('rollList').addEventListener('click', memberClick);
 
   function routeView(){
     /* A dialog belongs to the view that opened it. */
-    if (modalFilm) closeModal();
+    if (modalFilm || modalProfile) closeModal();
     var stats = boardOn(), lib = libOn();
     /* A viewer who guesses the hash still gets nothing: the panel needs the host link. */
     var adm = adminOn() && IS_HOST;

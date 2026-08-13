@@ -260,8 +260,9 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
 .stat .bd{position:relative;z-index:1}
 .stat .badge2{font-size:22px;line-height:1}
 .stat .st-title{margin-top:10px;font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
-.stat .st-head{margin-top:5px;font-size:23px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
-.stat .st-line{margin-top:9px;font-size:13px;color:#c3bcd4;line-height:1.45}
+.stat .st-head{margin-top:5px;font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1.12}
+.stat .st-sub{margin-top:5px;font-size:15px;font-weight:700;color:var(--amber)}
+.stat .st-line{margin-top:9px;font-size:14px;color:#c3bcd4;line-height:1.5}
 .stat .st-who{margin-top:14px;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;
   padding:5px 12px 5px 5px;border-radius:999px;background:rgba(0,0,0,.28);border:1px solid var(--line)}
 .stat .st-who .av{width:21px;height:21px;border-radius:50%;display:grid;place-items:center;font-size:11px}
@@ -1020,12 +1021,16 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
       '<div class="tiny muted">average paws</div></div></div>');
     out.push((st.cards || []).map(function(c){
       var accent = safeColor(c.member && c.member.color);
+      /* The big line is the answer — a name or a film; the chip would just repeat it. */
+      var head = (c.member && c.member.name === c.headline)
+        ? esc(c.member.emoji) + ' ' + esc(c.headline)
+        : esc(c.headline);
       return '<div class="stat" style="--accent:' + accent + '"><div class="bd">' +
         '<div class="badge2">' + esc(c.badge) + '</div>' +
         '<div class="st-title">' + esc(c.title) + '</div>' +
-        '<div class="st-head">' + esc(c.headline) + '</div>' +
+        '<div class="st-head">' + head + '</div>' +
+        (c.sub ? '<div class="st-sub">' + esc(c.sub) + '</div>' : '') +
         '<div class="st-line">' + esc(c.line) + '</div>' +
-        (c.member ? '<div class="st-who">' + avatar(c.member) + esc(c.member.name) + '</div>' : '') +
         '</div></div>';
     }).join(''));
     out.push(themePanel());

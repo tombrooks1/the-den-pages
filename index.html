@@ -1088,7 +1088,8 @@ h1.h{font-size:27px;font-weight:800;letter-spacing:-.028em;margin:4px 0 16px;lin
     if (!list || !list.length) return '';
     return '<div class="wrow"><span class="wk">' + key + '</span><span class="wp">' +
       list.map(function(p){
-        return '<a href="' + esc(providerUrl(p.name, title, fallback)) +
+        /* The scraped per-service link when we have it; the film's watch page when not. */
+        return '<a href="' + esc(p.url || providerUrl(p.name, title, fallback)) +
           '" target="_blank" rel="noopener">' +
           (p.logo ? '<img src="' + esc(TMDB_IMG + p.logo) + '" alt="">' : '') +
           esc(p.name) + '</a>';

@@ -973,6 +973,13 @@ body.idlecursor, body.idlecursor *{cursor:none}
     return null;
   }
 
+  /**
+   * The choreographed spin: one continuous ride narration whose measured length IS the
+   * wheel's duration, so the wheel turns for exactly as long as the announcer speaks and
+   * stops on his "...and tonight's winner is" — at which instant the sting fires, the
+   * winner's name call plays, and the reveal lands. Muted or offline, the wheel simply
+   * spins on its own randomized clock, same as ever.
+   */
   function runSpinAnimation(spin, voters){
     var res = spin && spin.result;
     if (!res || !res.candidates || !res.candidates.length) return;
@@ -985,48 +992,110 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var land = landingAngle(res.candidates, res.winner_film_id, res.roll);
     if (land == null) { spinning = false; spinBtn.disabled = false; return; }
 
-    var target = ((-land) % 360 + 360) % 360;
-    var delta = ((target - (rotation % 360)) % 360 + 360) % 360;
-
-    /* No two spins take the same time: nine seconds is the norm, some run long enough to
-       hurt, a few get it over with. Turns scale with the time so the pace feels the same. */
-    var ms = Math.round(SPIN_MS * (0.8 + Math.random() * 0.55));
-    var TURNS = Math.max(7, Math.round(10 * ms / SPIN_MS));
-    var end = rotation + TURNS * 360 + delta;
-
     if (REDUCED) {
+      var delta0 = ((((-land) % 360 + 360) % 360 - (rotation % 360)) % 360 + 360) % 360;
       wheel.style.transition = 'none';
-      wheel.style.transform = 'rotate(' + (rotation + delta) + 'deg)';
-      rotation = rotation + delta;
+      wheel.style.transform = 'rotate(' + (rotation + delta0) + 'deg)';
+      rotation = rotation + delta0;
       showReveal(res, voters);
       return;
     }
 
-    announceSpin(res, ms, end - rotation);
+    prepareCeremonyAudio(res, function(ride, nameClip){
+      /* The ride drives the clock; capped at twenty seconds, and without a voice the
+         wheel keeps its old randomized nine-ish seconds. */
+      var ms = ride && ride.duration
+        ? Math.round(Math.min(20000, Math.max(7000, ride.duration * 1000 + 350)))
+        : Math.round(SPIN_MS * (0.8 + Math.random() * 0.55));
+      var TURNS = Math.max(7, Math.round(10 * ms / SPIN_MS));
+      var target = ((-land) % 360 + 360) % 360;
+      var delta = ((target - (rotation % 360)) % 360 + 360) % 360;
+      var end = rotation + TURNS * 360 + delta;
 
-    /* The first control point sits high and early, so most of the rotation is spent in the
-       first couple of seconds; the second sits far left of the end, which flattens the
-       tail — the last stretch is a crawl that keeps looking like it has stopped and then
-       moves again. */
-    wheel.style.transition = 'transform ' + (ms / 1000) + 's cubic-bezier(.03,.72,.28,1)';
-    wheel.style.transform = 'rotate(' + end.toFixed(3) + 'deg)';
-    rotation = end;
-    setTimeout(function(){ showReveal(res, voters); }, ms + REVEAL_GAP_MS);
+      if (ride) playClip(ride);
+      scheduleTicks(ms, end - rotation, res.candidates.length);
+
+      /* The first control point sits high and early, so most of the rotation is spent in
+         the first couple of seconds; the tail is a crawl that keeps looking like it has
+         stopped and then moves again — right up to the words. */
+      wheel.style.transition = 'transform ' + (ms / 1000) + 's cubic-bezier(.03,.72,.28,1)';
+      wheel.style.transform = 'rotate(' + end.toFixed(3) + 'deg)';
+      rotation = end;
+      setTimeout(function(){
+        sting();
+        playClip(nameClip);
+        showReveal(res, voters);
+      }, ms + REVEAL_GAP_MS);
+    });
+  }
+
+  /**
+   * Fetch the ride and the winner's name call — cache-warm since the T-10 prewarm, so
+   * normally instant. Five seconds is the most the wheel will ever wait on the network.
+   */
+  function prepareCeremonyAudio(res, cb){
+    if (MUTED) { cb(null, null); return; }
+    audioCtx();
+    var winner = null, i;
+    for (i = 0; i < res.candidates.length; i++) {
+      if (res.candidates[i].film_id === res.winner_film_id) winner = res.candidates[i];
+    }
+    var maj = res.majority || {};
+    var ride = null, nameClip = null;
+    var rideReady = false, nameReady = false, called = false;
+    var fire = function(){
+      if (called || !rideReady || !nameReady) return;
+      called = true;
+      cb(ride, nameClip);
+    };
+    setTimeout(function(){ rideReady = true; nameReady = true; fire(); }, 5000);
+
+    fetch(API + 'ride?key=' + encodeURIComponent(KEY), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ locked: !!maj.locked })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if (!j || !j.url) { rideReady = true; fire(); return; }
+        var a = new Audio(j.url);
+        a.preload = 'auto';
+        a.addEventListener('loadedmetadata', function(){ ride = a; rideReady = true; fire(); });
+        a.addEventListener('error', function(){ rideReady = true; fire(); });
+      })
+      .catch(function(){ rideReady = true; fire(); });
+
+    if (!winner) { nameReady = true; fire(); return; }
+    fetch(API + 'announce?key=' + encodeURIComponent(KEY), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        title: winner.title,
+        name: winner.member,
+        underdog: !maj.locked && (winner.odds || 0) < UNDERDOG_ODDS
+      })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if (j && j.url) {
+          nameClip = new Audio(j.url);
+          nameClip.preload = 'auto';
+        }
+        nameReady = true;
+        fire();
+      })
+      .catch(function(){ nameReady = true; fire(); });
   }
 
   /* ---------------- the announcer + sfx ----------------
      The whole soundtrack is optional garnish: every play() failure is swallowed, so a
      browser that hasn't been touched yet (autoplay rules) just runs a silent ceremony. */
   var AUDIO_BASE = 'https://psomtujaikgcvblklzgv.supabase.co/storage/v1/object/public/audio/';
-  var CLIP_COUNTS = {
-    spinup: 5, winner: 2, underdog: 3, coldopen: 3, landslide: 3,
-    tminus10: 3, tminus2: 3
-  };
+  var CLIP_COUNTS = { coldopen: 3, tminus10: 3, tminus2: 3 };
   var UNDERDOG_ODDS = 0.08;
   var MUTED = false;
   try { MUTED = localStorage.getItem('den-muted') === '1'; } catch (e) {}
   var actx = null;
-  var nameClip = null;
 
   function audioCtx(){
     if (!actx) {
@@ -1171,7 +1240,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
    * the real field — the favourite, the long shot, the joker. Any failure, or the mute
    * switch, goes straight to the wheel: the show must go on, with or without the voice.
    */
-  var preshowRan = false;
   function runPreshow(next){
     if (MUTED) { next(); return; }
     audioCtx();
@@ -1188,7 +1256,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
       preshowActive = false;
       document.getElementById('lobby').classList.remove('preshow');
       spinBtn.textContent = FIRST_LABEL;
-      preshowRan = true;
       next();
     };
     /* Whatever happens with the network, the wheel spins inside forty seconds. */
@@ -1217,57 +1284,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
         maybeIntro();
       })
       .catch(function(){ introAsked = true; maybeIntro(); });
-  }
-
-  /**
-   * The soundtrack of one spin: a random opener now, the drumroll line timed to end as
-   * the wheel stops (an underdog gets an underdog line), the name call at the reveal —
-   * generated server-side while the wheel is still turning.
-   */
-  function announceSpin(res, ms, totalDeg){
-    if (MUTED) return;
-    var winner = null, i;
-    var cands = res.candidates || [];
-    for (i = 0; i < cands.length; i++) {
-      if (cands[i].film_id === res.winner_film_id) winner = cands[i];
-    }
-    /* After a pre-show the room has heard plenty — the wheel gets straight to ticking. */
-    if (!preshowRan) playClip(randomClip('spinup'));
-    preshowRan = false;
-    scheduleTicks(ms, totalDeg, cands.length);
-
-    /* A locked night gets sarcasm: everyone knows, the wheel is ceremonial. */
-    var maj = res.majority || {};
-    var group = maj.locked
-      ? 'landslide'
-      : winner && (winner.odds || 0) < UNDERDOG_ODDS ? 'underdog' : 'winner';
-    var wclip = randomClip(group);
-    wclip.addEventListener('loadedmetadata', function(){
-      var lead = Math.min(wclip.duration * 1000 + 300, ms - 1200);
-      setTimeout(function(){ playClip(wclip); }, Math.max(700, ms - lead));
-    });
-
-    nameClip = null;
-    if (winner) {
-      fetch(API + 'announce?key=' + encodeURIComponent(KEY), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ title: winner.title, name: winner.member })
-      })
-        .then(function(r){ return r.json(); })
-        .then(function(j){
-          if (j && j.url) {
-            nameClip = new Audio(j.url);
-            nameClip.preload = 'auto';
-          }
-        })
-        .catch(function(){});
-    }
-    setTimeout(function(){
-      sting();
-      playClip(nameClip);
-      nameClip = null;
-    }, ms + 350);
   }
 
   /* Two films are a double bill; the room can keep going. */
@@ -2047,16 +2063,49 @@ body.idlecursor, body.idlecursor *{cursor:none}
      fires once per night (the crossing is the trigger, so a page opened late only gets the
      calls still ahead of it), the jazz ducks under the voice and swells back after. */
   var lastMsToGo = null;
+  var prewarmed = false;
   var TMINUS = [
-    { at: 10 * 60000, group: 'tminus10' },
-    { at: 2 * 60000, group: 'tminus2' }
+    { at: 30 * 60000, kind: 'votecall' },
+    { at: 10 * 60000, kind: 'clip', group: 'tminus10', prewarm: true },
+    { at: 2 * 60000, kind: 'clip', group: 'tminus2' }
   ];
+
+  /* Ballots seal at ten minutes out, so every clip the ceremony could need can be made
+     ahead of time: the ride, and a name call for every film still on the wheel. All
+     cached server-side — a page opened late warms the same cache in one round. */
+  function prewarmCeremony(){
+    if (prewarmed) return;
+    prewarmed = true;
+    var locked = !!(lastBoard && lastBoard.maj && lastBoard.maj.locked);
+    fetch(API + 'ride?key=' + encodeURIComponent(KEY), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ locked: locked })
+    }).catch(function(){});
+    var entries = (lastBoard && lastBoard.sorted) || [];
+    entries.forEach(function(c){
+      if (!c) return;
+      fetch(API + 'announce?key=' + encodeURIComponent(KEY), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          title: c.title,
+          name: c.member,
+          underdog: !locked && (c.odds || 0) < UNDERDOG_ODDS
+        })
+      }).catch(function(){});
+    });
+  }
+
   function checkTminus(ms){
-    if (ms == null || MUTED ||
+    if (ms == null ||
         (lastNightStatus !== 'planned' && lastNightStatus !== 'locked')) {
       lastMsToGo = ms;
       return;
     }
+    /* A page opened inside the ten-minute window still warms the ceremony cache. */
+    if (ms > 0 && ms <= 10 * 60000 && lastNightStatus === 'locked') prewarmCeremony();
+    if (MUTED) { lastMsToGo = ms; return; }
     for (var i = 0; i < TMINUS.length; i++) {
       var t = TMINUS[i];
       if (lastMsToGo !== null && lastMsToGo > t.at && ms <= t.at && ms > 0) {
@@ -2066,7 +2115,21 @@ body.idlecursor, body.idlecursor *{cursor:none}
           seen = !!localStorage.getItem(guard);
           localStorage.setItem(guard, '1');
         } catch (e) {}
-        if (!seen) duckThenPlay(randomClip(t.group));
+        if (seen) continue;
+        if (t.kind === 'votecall') {
+          fetch(API + 'votecall?key=' + encodeURIComponent(KEY), { method: 'POST' })
+            .then(function(r){ return r.json(); })
+            .then(function(j){
+              if (j && j.url) {
+                var a = new Audio(j.url);
+                a.preload = 'auto';
+                duckThenPlay(a);
+              }
+            })
+            .catch(function(){});
+        } else {
+          duckThenPlay(randomClip(t.group));
+        }
       }
     }
     lastMsToGo = ms;

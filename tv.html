@@ -197,10 +197,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
 .srow .dossier{
   position:absolute;left:-10px;right:-10px;top:calc(100% + 6px);z-index:25;
   padding:16px 18px 18px;border-radius:16px;
-  background:linear-gradient(158deg,var(--s2),var(--s1));
-  border:1px solid rgba(245,185,66,.34);box-shadow:0 30px 70px rgba(0,0,0,.72);
+  /* Solid ground, no alpha anywhere: the rows behind must never read through. */
+  background:#221a38;
+  border:1px solid #55461f;box-shadow:0 30px 70px rgba(0,0,0,.72);
   opacity:0;transform:translateY(-8px);pointer-events:none;
-  transition:opacity .2s cubic-bezier(.2,.9,.3,1), transform .2s cubic-bezier(.2,.9,.3,1);
+  transition:opacity .15s cubic-bezier(.2,.9,.3,1), transform .15s cubic-bezier(.2,.9,.3,1);
 }
 .srow.up .dossier{top:auto;bottom:calc(100% + 6px);transform:translateY(8px)}
 /* An invisible footbridge across the gap, so the pointer can walk from the row down into
@@ -554,6 +555,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
 #cinema .cx{position:absolute;top:-52px;right:0}
 .pillbtn.mute{position:fixed;left:26px;bottom:24px;z-index:40;opacity:.55}
 .pillbtn.mute:hover{opacity:1}
+.mcredit{position:fixed;left:26px;bottom:64px;z-index:40;font-size:11px;
+  color:var(--muted);opacity:.45;letter-spacing:.04em}
 /* House lights down while the announcer has the floor. */
 #lobby{transition:filter .8s ease}
 #lobby.preshow{filter:brightness(.62) saturate(.85)}
@@ -720,6 +723,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   <div id="modal"></div>
   <div id="cinema"></div>
   <button id="muteBtn" class="pillbtn mute"></button>
+  <div class="mcredit">&#9834; Kevin MacLeod &middot; incompetech.com &middot; CC-BY</div>
   <div class="navrow" id="navrow"></div>
 
   <div id="reveal"></div>
@@ -1034,55 +1038,49 @@ body.idlecursor, body.idlecursor *{cursor:none}
   }
   function randomClip(group){
     var n = 1 + Math.floor(Math.random() * CLIP_COUNTS[group]);
-    var a = new Audio(AUDIO_BASE + group + '-' + n + '.mp3');
+    var a = new Audio(AUDIO_BASE + group + '-' + n + '.wav');
     a.preload = 'auto';
     return a;
   }
 
   /* ---------------- lobby music ----------------
-     A quiet generative lounge pad — synthesized, so there is nothing to license and no
-     loop to notice. Warm seventh chords drift by on slow attacks under a gentle lowpass,
-     at a fraction of the announcer's level. It plays while the room waits, ducks out for
-     the ceremony, and never returns once the night has rolled. */
-  var MUSIC_GAIN = 0.07;
+     Real lounge jazz — Kevin MacLeod (incompetech.com), CC-BY, four tracks in the audio
+     bucket, shuffled, at a fraction of the announcer's level. Plays while the room waits,
+     ducks out for the ceremony, and never returns once the night has rolled. The credit
+     line by the mute pill is part of the license. */
+  var MUSIC_TRACKS = 4;
+  var MUSIC_VOL = 0.24;
   var music = null;
   var preshowActive = false;
   var lastNightStatus = '';
-  var MUSIC_CHORDS = [
-    [174.61, 220, 261.63, 329.63],   /* Fmaj7 */
-    [220, 261.63, 329.63, 392],      /* Am7  */
-    [146.83, 174.61, 220, 261.63],   /* Dm7  */
-    [130.81, 164.81, 196, 246.94]    /* Cmaj7 */
-  ];
+
+  function fadeAudio(a, to, ms, done){
+    var from = a.volume;
+    var t0 = Date.now();
+    var iv = setInterval(function(){
+      var k = Math.min(1, (Date.now() - t0) / ms);
+      try { a.volume = from + (to - from) * k; } catch (e) {}
+      if (k === 1) { clearInterval(iv); if (done) done(); }
+    }, 60);
+  }
 
   function startMusic(){
-    var ac = audioCtx();
-    if (!ac || ac.state !== 'running' || music) return;
-    var master = ac.createGain();
-    master.gain.value = 0;
-    var lp = ac.createBiquadFilter();
-    lp.type = 'lowpass'; lp.frequency.value = 1400; lp.Q.value = 0.4;
-    master.connect(lp); lp.connect(ac.destination);
-    master.gain.linearRampToValueAtTime(MUSIC_GAIN, ac.currentTime + 4);
-    music = { master: master, timer: null, step: Math.floor(Math.random() * 4) };
-    (function chord(){
+    if (music || MUTED) return;
+    var order = [];
+    for (var i = 1; i <= MUSIC_TRACKS; i++) order.push(i);
+    order.sort(function(){ return Math.random() - 0.5; });
+    music = { audio: null, order: order, idx: 0 };
+    (function nextTrack(){
       if (!music) return;
-      var notes = MUSIC_CHORDS[music.step % MUSIC_CHORDS.length];
-      music.step++;
-      var now = ac.currentTime;
-      for (var i = 0; i < notes.length; i++) {
-        var o = ac.createOscillator();
-        var g = ac.createGain();
-        o.type = i === 0 ? 'sine' : 'triangle';
-        o.frequency.value = notes[i] * (1 + (Math.random() - 0.5) * 0.003);
-        var t0 = now + Math.random() * 0.7;
-        g.gain.setValueAtTime(0, t0);
-        g.gain.linearRampToValueAtTime(0.05 + 0.16 / (i + 1), t0 + 2.6);
-        g.gain.linearRampToValueAtTime(0.0001, t0 + 7.8);
-        o.connect(g); g.connect(master);
-        o.start(t0); o.stop(t0 + 8.2);
-      }
-      music.timer = setTimeout(chord, 6800 + Math.random() * 1600);
+      var n = music.order[music.idx % music.order.length];
+      music.idx++;
+      var a = new Audio(AUDIO_BASE + 'lobby-' + n + '.mp3');
+      a.volume = 0;
+      music.audio = a;
+      a.addEventListener('ended', function(){ if (music) setTimeout(nextTrack, 1500); });
+      a.play()
+        .then(function(){ fadeAudio(a, MUSIC_VOL, 3000); })
+        .catch(function(){ music = null; /* not unlocked yet — a later click retries */ });
     })();
   }
 
@@ -1090,13 +1088,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
     if (!music) return;
     var m = music;
     music = null;
-    clearTimeout(m.timer);
-    try {
-      m.master.gain.cancelScheduledValues(actx.currentTime);
-      m.master.gain.setValueAtTime(m.master.gain.value, actx.currentTime);
-      m.master.gain.linearRampToValueAtTime(0.0001, actx.currentTime + (gentle ? 1.4 : 0.25));
-    } catch (e) {}
-    setTimeout(function(){ try { m.master.disconnect(); } catch (e) {} }, 1800);
+    var a = m.audio;
+    if (!a) return;
+    fadeAudio(a, 0, gentle ? 1400 : 250, function(){
+      try { a.pause(); a.src = ''; } catch (e) {}
+    });
   }
 
   function musicWanted(){
@@ -1605,7 +1601,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
       for (var k = 0; k < slots; k++) {
         segs += '<span class="seg" style="width:' + segW + 'px"></span>';
       }
-      rows.push('<div class="srow' + (c ? '' : ' free') + (i % 3 === 2 ? ' up' : '') + '"' +
+      /* Only the top row of each column opens its dossier downward; the lower two open
+         upward so nothing ever runs off the bottom of a 1080 screen. */
+      rows.push('<div class="srow' + (c ? '' : ' free') + (i % 3 !== 0 ? ' up' : '') + '"' +
         (c ? ' data-id="' + esc(c.film_id) + '"' : '') +
         ' style="animation-delay:' + i * 26 + 'ms">' +
         '<div class="th">' + (c ? poster(c.title, c.poster) : '<div class="frame"></div>') + '</div>' +

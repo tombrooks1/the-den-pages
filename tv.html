@@ -972,6 +972,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   function runSpinAnimation(spin, voters){
     var res = spin && spin.result;
     if (!res || !res.candidates || !res.candidates.length) return;
+    stopMusic(false);
     spinning = true;
     stage.classList.add('busy');
     spinBtn.disabled = true;
@@ -1036,6 +1037,77 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var a = new Audio(AUDIO_BASE + group + '-' + n + '.mp3');
     a.preload = 'auto';
     return a;
+  }
+
+  /* ---------------- lobby music ----------------
+     A quiet generative lounge pad — synthesized, so there is nothing to license and no
+     loop to notice. Warm seventh chords drift by on slow attacks under a gentle lowpass,
+     at a fraction of the announcer's level. It plays while the room waits, ducks out for
+     the ceremony, and never returns once the night has rolled. */
+  var MUSIC_GAIN = 0.07;
+  var music = null;
+  var preshowActive = false;
+  var lastNightStatus = '';
+  var MUSIC_CHORDS = [
+    [174.61, 220, 261.63, 329.63],   /* Fmaj7 */
+    [220, 261.63, 329.63, 392],      /* Am7  */
+    [146.83, 174.61, 220, 261.63],   /* Dm7  */
+    [130.81, 164.81, 196, 246.94]    /* Cmaj7 */
+  ];
+
+  function startMusic(){
+    var ac = audioCtx();
+    if (!ac || ac.state !== 'running' || music) return;
+    var master = ac.createGain();
+    master.gain.value = 0;
+    var lp = ac.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 1400; lp.Q.value = 0.4;
+    master.connect(lp); lp.connect(ac.destination);
+    master.gain.linearRampToValueAtTime(MUSIC_GAIN, ac.currentTime + 4);
+    music = { master: master, timer: null, step: Math.floor(Math.random() * 4) };
+    (function chord(){
+      if (!music) return;
+      var notes = MUSIC_CHORDS[music.step % MUSIC_CHORDS.length];
+      music.step++;
+      var now = ac.currentTime;
+      for (var i = 0; i < notes.length; i++) {
+        var o = ac.createOscillator();
+        var g = ac.createGain();
+        o.type = i === 0 ? 'sine' : 'triangle';
+        o.frequency.value = notes[i] * (1 + (Math.random() - 0.5) * 0.003);
+        var t0 = now + Math.random() * 0.7;
+        g.gain.setValueAtTime(0, t0);
+        g.gain.linearRampToValueAtTime(0.05 + 0.16 / (i + 1), t0 + 2.6);
+        g.gain.linearRampToValueAtTime(0.0001, t0 + 7.8);
+        o.connect(g); g.connect(master);
+        o.start(t0); o.stop(t0 + 8.2);
+      }
+      music.timer = setTimeout(chord, 6800 + Math.random() * 1600);
+    })();
+  }
+
+  function stopMusic(gentle){
+    if (!music) return;
+    var m = music;
+    music = null;
+    clearTimeout(m.timer);
+    try {
+      m.master.gain.cancelScheduledValues(actx.currentTime);
+      m.master.gain.setValueAtTime(m.master.gain.value, actx.currentTime);
+      m.master.gain.linearRampToValueAtTime(0.0001, actx.currentTime + (gentle ? 1.4 : 0.25));
+    } catch (e) {}
+    setTimeout(function(){ try { m.master.disconnect(); } catch (e) {} }, 1800);
+  }
+
+  function musicWanted(){
+    return !MUTED && !spinning && !preshowActive &&
+      lastNightStatus !== 'spun' && lastNightStatus !== '' &&
+      revealEl.className !== 'on' &&
+      document.getElementById('lobby').style.display !== 'none';
+  }
+  function syncMusic(){
+    if (musicWanted()) startMusic();
+    else stopMusic(true);
   }
 
   /* The same curve the wheel animates with, solved for progress at a moment in time. */
@@ -1104,6 +1176,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
   function runPreshow(next){
     if (MUTED) { next(); return; }
     audioCtx();
+    preshowActive = true;
+    stopMusic(true);
     spinBtn.disabled = true;
     spinBtn.textContent = '🎙 the announcer has the floor';
     document.getElementById('lobby').classList.add('preshow');
@@ -1112,6 +1186,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var finish = function(){
       if (done) return;
       done = true;
+      preshowActive = false;
       document.getElementById('lobby').classList.remove('preshow');
       spinBtn.textContent = FIRST_LABEL;
       preshowRan = true;
@@ -1730,6 +1805,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
     lastNightId = n ? n.id : '';
 
     var label = n ? n.label : 'No night scheduled';
+    lastNightStatus = n ? String(n.status || '') : '';
     var when = (n && n.date_label) ? n.date_label : '';
     var theme = n && n.theme ? n.theme : '';
     var notes = (n && n.notes) ? n.notes : '';
@@ -2897,8 +2973,15 @@ body.idlecursor, body.idlecursor *{cursor:none}
     try { localStorage.setItem('den-muted', MUTED ? '1' : '0'); } catch (e) {}
     if (!MUTED) audioCtx();
     paintMute();
+    syncMusic();
   });
   paintMute();
+  /* Any click on the page is the gesture browsers want — after one, the lobby can hum. */
+  document.addEventListener('click', function(){
+    if (MUTED) return;
+    audioCtx();
+    setTimeout(syncMusic, 150);
+  });
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
     /* The cinema sits on top of everything, so it leaves first. */
@@ -2989,6 +3072,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
           if (left.length && signature(left) !== signature(drawn)) buildWheel(left, {});
         }
         syncPicksLink();
+        syncMusic();
         firstState = false;
       })
       .catch(function(){ /* projector keeps calm and carries on */ });

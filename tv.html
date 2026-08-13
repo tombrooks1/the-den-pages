@@ -2289,9 +2289,13 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var n = st.numbers || {};
     var cards = Array.isArray(st.cards) ? st.cards : [];
 
+    /* One row of tiles — the board fits a 1080 screen with nothing to scroll. */
+    /* Plain '·' — this string goes through esc(), which would mangle the entity form. */
+    var jokerSub = [
+      n.jokers_spent == null ? '' : n.jokers_spent + ' burned',
+      n.jokers_ever == null ? '' : n.jokers_ever + ' ever issued'
+    ].filter(Boolean).join(' · ');
     var tiles = [
-      statTile('nights watched', num(n.nights_watched),
-        n.nights_total ? n.nights_total + ' planned in all' : ''),
       statTile('films watched', num(n.films_watched),
         n.films_in_library ? n.films_in_library + ' on the shelf' : ''),
       statTile('house average', one(n.house_average),
@@ -2300,18 +2304,18 @@ body.idlecursor, body.idlecursor *{cursor:none}
         n.entries_total ? n.entries_total + ' entries in all' : ''),
       statTile('landslides', n.majority_rate == null ? null : n.majority_rate + '%',
         n.spins_total ? (n.majority_locked || 0) + ' of ' + n.spins_total + ' spins' : ''),
-      statTile('double features', num(n.double_features),
-        n.spins_total ? n.spins_total + ' spins total' : ''),
-      statTile('jokers banked', num(n.jokers_banked),
-        n.jokers_spent == null ? '' : n.jokers_spent + ' burned so far', true),
-      statTile('jokers ever', num(n.jokers_ever),
-        n.members ? 'across ' + n.members + ' members' : ''),
+      statTile('jokers banked', num(n.jokers_banked), jokerSub, true),
       statTile('longest streak', n.longest_streak ? n.longest_streak + ' nights' : null,
         n.streak_holder || ''),
-      statTile('entries a night', num(n.entries_per_night), 'average'),
-      statTile('most divisive', num(n.most_divisive_spread), n.most_divisive || ''),
       statTile('most agreed on', num(n.least_divisive_spread), n.least_divisive || '')
     ].join('');
+
+    /* Everything fits one screen: the wall keeps the latest row, the library holds the rest. */
+    var wall = films.slice(0, 8);
+    var earlier = films.length - wall.length;
+    var shownCards = cards.filter(function(c){
+      return c.key !== 'divisive' && c.key !== 'persuasive';
+    });
 
     el.innerHTML = '<div class="vhead">' +
       '<div class="vtitle">History &amp; stats<span class="vcount">' + films.length +
@@ -2320,13 +2324,17 @@ body.idlecursor, body.idlecursor *{cursor:none}
       '<a class="pillbtn" href="#" id="navBack">Back to The Lobby</a></div>' +
       '<div class="vwrap">' +
       (tiles ? '<div class="strip">' + tiles + '</div>' : '') +
-      '<div class="secthead">What we have watched</div>' +
-      (films.length
-        ? '<div class="filmwall">' + films.map(filmCard).join('') + '</div>'
+      '<div class="secthead">What we have watched' +
+      (earlier > 0
+        ? '<span class="vcount">the last ' + wall.length + ' &middot; ' + earlier +
+          ' earlier in the Library</span>'
+        : '') + '</div>' +
+      (wall.length
+        ? '<div class="filmwall">' + wall.map(filmCard).join('') + '</div>'
         : '<div class="bempty">Nothing watched yet. The first night starts the record.</div>') +
-      (cards.length
+      (shownCards.length
         ? '<div class="secthead">The folklore</div><div class="strip folkstrip">' +
-          cards.map(function(c){
+          shownCards.map(function(c){
             /* The big line is the answer — a name or a film — never a bare number. */
             var head = (c.member && c.member.name === c.headline)
               ? esc(c.member.emoji) + ' ' + esc(c.headline)

@@ -569,6 +569,12 @@ body.idlecursor, body.idlecursor *{cursor:none}
   color:var(--muted)}
 .tile .v{margin-top:7px;font-size:30px;font-weight:800;letter-spacing:-.03em;
   font-variant-numeric:tabular-nums;line-height:1}
+/* Folklore reads at couch distance: the answer leads, the stat seconds it, the line lands. */
+.folkstrip{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.tile.folk .k{font-size:12px}
+.tile .fv{margin-top:9px;font-size:29px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.tile .fsub{margin-top:7px;font-size:17px;font-weight:700;color:var(--amber)}
+.tile .fs{margin-top:8px;font-size:15px;color:var(--muted);line-height:1.5}
 .tile .s{margin-top:5px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis}
 .tile.amber .v{color:var(--amber)}
@@ -2319,11 +2325,17 @@ body.idlecursor, body.idlecursor *{cursor:none}
         ? '<div class="filmwall">' + films.map(filmCard).join('') + '</div>'
         : '<div class="bempty">Nothing watched yet. The first night starts the record.</div>') +
       (cards.length
-        ? '<div class="secthead">The folklore</div><div class="strip">' +
+        ? '<div class="secthead">The folklore</div><div class="strip folkstrip">' +
           cards.map(function(c){
-            return '<div class="tile"><div class="k">' + esc(c.title) + '</div>' +
-              '<div class="v" style="font-size:22px">' + esc(c.headline) + '</div>' +
-              '<div class="s" style="white-space:normal">' + esc(c.line) + '</div></div>';
+            /* The big line is the answer — a name or a film — never a bare number. */
+            var head = (c.member && c.member.name === c.headline)
+              ? esc(c.member.emoji) + ' ' + esc(c.headline)
+              : esc(c.headline);
+            return '<div class="tile folk"><div class="k">' + esc(c.badge) + ' ' +
+              esc(c.title) + '</div>' +
+              '<div class="fv">' + head + '</div>' +
+              (c.sub ? '<div class="fsub">' + esc(c.sub) + '</div>' : '') +
+              '<div class="fs">' + esc(c.line) + '</div></div>';
           }).join('') + '</div>'
         : '') +
       '</div>';

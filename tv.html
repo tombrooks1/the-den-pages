@@ -751,7 +751,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   var firstState = true;
   var features = [];        /* every film that has won tonight, in running order */
   var canRollAgain = false; /* is there anything left for a second feature? */
-  var SECOND_LABEL = 'Roll a second movie';
+  var SECOND_LABEL = 'Roll again';
   var FIRST_LABEL = 'Spin the wheel';
   var lobbyRolls = false;   /* the lobby button is offering the second feature, not the first */
   var wonIds = {};          /* every film that has already won tonight */
@@ -932,15 +932,31 @@ body.idlecursor, body.idlecursor *{cursor:none}
    * The landing point is nudged inside the slice by the server's own roll, so the stop
    * position is deterministic and always strictly within the winning wedge.
    */
+  /**
+   * Where inside the winning wedge the needle rests is pure theatre — the winner was
+   * chosen on the server before the wheel ever moved. More often than not it hugs a
+   * divider, so the room reads barely-in or nearly-lost from a result that was never in
+   * doubt. Derived from the server's own roll, so every screen rests on the same degree.
+   */
   function landingAngle(list, winnerId, roll){
     var acc = 0, i;
     for (i = 0; i < list.length; i++) {
       var o = list[i].odds || 0;
       if (list[i].film_id === winnerId) {
         var span = o * 360;
-        var centre = acc * 360 + span / 2;
-        var jitter = ((roll == null ? 0.5 : roll) - 0.5) * span * 0.6;
-        return centre + jitter;
+        var start = acc * 360;
+        var r = roll == null ? 0.5 : roll;
+        var pick = (r * 977) % 1;   /* decorrelated coin: which kind of landing */
+        var frac = (r * 131) % 1;   /* and where exactly within that kind */
+        var off;
+        if (pick < 0.35) off = span * 0.02 + frac * span * 0.10;         /* just over the line in */
+        else if (pick < 0.7) off = span * 0.88 + frac * span * 0.10;     /* almost rolled on */
+        else off = span * (0.25 + frac * 0.5);                           /* clean middle */
+        /* Never visually ON a divider, whatever the slice width. */
+        var margin = Math.max(span * 0.02, 1.2);
+        if (off < margin) off = margin;
+        if (off > span - margin) off = span - margin;
+        return start + off;
       }
       acc += o;
     }
@@ -960,9 +976,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
     var target = ((-land) % 360 + 360) % 360;
     var delta = ((target - (rotation % 360)) % 360 + 360) % 360;
-    /* Ten turns instead of six: the wheel leaves hard, so the crawl at the end has
-       something to decay from. The landing angle is untouched — only how long we take. */
-    var TURNS = 10;
+
+    /* No two spins take the same time: nine seconds is the norm, some run long enough to
+       hurt, a few get it over with. Turns scale with the time so the pace feels the same. */
+    var ms = Math.round(SPIN_MS * (0.8 + Math.random() * 0.55));
+    var TURNS = Math.max(7, Math.round(10 * ms / SPIN_MS));
     var end = rotation + TURNS * 360 + delta;
 
     if (REDUCED) {
@@ -973,14 +991,22 @@ body.idlecursor, body.idlecursor *{cursor:none}
       return;
     }
 
-    /* Nine seconds of tease. The first control point sits high and early, so most of the
-       rotation is spent in the first couple of seconds; the second sits far left of the end,
-       which flattens the tail — the last three seconds are a crawl that keeps looking like
-       it has stopped and then moves again. */
-    wheel.style.transition = 'transform ' + (SPIN_MS / 1000) + 's cubic-bezier(.03,.72,.28,1)';
+    /* The first control point sits high and early, so most of the rotation is spent in the
+       first couple of seconds; the second sits far left of the end, which flattens the
+       tail — the last stretch is a crawl that keeps looking like it has stopped and then
+       moves again. */
+    wheel.style.transition = 'transform ' + (ms / 1000) + 's cubic-bezier(.03,.72,.28,1)';
     wheel.style.transform = 'rotate(' + end.toFixed(3) + 'deg)';
     rotation = end;
-    setTimeout(function(){ showReveal(res, voters); }, SPIN_MS + REVEAL_GAP_MS);
+    setTimeout(function(){ showReveal(res, voters); }, ms + REVEAL_GAP_MS);
+  }
+
+  /* Two films are a double bill; the room can keep going. */
+  function billName(count){
+    if (count <= 2) return 'A double bill';
+    if (count === 3) return 'A triple bill';
+    if (count === 4) return 'A quadruple bill';
+    return count + ' films tonight';
   }
 
   /* ------------------------------------------------ reveal + confetti */
@@ -1021,8 +1047,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
     /* The bill so far. A second roll makes this a double feature. */
     var bill = features.filter(function(f){ return f.film_id !== winner.film_id; });
     var second = (res.round === 2) || bill.length > 0;
+    /* The bill grows sideways: each extra feature earns the art block more room. */
     var art = second && bill.length
-      ? '<div class="art double">' + bill.map(function(f){
+      ? '<div class="art double" style="width:' +
+        Math.min(400 + 180 * bill.length, 940) + 'px">' + bill.map(function(f){
           return poster(f.title, f.poster);
         }).join('') + poster(winner.title, winner.poster) + '</div>'
       : '<div class="art">' + poster(winner.title, winner.poster) + '</div>';
@@ -1043,7 +1071,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
       '<button id="revClose">Back to The Lobby</button>' + art +
       '<div class="meta">' +
       '<div class="kicker">' +
-        (second ? 'A double bill' : maj.locked ? 'The room locked it in' : 'Tonight you are watching') +
+        (second
+          ? billName(bill.length + 1)
+          : maj.locked ? 'The room locked it in' : 'Tonight you are watching') +
         '</div>' +
       '<h1>' + esc(winner.title) +
         (winner.year ? ' <span class="yr">(' + esc(winner.year) + ')</span>' : '') + '</h1>' +
@@ -1330,8 +1360,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
         '</div>');
     }
     /* One line per column, at the same offset inside each, so the threshold reads as one
-       rule across the whole board. */
-    var x = ROW_LEFT + threshold * (segW + SEG_GAP) - SEG_GAP / 2;
+       rule across the whole board. The line sits one segment shy of the count, so the
+       deciding vote visibly CROSSES it rather than merely touching it. */
+    var x = ROW_LEFT + (threshold - 1) * (segW + SEG_GAP) - SEG_GAP / 2;
     el.innerHTML = rows.join('') +
       '<div class="thline" style="left:' + x.toFixed(1) + 'px"><span>landslide &middot; ' +
       threshold + '</span></div>' +
@@ -1444,7 +1475,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       if (node.v !== votes) {
         node.v = votes;
         for (var k = 0; k < node.segs.length; k++) {
-          var want = k < votes ? (k >= threshold ? 'seg on over' : 'seg on') : 'seg';
+          var want = k < votes ? (k >= threshold - 1 ? 'seg on over' : 'seg on') : 'seg';
           if (node.segs[k].className !== want) node.segs[k].className = want;
         }
       }

@@ -552,6 +552,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
 #cinema iframe{width:100%;height:100%;border:0;border-radius:18px;background:#000;
   box-shadow:0 60px 140px rgba(0,0,0,.85),0 0 0 1px rgba(245,185,66,.22)}
 #cinema .cx{position:absolute;top:-52px;right:0}
+.pillbtn.mute{position:fixed;left:26px;bottom:24px;z-index:40;opacity:.55}
+.pillbtn.mute:hover{opacity:1}
 #modal .side{flex:1;min-width:0}
 #modal h3{font-size:46px;font-weight:800;letter-spacing:-.04em;line-height:1.04;margin:0}
 #modal .yr{color:var(--muted);font-weight:600}
@@ -714,6 +716,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   <div id="admin"></div>
   <div id="modal"></div>
   <div id="cinema"></div>
+  <button id="muteBtn" class="pillbtn mute"></button>
   <div class="navrow" id="navrow"></div>
 
   <div id="reveal"></div>
@@ -991,6 +994,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
       return;
     }
 
+    announceSpin(res, ms, end - rotation);
+
     /* The first control point sits high and early, so most of the rotation is spent in the
        first couple of seconds; the second sits far left of the end, which flattens the
        tail — the last stretch is a crawl that keeps looking like it has stopped and then
@@ -999,6 +1004,136 @@ body.idlecursor, body.idlecursor *{cursor:none}
     wheel.style.transform = 'rotate(' + end.toFixed(3) + 'deg)';
     rotation = end;
     setTimeout(function(){ showReveal(res, voters); }, ms + REVEAL_GAP_MS);
+  }
+
+  /* ---------------- the announcer + sfx ----------------
+     The whole soundtrack is optional garnish: every play() failure is swallowed, so a
+     browser that hasn't been touched yet (autoplay rules) just runs a silent ceremony. */
+  var AUDIO_BASE = 'https://psomtujaikgcvblklzgv.supabase.co/storage/v1/object/public/audio/';
+  var CLIP_COUNTS = { spinup: 5, winner: 2, underdog: 3 };
+  var UNDERDOG_ODDS = 0.08;
+  var MUTED = false;
+  try { MUTED = localStorage.getItem('den-muted') === '1'; } catch (e) {}
+  var actx = null;
+  var nameClip = null;
+
+  function audioCtx(){
+    if (!actx) {
+      try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    }
+    if (actx && actx.state === 'suspended') actx.resume().catch(function(){});
+    return actx;
+  }
+  function playClip(a){
+    if (MUTED || !a) return;
+    a.play().catch(function(){});
+  }
+  function randomClip(group){
+    var n = 1 + Math.floor(Math.random() * CLIP_COUNTS[group]);
+    var a = new Audio(AUDIO_BASE + group + '-' + n + '.mp3');
+    a.preload = 'auto';
+    return a;
+  }
+
+  /* The same curve the wheel animates with, solved for progress at a moment in time. */
+  function easeAt(x){
+    var p1x = 0.03, p1y = 0.72, p2x = 0.28, p2y = 1;
+    var t = x;
+    for (var i = 0; i < 6; i++) {
+      var cx = 3 * p1x * t * (1 - t) * (1 - t) + 3 * p2x * t * t * (1 - t) + t * t * t - x;
+      var dx = 3 * p1x * (1 - 4 * t + 3 * t * t) + 3 * p2x * (2 * t - 3 * t * t) + 3 * t * t;
+      if (Math.abs(dx) < 1e-6) break;
+      t -= cx / dx;
+      if (t < 0) t = 0; else if (t > 1) t = 1;
+    }
+    return 3 * p1y * t * (1 - t) * (1 - t) + 3 * p2y * t * t * (1 - t) + t * t * t;
+  }
+
+  /* One soft tick per divider the needle passes, on the wheel's own deceleration. */
+  function scheduleTicks(ms, totalDeg, slices){
+    var ac = audioCtx();
+    if (!ac || MUTED || !slices) return;
+    var per = 360 / slices;
+    var t0 = ac.currentTime + 0.05;
+    var crossed = per;
+    for (var step = 1; step <= 400; step++) {
+      var deg = easeAt(step / 400) * totalDeg;
+      while (deg >= crossed && crossed <= totalDeg) {
+        var at = t0 + (step / 400) * (ms / 1000);
+        var osc = ac.createOscillator();
+        var g = ac.createGain();
+        osc.type = 'square';
+        osc.frequency.value = 1700 + Math.random() * 300;
+        g.gain.setValueAtTime(0.05, at);
+        g.gain.exponentialRampToValueAtTime(0.0001, at + 0.03);
+        osc.connect(g); g.connect(ac.destination);
+        osc.start(at); osc.stop(at + 0.04);
+        crossed += per;
+      }
+    }
+  }
+
+  /* Three rising notes under the reveal — the announcer carries the rest. */
+  function sting(){
+    var ac = audioCtx();
+    if (!ac || MUTED) return;
+    var notes = [523.25, 659.25, 783.99];
+    for (var i = 0; i < notes.length; i++) {
+      var at = ac.currentTime + i * 0.09;
+      var osc = ac.createOscillator();
+      var g = ac.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = notes[i];
+      g.gain.setValueAtTime(0.12, at);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + 0.7);
+      osc.connect(g); g.connect(ac.destination);
+      osc.start(at); osc.stop(at + 0.75);
+    }
+  }
+
+  /**
+   * The soundtrack of one spin: a random opener now, the drumroll line timed to end as
+   * the wheel stops (an underdog gets an underdog line), the name call at the reveal —
+   * generated server-side while the wheel is still turning.
+   */
+  function announceSpin(res, ms, totalDeg){
+    if (MUTED) return;
+    var winner = null, i;
+    var cands = res.candidates || [];
+    for (i = 0; i < cands.length; i++) {
+      if (cands[i].film_id === res.winner_film_id) winner = cands[i];
+    }
+    playClip(randomClip('spinup'));
+    scheduleTicks(ms, totalDeg, cands.length);
+
+    var group = winner && (winner.odds || 0) < UNDERDOG_ODDS ? 'underdog' : 'winner';
+    var wclip = randomClip(group);
+    wclip.addEventListener('loadedmetadata', function(){
+      var lead = Math.min(wclip.duration * 1000 + 300, ms - 1200);
+      setTimeout(function(){ playClip(wclip); }, Math.max(700, ms - lead));
+    });
+
+    nameClip = null;
+    if (winner) {
+      fetch(API + 'announce?key=' + encodeURIComponent(KEY), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ title: winner.title, name: winner.member })
+      })
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          if (j && j.url) {
+            nameClip = new Audio(j.url);
+            nameClip.preload = 'auto';
+          }
+        })
+        .catch(function(){});
+    }
+    setTimeout(function(){
+      sting();
+      playClip(nameClip);
+      nameClip = null;
+    }, ms + 350);
   }
 
   /* Two films are a double bill; the room can keep going. */
@@ -2691,6 +2826,19 @@ body.idlecursor, body.idlecursor *{cursor:none}
   document.getElementById('cinema').addEventListener('click', function(e){
     if (e.target.closest('[data-cclose]')) closeCinema();
   });
+
+  /* The mute switch doubles as the audio unlock: any click on it counts as the user
+     gesture browsers want before a page may make noise. */
+  function paintMute(){
+    document.getElementById('muteBtn').textContent = MUTED ? '🔇 muted' : '🔊 sound on';
+  }
+  document.getElementById('muteBtn').addEventListener('click', function(){
+    MUTED = !MUTED;
+    try { localStorage.setItem('den-muted', MUTED ? '1' : '0'); } catch (e) {}
+    if (!MUTED) audioCtx();
+    paintMute();
+  });
+  paintMute();
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
     /* The cinema sits on top of everything, so it leaves first. */

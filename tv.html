@@ -1065,27 +1065,17 @@ body.idlecursor, body.idlecursor *{cursor:none}
         if (!j || !j.url) { fire(null, null); return; }
         var full = new Audio(j.url);
         full.preload = 'auto';
-        var tail = j.tail ? new Audio(j.tail) : null;
-        var fullDur = null;
-        var tailDur = tail ? null : 2.6;   /* seconds; estimate when no tail came back */
-        var check = function(){
-          if (fullDur == null || tailDur == null) return;
-          var stop = Math.round(Math.max(4500, Math.min(22000,
-            (fullDur - tailDur) * 1000 - 150)));
-          fire(full, stop);
-        };
+        if (j.stop_ms) {
+          /* The server measured where the name begins inside the spliced clip. */
+          fire(full, Math.round(Math.max(4500, Math.min(22000, j.stop_ms))));
+          return;
+        }
+        /* Fallback clip has no name section: the wheel stops when the words run out. */
         full.addEventListener('loadedmetadata', function(){
-          fullDur = full.duration;
-          check();
+          fire(full, Math.round(Math.max(4500, Math.min(22000,
+            full.duration * 1000 + 200))));
         });
         full.addEventListener('error', function(){ fire(null, null); });
-        if (tail) {
-          tail.addEventListener('loadedmetadata', function(){
-            tailDur = tail.duration;
-            check();
-          });
-          tail.addEventListener('error', function(){ tailDur = 2.6; check(); });
-        }
       })
       .catch(function(){ fire(null, null); });
   }

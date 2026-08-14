@@ -2144,7 +2144,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
     seal.style.display =
       IS_HOST && live && !lastVotingClosed && !spinning ? '' : 'none';
 
-    var gate = live && !spinning && !MUTED && !ceremonyReady;
+    /* The wheel waits for the seal, full stop — and then for its voice (unless muted).
+       Voting open: locked out. Sealed: locked until both clips are in. */
+    var gate = live && !spinning &&
+      (!lastVotingClosed || (!MUTED && !ceremonyReady));
     if (gate) {
       gateHeld = true;
       spinBtn.disabled = true;
@@ -2155,13 +2158,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
     label.textContent = !live || spinning
       ? ''
-      : ceremonyReady
+      : !lastVotingClosed
+      ? 'voting is open — the wheel unlocks at the seal'
+      : (MUTED || ceremonyReady)
       ? 'ready to spin'
-      : lastVotingClosed || prewarmed
-      ? '🎙 preparing the ceremony...'
-      : IS_HOST && !MUTED
-      ? 'seal the ballots to cue the announcer'
-      : '';
+      : '🎙 preparing the ceremony...';
   }
 
   function checkTminus(ms){

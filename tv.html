@@ -2066,7 +2066,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
      Crossing ten minutes out: refreshments. Crossing two: seats and silenced phones. Each
      fires once per night (the crossing is the trigger, so a page opened late only gets the
      calls still ahead of it), the jazz ducks under the voice and swells back after. */
-  var lastMsToGo = null;
   var prewarmed = false;
   var TMINUS = [
     { at: 30 * 60000, kind: 'votecall' },
@@ -2165,25 +2164,32 @@ body.idlecursor, body.idlecursor *{cursor:none}
       : '🎙 preparing the ceremony...';
   }
 
+  /**
+   * A house call counts as delivered only when playback actually STARTS — a page that
+   * hasn't been clicked yet (autoplay locked) keeps retrying every tick through a
+   * ninety-second grace window instead of silently burning its one chance.
+   */
+  var tminusPending = {};
+  var TMINUS_GRACE_MS = 90 * 1000;
+
   function checkTminus(ms){
     if (ms == null ||
-        (lastNightStatus !== 'planned' && lastNightStatus !== 'locked')) {
-      lastMsToGo = ms;
-      return;
-    }
+        (lastNightStatus !== 'planned' && lastNightStatus !== 'locked')) return;
     /* A page opened inside the ten-minute window still warms the ceremony cache. */
     if (ms > 0 && ms <= 10 * 60000 && lastNightStatus === 'locked') prewarmCeremony();
-    if (MUTED) { lastMsToGo = ms; return; }
+    if (MUTED) return;
     for (var i = 0; i < TMINUS.length; i++) {
-      var t = TMINUS[i];
-      if (lastMsToGo !== null && lastMsToGo > t.at && ms <= t.at && ms > 0) {
+      (function(t){
+        if (!(ms > 0 && ms <= t.at && ms > t.at - TMINUS_GRACE_MS)) return;
         var guard = 'den-tminus-' + t.at + '-' + startsAt;
         var seen = false;
-        try {
-          seen = !!localStorage.getItem(guard);
-          localStorage.setItem(guard, '1');
-        } catch (e) {}
-        if (seen) continue;
+        try { seen = !!localStorage.getItem(guard); } catch (e) {}
+        if (seen || tminusPending[guard]) return;
+        tminusPending[guard] = true;
+        var delivered = function(){
+          try { localStorage.setItem(guard, '1'); } catch (e) {}
+        };
+        var retry = function(){ tminusPending[guard] = false; };
         if (t.kind === 'votecall') {
           fetch(API + 'votecall?key=' + encodeURIComponent(KEY), { method: 'POST' })
             .then(function(r){ return r.json(); })
@@ -2191,25 +2197,38 @@ body.idlecursor, body.idlecursor *{cursor:none}
               if (j && j.url) {
                 var a = new Audio(j.url);
                 a.preload = 'auto';
-                duckThenPlay(a);
+                duckThenPlay(a, delivered, retry);
+              } else {
+                delivered(); /* nothing to say tonight — don't refetch forever */
               }
             })
-            .catch(function(){});
+            .catch(retry);
         } else {
-          duckThenPlay(randomClip(t.group));
+          duckThenPlay(randomClip(t.group), delivered, retry);
         }
-      }
+      })(TMINUS[i]);
     }
-    lastMsToGo = ms;
   }
-  function duckThenPlay(clip){
+  function duckThenPlay(clip, onStarted, onFail){
     var restore = function(){
       if (music && music.audio) fadeAudio(music.audio, MUSIC_VOL, 1400);
     };
     if (music && music.audio) fadeAudio(music.audio, 0.07, 600);
     clip.addEventListener('ended', restore);
-    clip.addEventListener('error', restore);
-    playClip(clip);
+    clip.addEventListener('error', function(){
+      restore();
+      if (onFail) onFail();
+    });
+    var p = clip.play();
+    if (p && p.then) {
+      p.then(function(){ if (onStarted) onStarted(); })
+        .catch(function(){
+          restore();
+          if (onFail) onFail();
+        });
+    } else if (onStarted) {
+      onStarted();
+    }
   }
 
   function tickCountdown(){

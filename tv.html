@@ -562,9 +562,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
 .ready{font-size:13px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;
   color:var(--amber);opacity:.75}
 .ready:empty{display:none}
-/* House lights down while the announcer has the floor. */
-#lobby{transition:filter .8s ease}
-#lobby.preshow{filter:brightness(.62) saturate(.85)}
 #modal .side{flex:1;min-width:0}
 #modal h3{font-size:46px;font-weight:800;letter-spacing:-.04em;line-height:1.04;margin:0}
 #modal .yr{color:var(--muted);font-weight:600}
@@ -1010,7 +1007,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       return;
     }
 
-    prepareCeremonyAudio(res, function(ride, nameClip){
+    prepareCeremonyAudio(res, function(ride, held){
       /* The ride drives the clock; capped at twenty seconds, and without a voice the
          wheel keeps its old randomized nine-ish seconds. */
       var ms = ride && ride.duration
@@ -1032,32 +1029,33 @@ body.idlecursor, body.idlecursor *{cursor:none}
       rotation = end;
       setTimeout(function(){
         sting();
-        playClip(nameClip);
+        playClip(held.name);
         showReveal(res, voters);
       }, ms + REVEAL_GAP_MS);
     });
   }
 
   /**
-   * Fetch the ride and the winner's name call — cache-warm since the T-10 prewarm, so
-   * normally instant. Five seconds is the most the wheel will ever wait on the network.
+   * Fetch the ride and the winner's name call — cache-warm since the seal, so normally
+   * instant. The wheel starts within 1.4 seconds of the click no matter what; a name
+   * call that arrives after the wheel is already turning still plays at the stop.
    */
   function prepareCeremonyAudio(res, cb){
-    if (MUTED) { cb(null, null); return; }
+    var held = { name: null };
+    if (MUTED) { cb(null, held); return; }
     audioCtx();
     var winner = null, i;
     for (i = 0; i < res.candidates.length; i++) {
       if (res.candidates[i].film_id === res.winner_film_id) winner = res.candidates[i];
     }
     var maj = res.majority || {};
-    var ride = null, nameClip = null;
-    var rideReady = false, nameReady = false, called = false;
+    var ride = null, called = false;
     var fire = function(){
-      if (called || !rideReady || !nameReady) return;
+      if (called) return;
       called = true;
-      cb(ride, nameClip);
+      cb(ride, held);
     };
-    setTimeout(function(){ rideReady = true; nameReady = true; fire(); }, 5000);
+    setTimeout(fire, 1400);
 
     fetch(API + 'ride?key=' + encodeURIComponent(KEY), {
       method: 'POST',
@@ -1066,15 +1064,15 @@ body.idlecursor, body.idlecursor *{cursor:none}
     })
       .then(function(r){ return r.json(); })
       .then(function(j){
-        if (!j || !j.url) { rideReady = true; fire(); return; }
+        if (!j || !j.url) { fire(); return; }
         var a = new Audio(j.url);
         a.preload = 'auto';
-        a.addEventListener('loadedmetadata', function(){ ride = a; rideReady = true; fire(); });
-        a.addEventListener('error', function(){ rideReady = true; fire(); });
+        a.addEventListener('loadedmetadata', function(){ ride = a; fire(); });
+        a.addEventListener('error', fire);
       })
-      .catch(function(){ rideReady = true; fire(); });
+      .catch(fire);
 
-    if (!winner) { nameReady = true; fire(); return; }
+    if (!winner) return;
     fetch(API + 'announce?key=' + encodeURIComponent(KEY), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -1086,21 +1084,20 @@ body.idlecursor, body.idlecursor *{cursor:none}
     })
       .then(function(r){ return r.json(); })
       .then(function(j){
+        /* Late is fine: the stop callback reads this holder whenever it fires. */
         if (j && j.url) {
-          nameClip = new Audio(j.url);
-          nameClip.preload = 'auto';
+          held.name = new Audio(j.url);
+          held.name.preload = 'auto';
         }
-        nameReady = true;
-        fire();
       })
-      .catch(function(){ nameReady = true; fire(); });
+      .catch(function(){});
   }
 
   /* ---------------- the announcer + sfx ----------------
      The whole soundtrack is optional garnish: every play() failure is swallowed, so a
      browser that hasn't been touched yet (autoplay rules) just runs a silent ceremony. */
   var AUDIO_BASE = 'https://psomtujaikgcvblklzgv.supabase.co/storage/v1/object/public/audio/';
-  var CLIP_COUNTS = { coldopen: 3, tminus10: 3, tminus2: 3 };
+  var CLIP_COUNTS = { tminus10: 3, tminus2: 3 };
   var UNDERDOG_ODDS = 0.08;
   var MUTED = false;
   try { MUTED = localStorage.getItem('den-muted') === '1'; } catch (e) {}
@@ -1132,7 +1129,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
   var MUSIC_TRACKS = 4;
   var MUSIC_VOL = 0.24;
   var music = null;
-  var preshowActive = false;
   var lastNightStatus = '';
 
   function fadeAudio(a, to, ms, done){
@@ -1177,7 +1173,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   }
 
   function musicWanted(){
-    return !MUTED && !spinning && !preshowActive &&
+    return !MUTED && !spinning &&
       lastNightStatus !== 'spun' && lastNightStatus !== '' &&
       revealEl.className !== 'on' &&
       document.getElementById('lobby').style.display !== 'none';
@@ -1241,58 +1237,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
       osc.connect(g); g.connect(ac.destination);
       osc.start(at); osc.stop(at + 0.75);
     }
-  }
-
-  /**
-   * The pre-show: ten to thirty seconds of theatre before the first roll. A canned cold
-   * open plays instantly while the server writes and voices tonight's introduction from
-   * the real field — the favourite, the long shot, the joker. Any failure, or the mute
-   * switch, goes straight to the wheel: the show must go on, with or without the voice.
-   */
-  function runPreshow(next){
-    if (MUTED) { next(); return; }
-    audioCtx();
-    preshowActive = true;
-    stopMusic(true);
-    spinBtn.disabled = true;
-    spinBtn.textContent = '🎙 the announcer has the floor';
-    document.getElementById('lobby').classList.add('preshow');
-
-    var done = false;
-    var finish = function(){
-      if (done) return;
-      done = true;
-      preshowActive = false;
-      document.getElementById('lobby').classList.remove('preshow');
-      spinBtn.textContent = FIRST_LABEL;
-      next();
-    };
-    /* Whatever happens with the network, the wheel spins inside forty seconds. */
-    var cap = setTimeout(finish, 40000);
-
-    var cold = randomClip('coldopen');
-    var coldDone = false, introClip = null, introAsked = false;
-    var maybeIntro = function(){
-      if (done || !coldDone || !introAsked) return;
-      if (!introClip) { clearTimeout(cap); finish(); return; }
-      introClip.addEventListener('ended', function(){ clearTimeout(cap); finish(); });
-      introClip.addEventListener('error', function(){ clearTimeout(cap); finish(); });
-      playClip(introClip);
-    };
-    cold.addEventListener('ended', function(){ coldDone = true; maybeIntro(); });
-    cold.addEventListener('error', function(){ coldDone = true; maybeIntro(); });
-    playClip(cold);
-    /* A silent page (autoplay not yet unlocked) reports nothing — don't hang on it. */
-    setTimeout(function(){ coldDone = true; maybeIntro(); }, 6000);
-
-    fetch(API + 'preshow?key=' + encodeURIComponent(KEY), { method: 'POST' })
-      .then(function(r){ return r.json(); })
-      .then(function(j){
-        if (j && j.url) { introClip = new Audio(j.url); introClip.preload = 'auto'; }
-        introAsked = true;
-        maybeIntro();
-      })
-      .catch(function(){ introAsked = true; maybeIntro(); });
   }
 
   /* Two films are a double bill; the room can keep going. */
@@ -3255,23 +3199,23 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   spinBtn.addEventListener('click', function(){
     if (spinning || spinBtn.disabled) return;
-    /* Same call, same animation, same dual reveal as the button on the reveal itself. */
+    /* Same call, same animation, same dual reveal as the button on the reveal itself.
+       No preamble: the click IS the ceremony — the wheel moves at once and the ride
+       narration runs over it. */
     if (lobbyRolls) { rollSecond(spinBtn, SECOND_LABEL); return; }
-    /* The first roll of the night earns the full ceremony; repeat rolls cut to the chase. */
-    runPreshow(function(){
-      spinning = true;
-      spinBtn.disabled = true;
-      fetch(spinUrl(), { method: 'POST' })
-        .then(function(r){ return r.json(); })
-        .then(function(j){
-          spinning = false;
-          if (!j || !j.ok || !j.spin) { spinBtn.disabled = false; return; }
-          if (shownSpins[j.spin.id]) return;
-          shownSpins[j.spin.id] = true;
-          runSpinAnimation(j.spin, j.votes);
-        })
-        .catch(function(){ spinning = false; spinBtn.disabled = false; });
-    });
+    audioCtx();
+    spinning = true;
+    spinBtn.disabled = true;
+    fetch(spinUrl(), { method: 'POST' })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        spinning = false;
+        if (!j || !j.ok || !j.spin) { spinBtn.disabled = false; return; }
+        if (shownSpins[j.spin.id]) return;
+        shownSpins[j.spin.id] = true;
+        runSpinAnimation(j.spin, j.votes);
+      })
+      .catch(function(){ spinning = false; spinBtn.disabled = false; });
   });
 
   document.getElementById('navrow').innerHTML =

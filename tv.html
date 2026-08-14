@@ -681,7 +681,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
       <section class="panel spot" id="hdr">
         <span class="bulbs"></span>
         <div class="brand">THE DEN</div>
-        <div class="label" id="label">Loading the projector</div>
+        <div class="label" id="label">Loading The Lobby</div>
         <div class="countdown" id="countdown"></div>
         <div class="whenline" id="whenline"></div>
         <div class="theme" id="theme"></div>
@@ -2042,6 +2042,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
      cached server-side — a page opened late warms the same cache in one round. */
   var ceremonyReady = false;
   var lastVotingClosed = false;
+  var lastNightId = '';
 
   function ceremonyBody(c, locked){
     return JSON.stringify({

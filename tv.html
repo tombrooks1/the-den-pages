@@ -1320,12 +1320,13 @@ body.idlecursor, body.idlecursor *{cursor:none}
       '<div class="by">' + avatar(winner) + 'suggested by ' + esc(winner.member) +
         '<span style="color:var(--muted);font-weight:600"> &middot; ' + line + '</span></div>' +
       firstLine + tally +
-      /* Where to press play, right under the verdict. Filled late if the shelf is still
-         loading when the ceremony ends. */
+      /* Where to press play, right under the verdict. Filled late if the shelf hasn't
+         met this film yet — the refetch below brings its links in. */
       '<div id="revwatch">' +
       (dossiers[winner.film_id]
         ? watchBlock(dossiers[winner.film_id].watch_providers, winner.title) : '') +
       '</div>' + again + '</div>';
+    if (!dossiers[winner.film_id]) wantDossier(winner.film_id);
     revealEl.className = 'on';
     lastReveal = { res: res, voters: voters };
     var againBtn = document.getElementById('again');
@@ -1365,6 +1366,21 @@ body.idlecursor, body.idlecursor *{cursor:none}
    * the room is doing; the library carries what a film IS — synopsis, ratings, cast — and
    * that does not change from one poll to the next.
    */
+  /**
+   * The shelf loads once — but films can now join after the page did (entries stay open
+   * through voting, and a reseed swaps the whole library). Any surface that meets a film
+   * it doesn't know asks for one refresh, throttled to once per half-minute.
+   */
+  var dossierRefreshAt = 0;
+  function wantDossier(id){
+    if (!id || dossiers[id]) return;
+    var now = Date.now();
+    if (now - dossierRefreshAt < 30000) return;
+    dossierRefreshAt = now;
+    dossiersAsked = false;
+    loadDossiers();
+  }
+
   function loadDossiers(){
     if (dossiersAsked) return;
     dossiersAsked = true;
@@ -1736,9 +1752,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
       var pct = isLock ? 'LOCK' : Math.round((c.odds || 0) * 100) + '%';
       if (node.p !== pct) { node.p = pct; node.pct.textContent = pct; }
 
-      /* The hover panel. Its facts arrive with the library, which lands once and late, so
-         everything here is written only when the text itself has changed. */
+      /* The hover panel. Its facts arrive with the library — refetched on demand when a
+         film joined after the page loaded — and are written only when the text changed. */
       var d = dossiers[c.film_id];
+      if (!d) wantDossier(c.film_id);
       var facts = '';
       if (d) {
         if (d.imdb_rating) {

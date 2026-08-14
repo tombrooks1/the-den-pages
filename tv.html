@@ -1007,18 +1007,16 @@ body.idlecursor, body.idlecursor *{cursor:none}
       return;
     }
 
-    prepareCeremonyAudio(res, function(ride, held){
-      /* The ride drives the clock; capped at twenty seconds, and without a voice the
-         wheel keeps its old randomized nine-ish seconds. */
-      var ms = ride && ride.duration
-        ? Math.round(Math.min(20000, Math.max(7000, ride.duration * 1000 + 350)))
-        : Math.round(SPIN_MS * (0.8 + Math.random() * 0.55));
+    prepareCeremonyAudio(res, function(clip, stopMs){
+      /* One continuous clip; the wheel stops where the name begins inside it. No clip,
+         no problem: the old randomized nine-ish seconds, silent. */
+      var ms = stopMs || Math.round(SPIN_MS * (0.8 + Math.random() * 0.55));
       var TURNS = Math.max(7, Math.round(10 * ms / SPIN_MS));
       var target = ((-land) % 360 + 360) % 360;
       var delta = ((target - (rotation % 360)) % 360 + 360) % 360;
       var end = rotation + TURNS * 360 + delta;
 
-      if (ride) playClip(ride);
+      if (clip) playClip(clip);
       scheduleTicks(ms, end - rotation, res.candidates.length);
 
       /* The first control point sits high and early, so most of the rotation is spent in
@@ -1029,68 +1027,67 @@ body.idlecursor, body.idlecursor *{cursor:none}
       rotation = end;
       setTimeout(function(){
         sting();
-        playClip(held.name);
         showReveal(res, voters);
       }, ms + REVEAL_GAP_MS);
     });
   }
 
   /**
-   * Fetch the ride and the winner's name call — cache-warm since the seal, so normally
-   * instant. The wheel starts within 1.4 seconds of the click no matter what; a name
-   * call that arrives after the wheel is already turning still plays at the stop.
+   * Fetch the winner's one-clip ceremony — cache-warm since the seal, so normally
+   * instant; the wheel never waits more than two seconds. The stop point is the full
+   * clip's length minus the measured length of its own name-call tail: the wheel halts
+   * exactly as the announcer reaches the name, inside one continuous track.
    */
   function prepareCeremonyAudio(res, cb){
-    var held = { name: null };
-    if (MUTED) { cb(null, held); return; }
+    if (MUTED) { cb(null, null); return; }
     audioCtx();
     var winner = null, i;
     for (i = 0; i < res.candidates.length; i++) {
       if (res.candidates[i].film_id === res.winner_film_id) winner = res.candidates[i];
     }
     var maj = res.majority || {};
-    var ride = null, called = false;
-    var fire = function(){
+    var called = false;
+    var fire = function(clip, stop){
       if (called) return;
       called = true;
-      cb(ride, held);
+      cb(clip, stop);
     };
-    setTimeout(fire, 1400);
+    setTimeout(function(){ fire(null, null); }, 2000);
+    if (!winner) { fire(null, null); return; }
 
-    fetch(API + 'ride?key=' + encodeURIComponent(KEY), {
+    fetch(API + 'ceremony?key=' + encodeURIComponent(KEY), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ locked: !!maj.locked })
+      body: ceremonyBody(winner, !!maj.locked)
     })
       .then(function(r){ return r.json(); })
       .then(function(j){
-        if (!j || !j.url) { fire(); return; }
-        var a = new Audio(j.url);
-        a.preload = 'auto';
-        a.addEventListener('loadedmetadata', function(){ ride = a; fire(); });
-        a.addEventListener('error', fire);
-      })
-      .catch(fire);
-
-    if (!winner) return;
-    fetch(API + 'announce?key=' + encodeURIComponent(KEY), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        title: winner.title,
-        name: winner.member,
-        underdog: !maj.locked && (winner.odds || 0) < UNDERDOG_ODDS
-      })
-    })
-      .then(function(r){ return r.json(); })
-      .then(function(j){
-        /* Late is fine: the stop callback reads this holder whenever it fires. */
-        if (j && j.url) {
-          held.name = new Audio(j.url);
-          held.name.preload = 'auto';
+        if (!j || !j.url) { fire(null, null); return; }
+        var full = new Audio(j.url);
+        full.preload = 'auto';
+        var tail = j.tail ? new Audio(j.tail) : null;
+        var fullDur = null;
+        var tailDur = tail ? null : 2.6;   /* seconds; estimate when no tail came back */
+        var check = function(){
+          if (fullDur == null || tailDur == null) return;
+          var stop = Math.round(Math.max(4500, Math.min(22000,
+            (fullDur - tailDur) * 1000 - 150)));
+          fire(full, stop);
+        };
+        full.addEventListener('loadedmetadata', function(){
+          fullDur = full.duration;
+          check();
+        });
+        full.addEventListener('error', function(){ fire(null, null); });
+        if (tail) {
+          tail.addEventListener('loadedmetadata', function(){
+            tailDur = tail.duration;
+            check();
+          });
+          tail.addEventListener('error', function(){ tailDur = 2.6; check(); });
         }
       })
-      .catch(function(){});
+      .catch(function(){ fire(null, null); });
   }
 
   /* ---------------- the announcer + sfx ----------------
@@ -2033,28 +2030,28 @@ body.idlecursor, body.idlecursor *{cursor:none}
   var ceremonyReady = false;
   var lastVotingClosed = false;
 
+  function ceremonyBody(c, locked){
+    return JSON.stringify({
+      title: c.title,
+      name: c.member,
+      underdog: !locked && (c.odds || 0) < UNDERDOG_ODDS,
+      locked: locked
+    });
+  }
+
   function prewarmCeremony(){
     if (prewarmed) return;
     prewarmed = true;
     paintCeremonyState();
     var locked = !!(lastBoard && lastBoard.maj && lastBoard.maj.locked);
     var jobs = [];
-    jobs.push(fetch(API + 'ride?key=' + encodeURIComponent(KEY), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ locked: locked })
-    }).then(function(r){ return r.json(); }).catch(function(){}));
     var entries = (lastBoard && lastBoard.sorted) || [];
     entries.forEach(function(c){
       if (!c) return;
-      jobs.push(fetch(API + 'announce?key=' + encodeURIComponent(KEY), {
+      jobs.push(fetch(API + 'ceremony?key=' + encodeURIComponent(KEY), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          title: c.title,
-          name: c.member,
-          underdog: !locked && (c.odds || 0) < UNDERDOG_ODDS
-        })
+        body: ceremonyBody(c, locked)
       }).then(function(r){ return r.json(); }).catch(function(){}));
     });
     Promise.all(jobs).then(function(){

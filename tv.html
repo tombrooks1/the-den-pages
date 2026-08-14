@@ -1055,15 +1055,18 @@ body.idlecursor, body.idlecursor *{cursor:none}
     };
     if (!winner) { fire(null, null); return; }
 
-    /* Prewarmed since the seal: the show starts with no network at all. */
-    var warm = ceremonyCache[winner.film_id];
-    if (warm && warm.stop_ms) {
-      fire(warm.audio, Math.round(Math.max(4500, Math.min(22000, warm.stop_ms))));
+    /* Pre-drawn at the seal: the outcome the server rolled then is the outcome now, so
+       the matching clip is already sitting here preloaded. Round one plays the first,
+       a roll-again plays the second; a third roll falls to the live path below. */
+    var second = (res.round === 2) || features.length > 0;
+    var pc = predrawClips && (second ? predrawClips.second : predrawClips.first);
+    if (pc && pc.stop) {
+      fire(pc.audio, Math.round(Math.max(4500, Math.min(22000, pc.stop))));
       return;
     }
 
-    /* Not warmed (spun seconds after the seal, or a chat-triggered roll): the voice is
-       worth a short wait — the button says so — but never more than eight seconds. */
+    /* No prepared clip for this roll: worth a short wait — the button says so — but
+       never more than eight seconds. */
     spinBtn.textContent = '🎙 cueing the announcer...';
     setTimeout(function(){ fire(null, null); }, 8000);
 
@@ -1773,9 +1776,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var n = state.night;
     var maj = state.majority || {};
     var locked = !!(maj.locked && n && n.status === 'locked');
-    /* A different night means different clips: the warm cache belongs to one ceremony. */
+    /* A different night means different clips: the pre-draw belongs to one ceremony. */
     if ((n ? n.id : '') !== lastNightId) {
-      ceremonyCache = {};
+      predrawClips = null;
       prewarmed = false;
       ceremonyReady = false;
     }
@@ -1945,6 +1948,8 @@ body.idlecursor, body.idlecursor *{cursor:none}
       spinBtn.textContent = label;
       spinBtn.disabled = !live;
     });
+    /* Last word on the button belongs to the audio gate. */
+    paintCeremonyState();
   }
 
   /* A host can cancel a no-show's film without leaving the wheel screen. */
@@ -2047,54 +2052,76 @@ body.idlecursor, body.idlecursor *{cursor:none}
     });
   }
 
-  /* Prewarmed ceremonies, by film id: the response AND a preloaded Audio, so the spin
-     needs zero network to start the show. */
-  var ceremonyCache = {};
+  /**
+   * The seal decides. Once ballots close, one server call draws the night's outcome and
+   * prepares exactly two clips — the winner's ceremony and a possible second feature's —
+   * plus the winners' streaming links. This polls until the server says ready, then holds
+   * both clips preloaded; the spin button is pure reveal from that moment.
+   */
+  var predrawClips = null;   /* { first: {audio, stop}, second: {audio, stop}|null } */
 
   function prewarmCeremony(){
     if (prewarmed) return;
     prewarmed = true;
     paintCeremonyState();
-    var locked = !!(lastBoard && lastBoard.maj && lastBoard.maj.locked);
-    var jobs = [];
-    var entries = (lastBoard && lastBoard.sorted) || [];
-    entries.forEach(function(c){
-      if (!c) return;
-      jobs.push(fetch(API + 'ceremony?key=' + encodeURIComponent(KEY), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: ceremonyBody(c, locked)
-      })
+    var mk = function(c){
+      if (!c || !c.url) return null;
+      var a = new Audio(c.url);
+      a.preload = 'auto';
+      return { audio: a, stop: c.stop_ms || null };
+    };
+    (function ask(){
+      if (lastNightStatus !== 'locked' || !lastVotingClosed) {
+        /* The moment passed (spun, cancelled, re-opened) — stand down; a later seal
+           starts a fresh poll via the night-change reset. */
+        prewarmed = false;
+        return;
+      }
+      fetch(API + 'predraw?key=' + encodeURIComponent(KEY), { method: 'POST' })
         .then(function(r){ return r.json(); })
         .then(function(j){
-          if (j && j.url) {
-            var a = new Audio(j.url);
-            a.preload = 'auto';
-            ceremonyCache[c.film_id] = { url: j.url, stop_ms: j.stop_ms || null, audio: a };
+          if (j && j.ok && j.ready) {
+            predrawClips = { first: mk(j.first), second: mk(j.second) };
+            ceremonyReady = true;
+            paintCeremonyState();
+            return;
           }
+          setTimeout(ask, 5000);
         })
-        .catch(function(){}));
-    });
-    Promise.all(jobs).then(function(){
-      ceremonyReady = true;
-      paintCeremonyState();
-    });
+        .catch(function(){ setTimeout(ask, 8000); });
+    })();
   }
 
-  /* The little truth line by the spin button: sealing offered to the host while voting
-     is open, quiet progress while the clips generate, «ready to spin» when they're in. */
+  /**
+   * The audio gate. The wheel is not offered until the narration for every possible
+   * winner is verifiably sitting in this page's cache — the button stays disabled and
+   * the line under it says why. Mute lifts the gate: a silent ceremony needs no clips.
+   */
+  var gateHeld = false;
   function paintCeremonyState(){
     var seal = document.getElementById('sealBtn');
     var label = document.getElementById('readyLabel');
     var live = lastNightStatus === 'locked';
     seal.style.display =
       IS_HOST && live && !lastVotingClosed && !spinning ? '' : 'none';
+
+    var gate = live && !spinning && !MUTED && !ceremonyReady;
+    if (gate) {
+      gateHeld = true;
+      spinBtn.disabled = true;
+    } else if (gateHeld) {
+      gateHeld = false;
+      spinBtn.disabled = false;
+    }
+
     label.textContent = !live || spinning
       ? ''
       : ceremonyReady
       ? 'ready to spin'
       : lastVotingClosed || prewarmed
-      ? 'preparing the ceremony...'
+      ? '🎙 preparing the ceremony...'
+      : IS_HOST && !MUTED
+      ? 'seal the ballots to cue the announcer'
       : '';
   }
 

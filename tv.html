@@ -1050,10 +1050,22 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var fire = function(clip, stop){
       if (called) return;
       called = true;
+      spinBtn.textContent = lobbyRolls ? SECOND_LABEL : FIRST_LABEL;
       cb(clip, stop);
     };
-    setTimeout(function(){ fire(null, null); }, 2000);
     if (!winner) { fire(null, null); return; }
+
+    /* Prewarmed since the seal: the show starts with no network at all. */
+    var warm = ceremonyCache[winner.film_id];
+    if (warm && warm.stop_ms) {
+      fire(warm.audio, Math.round(Math.max(4500, Math.min(22000, warm.stop_ms))));
+      return;
+    }
+
+    /* Not warmed (spun seconds after the seal, or a chat-triggered roll): the voice is
+       worth a short wait — the button says so — but never more than eight seconds. */
+    spinBtn.textContent = '🎙 cueing the announcer...';
+    setTimeout(function(){ fire(null, null); }, 8000);
 
     fetch(API + 'ceremony?key=' + encodeURIComponent(KEY), {
       method: 'POST',
@@ -1761,6 +1773,12 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var n = state.night;
     var maj = state.majority || {};
     var locked = !!(maj.locked && n && n.status === 'locked');
+    /* A different night means different clips: the warm cache belongs to one ceremony. */
+    if ((n ? n.id : '') !== lastNightId) {
+      ceremonyCache = {};
+      prewarmed = false;
+      ceremonyReady = false;
+    }
     lastNightId = n ? n.id : '';
 
     var label = n ? n.label : 'No night scheduled';
@@ -2029,6 +2047,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
     });
   }
 
+  /* Prewarmed ceremonies, by film id: the response AND a preloaded Audio, so the spin
+     needs zero network to start the show. */
+  var ceremonyCache = {};
+
   function prewarmCeremony(){
     if (prewarmed) return;
     prewarmed = true;
@@ -2042,7 +2064,16 @@ body.idlecursor, body.idlecursor *{cursor:none}
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: ceremonyBody(c, locked)
-      }).then(function(r){ return r.json(); }).catch(function(){}));
+      })
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          if (j && j.url) {
+            var a = new Audio(j.url);
+            a.preload = 'auto';
+            ceremonyCache[c.film_id] = { url: j.url, stop_ms: j.stop_ms || null, audio: a };
+          }
+        })
+        .catch(function(){}));
     });
     Promise.all(jobs).then(function(){
       ceremonyReady = true;

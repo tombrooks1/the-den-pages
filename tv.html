@@ -557,6 +557,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
 .pillbtn.mute:hover{opacity:1}
 .mcredit{position:fixed;left:26px;top:16px;z-index:40;font-size:11px;
   color:var(--muted);opacity:.45;letter-spacing:.04em}
+.spinaux{margin-top:14px;display:flex;align-items:center;justify-content:center;gap:16px;
+  min-height:30px}
+.ready{font-size:13px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--amber);opacity:.75}
+.ready:empty{display:none}
 /* House lights down while the announcer has the floor. */
 #lobby{transition:filter .8s ease}
 #lobby.preshow{filter:brightness(.62) saturate(.85)}
@@ -713,6 +718,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
         <div class="hub"><span class="paw">&#128062;</span><span class="t">THE DEN</span></div>
       </div>
       <button id="spin">Spin the wheel</button>
+      <div class="spinaux">
+        <button id="sealBtn" class="pillbtn seal" style="display:none">🔒 seal the ballots</button>
+        <span id="readyLabel" class="ready"></span>
+      </div>
       <div class="hint" id="hint"></div>
     </div>
   </div>
@@ -1825,6 +1834,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
     var label = n ? n.label : 'No night scheduled';
     lastNightStatus = n ? String(n.status || '') : '';
+    lastVotingClosed = !!(n && n.voting_closed);
+    /* Sealed — by the clock or by the host's hand — means the ceremony can be prepared. */
+    if (lastVotingClosed && lastNightStatus === 'locked') prewarmCeremony();
+    paintCeremonyState();
     var when = (n && n.date_label) ? n.date_label : '';
     var theme = n && n.theme ? n.theme : '';
     var notes = (n && n.notes) ? n.notes : '';
@@ -2073,19 +2086,24 @@ body.idlecursor, body.idlecursor *{cursor:none}
   /* Ballots seal at ten minutes out, so every clip the ceremony could need can be made
      ahead of time: the ride, and a name call for every film still on the wheel. All
      cached server-side — a page opened late warms the same cache in one round. */
+  var ceremonyReady = false;
+  var lastVotingClosed = false;
+
   function prewarmCeremony(){
     if (prewarmed) return;
     prewarmed = true;
+    paintCeremonyState();
     var locked = !!(lastBoard && lastBoard.maj && lastBoard.maj.locked);
-    fetch(API + 'ride?key=' + encodeURIComponent(KEY), {
+    var jobs = [];
+    jobs.push(fetch(API + 'ride?key=' + encodeURIComponent(KEY), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ locked: locked })
-    }).catch(function(){});
+    }).then(function(r){ return r.json(); }).catch(function(){}));
     var entries = (lastBoard && lastBoard.sorted) || [];
     entries.forEach(function(c){
       if (!c) return;
-      fetch(API + 'announce?key=' + encodeURIComponent(KEY), {
+      jobs.push(fetch(API + 'announce?key=' + encodeURIComponent(KEY), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -2093,8 +2111,29 @@ body.idlecursor, body.idlecursor *{cursor:none}
           name: c.member,
           underdog: !locked && (c.odds || 0) < UNDERDOG_ODDS
         })
-      }).catch(function(){});
+      }).then(function(r){ return r.json(); }).catch(function(){}));
     });
+    Promise.all(jobs).then(function(){
+      ceremonyReady = true;
+      paintCeremonyState();
+    });
+  }
+
+  /* The little truth line by the spin button: sealing offered to the host while voting
+     is open, quiet progress while the clips generate, «ready to spin» when they're in. */
+  function paintCeremonyState(){
+    var seal = document.getElementById('sealBtn');
+    var label = document.getElementById('readyLabel');
+    var live = lastNightStatus === 'locked';
+    seal.style.display =
+      IS_HOST && live && !lastVotingClosed && !spinning ? '' : 'none';
+    label.textContent = !live || spinning
+      ? ''
+      : ceremonyReady
+      ? 'ready to spin'
+      : lastVotingClosed || prewarmed
+      ? 'preparing the ceremony...'
+      : '';
   }
 
   function checkTminus(ms){
@@ -3066,6 +3105,37 @@ body.idlecursor, body.idlecursor *{cursor:none}
   document.getElementById('modal').addEventListener('click', screenClick);
   document.getElementById('cinema').addEventListener('click', function(e){
     if (e.target.closest('[data-cclose]')) closeCinema();
+  });
+
+  /* Sealing early is a host act with a confirm-by-double-take: one click arms, the second
+     within four seconds commits. */
+  var sealArmed = null;
+  document.getElementById('sealBtn').addEventListener('click', function(){
+    var btn = document.getElementById('sealBtn');
+    if (!sealArmed) {
+      btn.textContent = '🔒 seal now — no more votes';
+      sealArmed = setTimeout(function(){
+        sealArmed = null;
+        btn.textContent = '🔒 seal the ballots';
+      }, 4000);
+      return;
+    }
+    clearTimeout(sealArmed);
+    sealArmed = null;
+    btn.disabled = true;
+    fetch(API + 'admin/act', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ key: KEY, host: HOSTKEY, action: 'close_voting',
+        night_id: lastNightId })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(){
+        btn.disabled = false;
+        btn.textContent = '🔒 seal the ballots';
+        poll();
+      })
+      .catch(function(){ btn.disabled = false; });
   });
 
   /* The mute switch doubles as the audio unlock: any click on it counts as the user

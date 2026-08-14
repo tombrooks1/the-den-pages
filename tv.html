@@ -403,9 +403,25 @@ body.idlecursor, body.idlecursor *{cursor:none}
 /* ---------------- the full-screen views: one chrome, one card language ----------------
    These three screens are fetched on entry and never poll, so unlike the lobby they are free
    to animate. Everything below is built for a 1920x1080 projector viewed from a couch. */
-#board, #libboard, #admin{position:absolute;inset:0;z-index:11;display:none;
+#board, #libboard, #admin, #people{position:absolute;inset:0;z-index:11;display:none;
   padding:0;overflow:hidden;background:var(--bg)}
-#libboard.on, #board.on{display:block;overflow-y:auto;overflow-x:hidden}
+#libboard.on, #board.on, #people.on{display:block;overflow-y:auto;overflow-x:hidden}
+/* The attendee directory: a face, a name, and the record at a glance. */
+.peoplegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+.pcard{display:flex;align-items:center;gap:16px;padding:18px;border-radius:18px;
+  background:linear-gradient(158deg,var(--s2),var(--s1));border:1px solid var(--line);
+  cursor:pointer;transition:border-color .15s ease}
+.pcard:hover{border-color:rgba(245,185,66,.5)}
+.pcard .pav{width:64px;height:64px;border-radius:50%;flex:none;display:grid;
+  place-items:center;font-size:30px}
+.pcard .pav img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+.pcard .pn{min-width:0}
+.pcard .pn b{display:block;font-size:20px;font-weight:800;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.pcard .pn i{font-style:normal;font-size:13px;color:var(--muted)}
+.pcard .phostt{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+  color:#0d0b14;background:var(--amber);border-radius:4px;padding:2px 7px;margin-left:8px;
+  vertical-align:2px}
 #admin.on{display:block;overflow-y:auto}
 .admgrid{display:grid;grid-template-columns:1fr 560px;gap:48px;align-items:start}
 .vwrap{padding:0 64px 90px;min-height:100%}
@@ -725,6 +741,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   <div id="board"></div>
   <div id="libboard"></div>
+  <div id="people"></div>
   <div id="admin"></div>
   <div id="modal"></div>
   <div id="cinema"></div>
@@ -1804,8 +1821,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
     var label = n ? n.label : 'No night scheduled';
     lastNightStatus = n ? String(n.status || '') : '';
     lastVotingClosed = !!(n && n.voting_closed);
-    /* Sealed — by the clock or by the host's hand — means the ceremony can be prepared. */
-    if (lastVotingClosed && lastNightStatus === 'locked') prewarmCeremony();
+    /* Sealed — by the clock or by the host's hand — means the ceremony can be prepared.
+       A night already spun re-arms too, so a refreshed page can still voice roll-again. */
+    if ((lastVotingClosed && lastNightStatus === 'locked') || lastNightStatus === 'spun') {
+      prewarmCeremony();
+    }
     paintCeremonyState();
     var when = (n && n.date_label) ? n.date_label : '';
     var theme = n && n.theme ? n.theme : '';
@@ -2089,9 +2109,10 @@ body.idlecursor, body.idlecursor *{cursor:none}
       return { audio: a, stop: c.stop_ms || null };
     };
     (function ask(){
-      if (lastNightStatus !== 'locked' || !lastVotingClosed) {
-        /* The moment passed (spun, cancelled, re-opened) — stand down; a later seal
-           starts a fresh poll via the night-change reset. */
+      var sealed = lastNightStatus === 'locked' && lastVotingClosed;
+      if (!sealed && lastNightStatus !== 'spun') {
+        /* The moment passed (cancelled, re-opened) — stand down; a later seal starts a
+           fresh poll via the night-change reset. */
         prewarmed = false;
         return;
       }
@@ -3182,12 +3203,13 @@ body.idlecursor, body.idlecursor *{cursor:none}
   function routeView(){
     /* A dialog belongs to the view that opened it. */
     if (modalFilm || modalProfile) closeModal();
-    var stats = boardOn(), lib = libOn();
+    var stats = boardOn(), lib = libOn(), ppl = location.hash === '#attendees';
     /* A viewer who guesses the hash still gets nothing: the panel needs the host link. */
     var adm = adminOn() && IS_HOST;
-    var any = stats || lib || adm;
+    var any = stats || lib || adm || ppl;
     document.getElementById('board').className = stats ? 'on' : '';
     document.getElementById('libboard').className = lib ? 'on' : '';
+    document.getElementById('people').className = ppl ? 'on' : '';
     document.getElementById('admin').className = adm ? 'on' : '';
     document.getElementById('navrow').style.display = any ? 'none' : '';
     document.getElementById('lobby').style.display = any ? 'none' : '';
@@ -3195,8 +3217,53 @@ body.idlecursor, body.idlecursor *{cursor:none}
     syncPicksLink();
     if (stats) loadBoard();
     if (lib) loadLibBoard();
+    if (ppl) loadPeople();
     if (adm) { admError = ''; loadAdmin(); }
   }
+
+  /* ------------------------------------------------ the attendee directory */
+  function loadPeople(){
+    var el = document.getElementById('people');
+    el.innerHTML = '<div class="vwrap"><div class="bempty">Fetching the attendees...</div></div>';
+    fetch(API + 'tv-members?key=' + encodeURIComponent(KEY))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var list = (d && d.ok && d.members) ? d.members : [];
+        var cards = list.map(function(m){
+          var face = m.avatar
+            ? '<span class="pav"><img src="' + esc(m.avatar) + '" alt=""></span>'
+            : '<span class="pav" style="background:' + safeColor(m.color) + '33">' +
+              esc(m.emoji) + '</span>';
+          var bits = [
+            m.nights_in + (m.nights_in === 1 ? ' night' : ' nights'),
+            m.entries + (m.entries === 1 ? ' film' : ' films'),
+            m.wins + (m.wins === 1 ? ' win' : ' wins'),
+            '&#127183; ' + (m.jokers || 0)
+          ];
+          return '<div class="pcard" data-member="' + m.member_id + '">' + face +
+            '<div class="pn"><b>' + esc(m.name) +
+            (m.is_host ? '<span class="phostt">host</span>' : '') + '</b>' +
+            '<i>' + bits.join(' &middot; ') + '</i></div></div>';
+        });
+        el.innerHTML = '<div class="vhead">' +
+          '<div class="vtitle">Attendees<span class="vcount">' + list.length +
+          (list.length === 1 ? ' member' : ' members') + '</span></div>' +
+          '<div class="vspace"></div>' +
+          '<a class="pillbtn" href="#" id="pplBack">Back to The Lobby</a></div>' +
+          '<div class="vwrap"><div class="peoplegrid">' + cards.join('') + '</div></div>';
+        document.getElementById('pplBack').addEventListener('click', function(e){
+          e.preventDefault();
+          location.hash = '';
+        });
+      })
+      .catch(function(){
+        el.innerHTML = '<div class="vwrap"><div class="bempty">Could not fetch the attendees.</div></div>';
+      });
+  }
+  document.getElementById('people').addEventListener('click', function(e){
+    var el = e.target.closest('[data-member]');
+    if (el) openProfile(el.getAttribute('data-member'));
+  });
   window.addEventListener('hashchange', routeView);
 
   /* ------------------------------------------------ polling */
@@ -3284,6 +3351,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
   document.getElementById('navrow').innerHTML =
     '<button class="pillbtn hidden" id="navPicks">tonight&#39;s picks</button>' +
     '<a class="pillbtn" id="navLib" href="#library">library</a>' +
+    '<a class="pillbtn" id="navPeople" href="#attendees">attendees</a>' +
     '<a class="pillbtn" id="navBoard" href="#stats">history &amp; stats</a>' +
     (IS_HOST ? '<a class="pillbtn" id="navAdmin" href="#admin">admin</a>' : '');
   document.getElementById('navPicks').addEventListener('click', reopenReveal);

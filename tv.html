@@ -336,6 +336,29 @@ body.idlecursor, body.idlecursor *{cursor:none}
 #spin:disabled{opacity:.35;box-shadow:none;transform:none;cursor:default}
 .hint{margin-top:16px;font-size:15px;color:var(--muted);letter-spacing:.06em}
 
+/* ---------------- lobby trivia ----------------
+   The last hour before the spin: one spoiler-free fact at a time about tonight's entries,
+   in the free space under the scoreboard. Fades between cards; never moves the layout. */
+#trivia{position:absolute;left:64px;bottom:88px;width:940px;height:122px;z-index:3;
+  display:flex;align-items:center;gap:20px;padding:14px 22px 14px 14px;border-radius:18px;
+  background:linear-gradient(180deg,rgba(245,185,66,.08),rgba(245,185,66,.03));
+  border:1px solid rgba(245,185,66,.22);opacity:0;pointer-events:none;
+  transition:opacity .8s ease}
+#trivia.on{opacity:1}
+#trivia.swap .tbody,#trivia.swap .tposter{opacity:0}
+#trivia .tposter{width:62px;height:93px;border-radius:8px;object-fit:cover;flex:none;
+  background:rgba(255,255,255,.05);transition:opacity .6s ease}
+#trivia .tbody{flex:1;min-width:0;transition:opacity .6s ease}
+#trivia .teye{font-size:12px;font-weight:800;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--amber);display:flex;align-items:center;gap:10px}
+#trivia .teye .tfilm{color:var(--muted);letter-spacing:.14em;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+#trivia .tfact{margin-top:6px;font-size:20px;line-height:1.28;font-weight:600;
+  letter-spacing:-.01em;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+  overflow:hidden}
+#trivia.speaking{border-color:rgba(245,185,66,.6);box-shadow:0 0 44px rgba(245,185,66,.18)}
+#stage.busy #trivia{opacity:0}
+
 /* ---------------- reveal ---------------- */
 #reveal{
   position:absolute;inset:0;z-index:8;display:none;align-items:center;justify-content:center;gap:70px;
@@ -736,6 +759,13 @@ body.idlecursor, body.idlecursor *{cursor:none}
         <span id="readyLabel" class="ready"></span>
       </div>
       <div class="hint" id="hint"></div>
+    </div>
+    <div id="trivia" aria-live="polite">
+      <img class="tposter" id="tPoster" alt="">
+      <div class="tbody">
+        <div class="teye">Lobby trivia<span class="tfilm" id="tFilm"></span></div>
+        <div class="tfact" id="tFact"></div>
+      </div>
     </div>
   </div>
 
@@ -2068,7 +2098,12 @@ body.idlecursor, body.idlecursor *{cursor:none}
      calls still ahead of it), the jazz ducks under the voice and swells back after. */
   var prewarmed = false;
   var TMINUS = [
+    { at: 55 * 60000, kind: 'trivia' },
+    { at: 45 * 60000, kind: 'trivia' },
+    { at: 35 * 60000, kind: 'trivia' },
     { at: 30 * 60000, kind: 'votecall' },
+    { at: 25 * 60000, kind: 'trivia' },
+    { at: 15 * 60000, kind: 'trivia' },
     { at: 10 * 60000, kind: 'clip', group: 'tminus10', prewarm: true },
     { at: 2 * 60000, kind: 'clip', group: 'tminus2' }
   ];
@@ -2190,7 +2225,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
           try { localStorage.setItem(guard, '1'); } catch (e) {}
         };
         var retry = function(){ tminusPending[guard] = false; };
-        if (t.kind === 'votecall') {
+        if (t.kind === 'trivia') {
+          sayTrivia(delivered, retry);
+        } else if (t.kind === 'votecall') {
           fetch(API + 'votecall?key=' + encodeURIComponent(KEY), { method: 'POST' })
             .then(function(r){ return r.json(); })
             .then(function(j){
@@ -2231,8 +2268,148 @@ body.idlecursor, body.idlecursor *{cursor:none}
     }
   }
 
+  /* ---------------- lobby trivia ----------------
+     The hour before the spin: spoiler-free facts about tonight's entries, one card at a
+     time, every film taking its turn. The facts are made server-side from each film's
+     Wikipedia article with the story sections cut out; this page only shows them. Five
+     times in the hour (never near the vote call or the ten- and two-minute calls) the
+     announcer reads the card on screen aloud, and the card holds still while it does. */
+  var TRIVIA_WINDOW_MS = 60 * 60000;
+  var TRIVIA_FETCH_MS = 75 * 60000;  /* start making facts a little before they're needed */
+  var TRIVIA_EVERY_MS = 45 * 1000;
+  var triviaEl = document.getElementById('trivia');
+  var triviaDeck = [];               /* [{film_id, title, poster_url, fact, n}] */
+  var triviaNight = '';
+  var triviaAt = -1;
+  var triviaShownAt = 0;
+  var triviaHoldUntil = 0;
+  var triviaNextFetch = 0;
+  var triviaFetching = false;
+  var triviaLoaded = false;          /* a fetch for this night has finished and every film is done */
+
+  /** Round-robin across films so no single entry gets more airtime than another. */
+  function buildTriviaDeck(films){
+    var deck = [];
+    var most = 0;
+    films.forEach(function(f){ most = Math.max(most, (f.facts || []).length); });
+    for (var n = 0; n < most; n++) {
+      films.forEach(function(f){
+        if (f.facts && f.facts[n]) {
+          deck.push({ film_id: f.film_id, title: f.title, poster_url: f.poster_url,
+            fact: f.facts[n], n: n });
+        }
+      });
+    }
+    return deck;
+  }
+
+  function fetchTrivia(){
+    if (triviaFetching) return;
+    triviaFetching = true;
+    fetch(API + 'tv-trivia?key=' + encodeURIComponent(KEY))
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        triviaFetching = false;
+        if (!j || !j.ok) { triviaNextFetch = Date.now() + 60000; return; }
+        var cur = triviaDeck[triviaAt];
+        if (String(j.night_id || '') !== triviaNight) { triviaAt = -1; cur = null; }
+        triviaNight = String(j.night_id || '');
+        triviaDeck = buildTriviaDeck(j.films || []);
+        triviaLoaded = !!j.ready;
+        /* Keep the card on screen where it is in the new deck. */
+        if (cur) {
+          triviaAt = -1;
+          for (var i = 0; i < triviaDeck.length; i++) {
+            if (triviaDeck[i].film_id === cur.film_id && triviaDeck[i].n === cur.n) triviaAt = i;
+          }
+        }
+        /* Still making facts: ask again soon. All made: a slow refresh picks up new entries. */
+        triviaNextFetch = Date.now() + (j.ready ? 5 * 60000 : 15000);
+      })
+      .catch(function(){
+        triviaFetching = false;
+        triviaNextFetch = Date.now() + 60000;
+      });
+  }
+
+  function showTriviaCard(i){
+    var c = triviaDeck[i];
+    if (!c) return;
+    triviaAt = i;
+    triviaShownAt = Date.now();
+    var paint = function(){
+      var img = document.getElementById('tPoster');
+      if (c.poster_url) { img.src = c.poster_url; img.style.visibility = ''; }
+      else { img.removeAttribute('src'); img.style.visibility = 'hidden'; }
+      document.getElementById('tFilm').textContent = c.title;
+      document.getElementById('tFact').textContent = c.fact;
+    };
+    if (triviaEl.className.indexOf('on') < 0) { paint(); return; }
+    triviaEl.classList.add('swap');
+    setTimeout(function(){
+      paint();
+      triviaEl.classList.remove('swap');
+    }, 600);
+  }
+
+  function tickTrivia(ms){
+    var live = lastNightStatus === 'planned' || lastNightStatus === 'locked';
+    if (!live || ms == null) {
+      if (triviaEl.className) triviaEl.className = '';
+      return;
+    }
+    if (ms <= TRIVIA_FETCH_MS && Date.now() >= triviaNextFetch) fetchTrivia();
+    /* Shown from an hour out until the wheel turns, past the start time too, while the
+       room settles. Hidden while anything else owns the screen. */
+    var want = ms <= TRIVIA_WINDOW_MS && triviaDeck.length > 0 && !spinning &&
+      revealEl.className !== 'on' && !fullScreen();
+    if (!want) {
+      if (triviaEl.className.indexOf('on') >= 0) triviaEl.className = '';
+      return;
+    }
+    if (triviaAt < 0 || triviaAt >= triviaDeck.length) {
+      showTriviaCard(0);
+    } else if (Date.now() - triviaShownAt >= TRIVIA_EVERY_MS && Date.now() >= triviaHoldUntil) {
+      showTriviaCard((triviaAt + 1) % triviaDeck.length);
+    }
+    if (triviaEl.className.indexOf('on') < 0) triviaEl.classList.add('on');
+  }
+
+  /** The announcer reads the card that is on screen, and the card waits for the voice. */
+  function sayTrivia(onStarted, onFail){
+    var c = triviaDeck[triviaAt];
+    if (!c || triviaEl.className.indexOf('on') < 0 || spinning) {
+      /* Nothing to read. Only a finished load with zero facts spends the slot; a deck
+         still loading, or a card not on screen yet, retries on the next tick. */
+      if (triviaLoaded && triviaDeck.length === 0) { if (onStarted) onStarted(); }
+      else if (onFail) onFail();
+      return;
+    }
+    triviaHoldUntil = Date.now() + 60000;
+    fetch(API + 'trivia-say?key=' + encodeURIComponent(KEY), {
+      method: 'POST',
+      body: JSON.stringify({ film_id: c.film_id, n: c.n })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if (!j || !j.url) { triviaHoldUntil = 0; if (onStarted) onStarted(); return; }
+        var a = new Audio(j.url);
+        a.preload = 'auto';
+        var done = function(){
+          triviaEl.classList.remove('speaking');
+          triviaHoldUntil = Date.now() + 8000;
+        };
+        a.addEventListener('ended', done);
+        a.addEventListener('error', done);
+        triviaEl.classList.add('speaking');
+        duckThenPlay(a, onStarted, function(){ done(); if (onFail) onFail(); });
+      })
+      .catch(function(){ triviaHoldUntil = 0; if (onFail) onFail(); });
+  }
+
   function tickCountdown(){
     checkTminus(startsAt ? startsAt - Date.now() : null);
+    tickTrivia(startsAt ? startsAt - Date.now() : null);
     var txt = countdownText();
     if (txt === lastCount) return;
     lastCount = txt;

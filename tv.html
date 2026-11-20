@@ -595,6 +595,12 @@ body.idlecursor, body.idlecursor *{cursor:none}
 #cinema .cx{position:absolute;top:-52px;right:0}
 .pillbtn.mute{position:fixed;left:26px;bottom:24px;z-index:40;opacity:.55}
 .pillbtn.mute:hover{opacity:1}
+/* The browser is holding sound until someone clicks: say so, loudly enough to notice. */
+.pillbtn.mute.locked{opacity:1;color:#231806;border-color:transparent;
+  background:linear-gradient(180deg,var(--amber),var(--amber-deep));
+  box-shadow:0 0 34px rgba(245,185,66,.5);animation:nudge 1.6s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@media (prefers-reduced-motion: reduce){.pillbtn.mute.locked{animation:none}}
 .mcredit{position:fixed;left:26px;top:16px;z-index:40;font-size:11px;
   color:var(--muted);opacity:.45;letter-spacing:.04em}
 .spinaux{margin-top:14px;display:flex;align-items:center;justify-content:center;gap:16px;
@@ -1180,6 +1186,14 @@ body.idlecursor, body.idlecursor *{cursor:none}
   var MUSIC_VOL = 0.24;
   var music = null;
   var lastNightStatus = '';
+  /* True while the browser refuses to play until someone clicks the page (autoplay rule).
+     The mute pill turns into a pulsing "click to start sound" for as long as it holds. */
+  var AUDIO_LOCKED = false;
+  function setAudioLocked(v){
+    if (AUDIO_LOCKED === v) return;
+    AUDIO_LOCKED = v;
+    paintMute();
+  }
 
   function fadeAudio(a, to, ms, done){
     var from = a.volume;
@@ -1206,8 +1220,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
       music.audio = a;
       a.addEventListener('ended', function(){ if (music) setTimeout(nextTrack, 1500); });
       a.play()
-        .then(function(){ fadeAudio(a, MUSIC_VOL, 3000); })
-        .catch(function(){ music = null; /* not unlocked yet — a later click retries */ });
+        .then(function(){ setAudioLocked(false); fadeAudio(a, MUSIC_VOL, 3000); })
+        .catch(function(e){
+          music = null; /* not unlocked yet — a later click retries */
+          if (e && e.name === 'NotAllowedError') setAudioLocked(true);
+        });
     })();
   }
 
@@ -3423,9 +3440,19 @@ body.idlecursor, body.idlecursor *{cursor:none}
   /* The mute switch doubles as the audio unlock: any click on it counts as the user
      gesture browsers want before a page may make noise. */
   function paintMute(){
-    document.getElementById('muteBtn').textContent = MUTED ? '🔇 muted' : '🔊 sound on';
+    var b = document.getElementById('muteBtn');
+    var locked = AUDIO_LOCKED && !MUTED;
+    b.textContent = MUTED ? '🔇 muted' : locked ? '🔊 click to start sound' : '🔊 sound on';
+    b.className = 'pillbtn mute' + (locked ? ' locked' : '');
   }
   document.getElementById('muteBtn').addEventListener('click', function(){
+    /* While locked, this click is the unlock the browser wants: start sound, don't mute. */
+    if (AUDIO_LOCKED && !MUTED) {
+      audioCtx();
+      setAudioLocked(false);
+      syncMusic();
+      return;
+    }
     MUTED = !MUTED;
     try { localStorage.setItem('den-muted', MUTED ? '1' : '0'); } catch (e) {}
     if (!MUTED) audioCtx();

@@ -1216,9 +1216,22 @@ body.idlecursor, body.idlecursor *{cursor:none}
       var n = music.order[music.idx % music.order.length];
       music.idx++;
       var a = new Audio(AUDIO_BASE + 'lobby-' + n + '.mp3');
-      a.volume = 0;
+      /* Start audible, not at zero. Firefox lets a page start SILENT audio without a click,
+         reports success, then quietly pauses it the moment the fade makes it audible — the
+         music looked "on" here while the room heard nothing, all night. Starting just above
+         zero makes Firefox refuse up front, which the locked path below handles. */
+      a.volume = 0.02;
       music.audio = a;
       a.addEventListener('ended', function(){ if (music) setTimeout(nextTrack, 1500); });
+      /* Any pause this code did not ask for (a browser's autoplay rule, a device change)
+         means the music is not playing: forget it, so the next poll or click starts over,
+         and show the click-to-start prompt. stopMusic clears the music handle before it pauses, so
+         its own pauses never land here. */
+      a.addEventListener('pause', function(){
+        if (!music || music.audio !== a || a.ended) return;
+        music = null;
+        setAudioLocked(true);
+      });
       a.play()
         .then(function(){ setAudioLocked(false); fadeAudio(a, MUSIC_VOL, 3000); })
         .catch(function(e){
@@ -2264,25 +2277,47 @@ body.idlecursor, body.idlecursor *{cursor:none}
       })(TMINUS[i]);
     }
   }
+  /**
+   * The announcer speaks one line at a time. House calls, the vote call, scheduled trivia
+   * and the Trivia button all come through here; a line that arrives while another is
+   * playing waits its turn instead of talking over it. The jazz dips for the first line
+   * and comes back only when the queue is empty.
+   */
+  var voiceQueue = [];
+  var voiceNow = null;
   function duckThenPlay(clip, onStarted, onFail){
-    var restore = function(){
+    voiceQueue.push({ clip: clip, onStarted: onStarted, onFail: onFail });
+    if (!voiceNow) playNextVoice();
+  }
+  function playNextVoice(){
+    var item = voiceQueue.shift();
+    if (!item) {
+      voiceNow = null;
       if (music && music.audio) fadeAudio(music.audio, MUSIC_VOL, 1400);
-    };
+      return;
+    }
+    voiceNow = item;
     if (music && music.audio) fadeAudio(music.audio, 0.07, 600);
-    clip.addEventListener('ended', restore);
-    clip.addEventListener('error', function(){
-      restore();
-      if (onFail) onFail();
+    var finished = false;
+    var next = function(gap){
+      if (finished) return;
+      finished = true;
+      setTimeout(playNextVoice, gap);
+    };
+    item.clip.addEventListener('ended', function(){ next(700); });
+    item.clip.addEventListener('error', function(){
+      if (item.onFail) item.onFail();
+      next(0);
     });
-    var p = clip.play();
+    var p = item.clip.play();
     if (p && p.then) {
-      p.then(function(){ if (onStarted) onStarted(); })
+      p.then(function(){ if (item.onStarted) item.onStarted(); })
         .catch(function(){
-          restore();
-          if (onFail) onFail();
+          if (item.onFail) item.onFail();
+          next(0);
         });
-    } else if (onStarted) {
-      onStarted();
+    } else if (item.onStarted) {
+      item.onStarted();
     }
   }
 

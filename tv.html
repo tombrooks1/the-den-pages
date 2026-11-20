@@ -423,6 +423,7 @@ body.idlecursor, body.idlecursor *{cursor:none}
 .pillbtn.corner{}
 .pillbtn.back{margin-top:30px}
 .pillbtn.hidden{display:none}
+.pillbtn:disabled{opacity:.4;cursor:default}
 /* ---------------- the full-screen views: one chrome, one card language ----------------
    These three screens are fetched on entry and never poll, so unlike the lobby they are free
    to animate. Everything below is built for a 1920x1080 projector viewed from a couch. */
@@ -2275,7 +2276,6 @@ body.idlecursor, body.idlecursor *{cursor:none}
      times in the hour (never near the vote call or the ten- and two-minute calls) the
      announcer reads the card on screen aloud, and the card holds still while it does. */
   var TRIVIA_WINDOW_MS = 60 * 60000;
-  var TRIVIA_FETCH_MS = 75 * 60000;  /* start making facts a little before they're needed */
   var TRIVIA_EVERY_MS = 45 * 1000;
   var triviaEl = document.getElementById('trivia');
   var triviaDeck = [];               /* [{film_id, title, poster_url, fact, n}] */
@@ -2285,7 +2285,9 @@ body.idlecursor, body.idlecursor *{cursor:none}
   var triviaHoldUntil = 0;
   var triviaNextFetch = 0;
   var triviaFetching = false;
-  var triviaLoaded = false;          /* a fetch for this night has finished and every film is done */
+  var triviaLoaded = false;
+  var triviaManualUntil = 0;         /* an on-demand card stays up this long, any time */
+  var triviaBusy = false;            /* the button's own read-out is loading or playing */          /* a fetch for this night has finished and every film is done */
 
   /** Round-robin across films so no single entry gets more airtime than another. */
   function buildTriviaDeck(films){
@@ -2354,15 +2356,26 @@ body.idlecursor, body.idlecursor *{cursor:none}
 
   function tickTrivia(ms){
     var live = lastNightStatus === 'planned' || lastNightStatus === 'locked';
-    if (!live || ms == null) {
+    var btn = document.getElementById('navTrivia');
+    if (!live) {
       if (triviaEl.className) triviaEl.className = '';
+      if (btn && btn.className.indexOf('hidden') < 0) btn.classList.add('hidden');
       return;
     }
-    if (ms <= TRIVIA_FETCH_MS && Date.now() >= triviaNextFetch) fetchTrivia();
+    /* Facts are made once per film and kept, so any open screen starts making them early:
+       a film takes about a minute, and a full field of fourteen is ready well before the hour. */
+    if (Date.now() >= triviaNextFetch) fetchTrivia();
+    var free = !spinning && revealEl.className !== 'on' && !fullScreen();
+    if (btn) {
+      var showBtn = triviaDeck.length > 0 && free;
+      if (showBtn === (btn.className.indexOf('hidden') >= 0)) btn.classList.toggle('hidden');
+      if (btn.disabled !== triviaBusy) btn.disabled = triviaBusy;
+    }
     /* Shown from an hour out until the wheel turns, past the start time too, while the
-       room settles. Hidden while anything else owns the screen. */
-    var want = ms <= TRIVIA_WINDOW_MS && triviaDeck.length > 0 && !spinning &&
-      revealEl.className !== 'on' && !fullScreen();
+       room settles; or for a while after someone asks for one with the button. Hidden
+       while anything else owns the screen. */
+    var inWindow = ms != null && ms <= TRIVIA_WINDOW_MS;
+    var want = (inWindow || Date.now() < triviaManualUntil) && triviaDeck.length > 0 && free;
     if (!want) {
       if (triviaEl.className.indexOf('on') >= 0) triviaEl.className = '';
       return;
@@ -2375,16 +2388,11 @@ body.idlecursor, body.idlecursor *{cursor:none}
     if (triviaEl.className.indexOf('on') < 0) triviaEl.classList.add('on');
   }
 
-  /** The announcer reads the card that is on screen, and the card waits for the voice. */
-  function sayTrivia(onStarted, onFail){
-    var c = triviaDeck[triviaAt];
-    if (!c || triviaEl.className.indexOf('on') < 0 || spinning) {
-      /* Nothing to read. Only a finished load with zero facts spends the slot; a deck
-         still loading, or a card not on screen yet, retries on the next tick. */
-      if (triviaLoaded && triviaDeck.length === 0) { if (onStarted) onStarted(); }
-      else if (onFail) onFail();
-      return;
-    }
+  /**
+   * Fetch and play the announcer's reading of one card. The card holds still and glows
+   * while the voice runs; done() fires however it ends.
+   */
+  function readCard(c, onStarted, onFail, done){
     triviaHoldUntil = Date.now() + 60000;
     fetch(API + 'trivia-say?key=' + encodeURIComponent(KEY), {
       method: 'POST',
@@ -2392,19 +2400,68 @@ body.idlecursor, body.idlecursor *{cursor:none}
     })
       .then(function(r){ return r.json(); })
       .then(function(j){
-        if (!j || !j.url) { triviaHoldUntil = 0; if (onStarted) onStarted(); return; }
+        if (!j || !j.url) {
+          triviaHoldUntil = 0;
+          if (onStarted) onStarted();
+          if (done) done();
+          return;
+        }
         var a = new Audio(j.url);
         a.preload = 'auto';
-        var done = function(){
+        var finished = false;
+        var end = function(){
+          if (finished) return;
+          finished = true;
           triviaEl.classList.remove('speaking');
           triviaHoldUntil = Date.now() + 8000;
+          if (done) done();
         };
-        a.addEventListener('ended', done);
-        a.addEventListener('error', done);
+        a.addEventListener('ended', end);
+        a.addEventListener('error', end);
         triviaEl.classList.add('speaking');
-        duckThenPlay(a, onStarted, function(){ done(); if (onFail) onFail(); });
+        duckThenPlay(a, onStarted, function(){ end(); if (onFail) onFail(); });
       })
-      .catch(function(){ triviaHoldUntil = 0; if (onFail) onFail(); });
+      .catch(function(){
+        triviaHoldUntil = 0;
+        if (onFail) onFail();
+        if (done) done();
+      });
+  }
+
+  /** The trivia button: a random fact from a random film, on screen and read aloud. */
+  function triviaOnDemand(){
+    if (triviaBusy || !triviaDeck.length) return;
+    var i = Math.floor(Math.random() * triviaDeck.length);
+    if (triviaDeck.length > 1 && i === triviaAt && triviaEl.className.indexOf('on') >= 0) {
+      i = (i + 1 + Math.floor(Math.random() * (triviaDeck.length - 1))) % triviaDeck.length;
+    }
+    var c = triviaDeck[i];
+    triviaManualUntil = Date.now() + 30000;
+    triviaHoldUntil = Date.now() + 30000;
+    var wasOn = triviaEl.className.indexOf('on') >= 0;
+    showTriviaCard(i);
+    if (!wasOn) triviaEl.classList.add('on');
+    if (MUTED) return;
+    triviaBusy = true;
+    readCard(c, null, null, function(){
+      triviaBusy = false;
+      /* Leave the card up long enough to finish reading it after the voice stops. */
+      triviaManualUntil = Math.max(triviaManualUntil, Date.now() + 15000);
+    });
+  }
+
+  /** The announcer reads the card that is on screen, and the card waits for the voice. */
+  function sayTrivia(onStarted, onFail){
+    var c = triviaDeck[triviaAt];
+    if (triviaBusy) { if (onFail) onFail(); return; }
+    if (!c || triviaEl.className.indexOf('on') < 0 || spinning) {
+      /* Nothing to read. Only a finished load with zero facts spends the slot; a deck
+         still loading, or a card not on screen yet, retries on the next tick. */
+      if (triviaLoaded && triviaDeck.length === 0) { if (onStarted) onStarted(); }
+      else if (onFail) onFail();
+      return;
+    }
+    readCard(c, onStarted, onFail, null);
   }
 
   function tickCountdown(){
@@ -3546,12 +3603,14 @@ body.idlecursor, body.idlecursor *{cursor:none}
   });
 
   document.getElementById('navrow').innerHTML =
+    '<button class="pillbtn hidden" id="navTrivia">&#127922; trivia</button>' +
     '<button class="pillbtn hidden" id="navPicks">tonight&#39;s picks</button>' +
     '<a class="pillbtn" id="navLib" href="#library">library</a>' +
     '<a class="pillbtn" id="navPeople" href="#attendees">attendees</a>' +
     '<a class="pillbtn" id="navBoard" href="#stats">history &amp; stats</a>' +
     (IS_HOST ? '<a class="pillbtn" id="navAdmin" href="#admin">admin</a>' : '');
   document.getElementById('navPicks').addEventListener('click', reopenReveal);
+  document.getElementById('navTrivia').addEventListener('click', triviaOnDemand);
 
   routeView();
   poll();
